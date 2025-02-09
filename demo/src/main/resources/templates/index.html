@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+	<style>
+		@media screen and ((min-width: 768px) and (max-aspect-ratio: 9/16)) {
+			html {
+				font-size: 32px;
+			}
+		}
+		
+		html.dark *::-webkit-scrollbar-thumb {
+		  background-color: rgb(180, 180, 180);
+		}
+		
+		html.dark *::-webkit-scrollbar {
+		  height: 0.5rem;
+		  width: 0.5rem;
+		  background-color: rgb(100, 100, 100);
+		}
+	</style>
+	<head>
+	    <meta charset="UTF-8"/>
+	    <title>Hello demo</title>
+	    <link rel="stylesheet" type="text/css" href="/tailwind.css"></link>
+	    <script>
+			if (localStorage.theme === "dark" || (!("theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+				localStorage.theme = "dark";
+				document.documentElement.classList.add("dark");
+			} else {
+				localStorage.theme = "light";
+				document.documentElement.classList.remove('dark');
+			}
+	    </script>
+	</head>
+	<body>
+		<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" id="_csrf"/>
+		<input type="hidden" name="username" th:value="${username}" id="username"/>
+		<input type="hidden" name="mode" th:value="${mode}" id="mode"/>
+		<input type="hidden" name="isHost" th:value="${isHost}" id="isHost"/>
+		<input type="hidden" name="room_id" th:value="${room_id}" id="room_id"/>
+		<input type="hidden" name="players_limit" th:value="${players_limit}" id="players_limit"/>
+	    <div id="react"></div>
+	    <script src="/App.js"></script>
+	</body>
+</html>

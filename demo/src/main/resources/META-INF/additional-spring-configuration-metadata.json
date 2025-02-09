@@ -1,0 +1,37 @@
+{"properties": [{
+  "name": "app.room.limit",
+  "type": "java.lang.String",
+  "description": "max number of open rooms"
+},
+{
+  "name": "app.room.time_to_life",
+  "type": "java.lang.String",
+  "description": "time to life of a room"
+},
+{
+  "name": "app.room.time_to_life_after_finish",
+  "type": "java.lang.String",
+  "description": "time to life of a room after game was finished"
+},
+
+{
+  "name": "app.room.system_channel_name",
+  "type": "java.lang.String",
+  "description": "name of system channel"
+},
+{
+  "name": "app.room.system_channel_color",
+  "type": "java.lang.String",
+  "description": "color of system channel"
+},
+{
+  "name": "app.room.lobby_channel_name",
+  "type": "java.lang.String",
+  "description": "name of lobby channel"
+},
+{
+  "name": "app.room.lobby_channel_color",
+  "type": "java.lang.String",
+  "description": "color of lobby channel"
+}
+]}

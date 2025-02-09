@@ -1,0 +1,205 @@
+{		
+	"times": [ 
+		{"id": "Ночь", "duration": 30000},
+		{"id": "День", "duration": 30000}
+	],
+	
+	"fractions": [
+		{
+			"id": "Горожане",
+			"win_condition": "fraction(Мафия) and not(effect(Мертвый))",
+			"win_text": "Горожане искоренили мафию из города."
+		},
+		 
+		{
+			"id": "Мафия",
+			"win_condition": "fraction(Горожане) and not(effect(Мертвый))",
+			"win_text": "Мафия получила полное господство над городом."
+		}
+	],
+	
+	"roles": [
+		{
+			"id": "Радиолюбитель",
+			"fraction": "Горожане",
+			"description": "Вы Радиолюбитель. Вы можете слушать и разговаривать с Мафией, при этом ваша личность и личность мафии остаются в секрете.",
+			"count": 1
+		},		
+		
+		{
+			"id": "Медиум",
+			"fraction": "Горожане",
+			"description": "Вы Медиум. Вы можете разговаривать с мертвецами, но мертвые не могут узнать вашу личность",
+			"count": 1
+		},		
+	
+		{
+			"id": "Следопыт",
+			"fraction": "Горожане",
+			"description": "Вы Следопыт. Вы принадлежите фракции горожан. Вы можете узнать кто приходил к определенному человеку ночью",
+			"count": 1
+		},
+				
+		{
+			"id": "Шериф",
+			"fraction": "Горожане",
+			"description": "Вы Шериф. Вы принадлежите фракции горожан. Вы можете узнать ночью является ли игрок мафией",
+			"count": 1
+		},
+		
+		{
+			"id": "Доктор",
+			"fraction": "Горожане",
+			"description": "Вы Доктор. Вы принадлежите фракции горожан. Вы можете лечить людей ночью и они выживут при покущении",
+			"count": 1
+		},
+		
+		{
+			"id": "Любовница",
+			"fraction": "Горожане",
+			"description": "Вы Любовница. Вы принадлежите фракции горожан. Вы можете лишить способностей игрока на один день и ночь",
+			"count": 1
+		},
+		
+		{
+			"id": "Горожанин",
+			"fraction": "Горожане",
+			"description": "Вы простой трудяга. Вы принадлежите фракции горожан.",
+			"count": 11
+		},
+		
+		{
+			"id": "Мафия",
+			"fraction": "Мафия",
+			"description": "Убивай, убивай, убивай!",
+			"count": 1
+		}
+	],
+	
+	"abilities": [
+		
+		{
+			"id": "Дневное голосование",
+			"description": "Умрет тот, за кого проголосовало больше. При равном количество голосов никто не умирает.",
+			"candidates": "not(effect(Мертвый))",
+			"canUse": "time(День) and not(effect(Мертвый)) and not(effect(Блок))",
+			"self_use": false,
+			"channel": "Общий",
+			"rule": "most_voted",
+			"showVotes": true,
+			"effects": ["Мертвый"]
+		},
+		
+		{
+			"id": "Любовь",
+			"description": "Выберите человека,  которого вы хотите лишить способностей этой ночью и днем.",
+			"candidates": "not(effect(Мертвый))",
+			"canUse":  "time(Ночь) and role(Любовница) and not(effect(Мертвый)) and not(effect(Блок))",
+			"self_use": false,
+			"rule": "each_voted",
+			"effects": ["Блок"]
+		},
+		
+		{
+			"id": "Расследование",
+			"description": "Выберите человека, фракцию которого вы хотите узнать ночью.",
+			"candidates": "not(effect(Мертвый))",
+			"canUse":  "time(Ночь) and role(Шериф) and not(effect(Мертвый)) and not(effect(Блок))",
+			"self_use": false,
+			"rule": "each_voted",
+			"effects": ["Раскрыт"]
+		},	
+		
+		{
+			"id": "Лечение",
+			"description": "Выберите человека, которого хотите защитить ночью.",
+			"candidates": "not(effect(Мертвый))",
+			"canUse":  "time(Ночь) and role(Доктор) and not(effect(Мертвый)) and not(effect(Блок))",
+			"self_use": false,
+			"rule": "each_voted",
+			"effects": ["Защита"]
+		},	
+		
+		{
+			"id": "Ночное голосование",
+			"description": "Умрет тот, за кого проголосовало больше. При равном количество голосов никто не умирает.",
+			"candidates": "fraction(Горожане) and not(effect(Мертвый))",
+			"canUse":  "time(Ночь) and fraction(Мафия) and not(effect(Мертвый)) and not(effect(Блок))",
+			"self_use": false,
+			"rule": "most_voted",
+			"effects": ["Мертвый"]
+		},
+		
+		{
+			"id": "Слежка",
+			"description": "Выберите человека, имена ночных посетителей которого вы хотите узнать",
+			"candidates": "not(effect(Мертвый))",
+			"canUse":  "time(Ночь) and role(Следопыт) and not(effect(Мертвый)) and not(effect(Блок))",
+			"self_use": false,
+			"rule": "each_voted",
+			"visitor_effects": ["Замечен"]
+		}	
+	],
+	
+	"channels": [
+		{
+			"id": "Общий",
+			"canRead": "all()",
+			"canWrite":  "time(День) and not(effect(Мертвый))",
+			"color": "#007700"
+		},
+		
+		{
+			"id": "Мертвые",
+			"canRead":  "effect(Мертвый) or role(Медиум)",
+			"canWrite":  "effect(Мертвый)",
+			"canAnonymousWrite":  "role(Медиум)",
+			"color": "#880088"
+		},
+		
+		{
+			"id": "Мафия",
+			"canRead": "fraction(Мафия)",
+			"canAnonymousRead":  "role(Радиолюбитель)",
+			"canWrite":  "fraction(Мафия) and not(effect(Мертвый))",
+			"canAnonymousWrite":  "role(Радиолюбитель)",
+			"color": "#aa0000"
+		}
+	],
+	
+	"effects": [
+		{
+			"id": "Мертвый",
+			"text_to_all": "$target.name погиб.",
+			"text_to_user": "Вы погибли.",
+			"duration": -1
+		},
+		
+		{
+			"id": "Защита",
+			"text_to_user": "На вас использовали способность $ability.",
+			"duration": 1,
+			"protectFrom": ["Мертвый"] 
+		},
+		
+		{
+			"id": "Блок",
+			"text_to_user": "На вас использовали способность $ability.",
+			"duration": 1
+		},
+		
+		{
+			"id": "Раскрыт",
+			"text_to_user": "На вас использовали способность $ability.",
+			"text_to_pollers": "$target.name принадлежит к фракции $target.fraction",
+			"duration": 0
+		},
+		
+		{
+			"id": "Замечен",
+			"text_to_user": "Вас заметили, когда вы посещали игрока $host.name.",
+			"text_to_pollers": "$target.name ночью посетил игрока $host.name.",
+			"duration": 0
+		}
+	]
+}
