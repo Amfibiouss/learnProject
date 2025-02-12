@@ -315,7 +315,6 @@
 					"condition": "status(Живой)",
 					"addTargetStatuses": ["Тяжело ранен"],
 					"informUser": "Вы напали на $target.name.",
-					"informTarget": "На вас напали!",
 					"stop": true
 				}
 			]

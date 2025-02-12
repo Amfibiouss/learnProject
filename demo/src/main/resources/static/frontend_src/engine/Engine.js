@@ -1,8 +1,9 @@
 import ConfigChecker from "./ConfigChecker.js";
+import OutputBuilder from "./OutputBuilder.js";
 
 class Engine {
 	
-	calcExpressionByTree(node) {
+	calcExpressionByTree = (node) => {
 		if (!node) 
 			return 0;
 			
@@ -39,7 +40,7 @@ class Engine {
 			return (this.state.time === node.time)? this.state.all_mask : 0;
 	}
 	
-	getMaskFromSelector(selector, target, user) {
+	getMaskFromSelector = (selector, target, user) => {
 		if (!selector) {
 			return 0;
 		}
@@ -58,18 +59,6 @@ class Engine {
 			let res = this.calcExpressionByTree(tree);
 			return res;
 		}
-	}
-	
-	toCandidateList(mask) {
-		var candidate_list = [];
-		
-		for (var i = 0; i < 30; i++) {
-			if (mask & (1 << i)) {
-				candidate_list.push({id: i, name: "Игрок #" + i});
-			}
-		}
-		
-		return candidate_list;
 	}
 	
 	getAbility(id) {
@@ -123,68 +112,16 @@ class Engine {
 		
 		return null;
 	}
-
-	initChannels() {
-		let channels = [];
-		this.config.channels.forEach((channel) => {		
-			channels.push({id: channel.id, color: channel.color});
-		});
+	
+	randomShuffle(arr) {
 		
-		return channels;
+		for (let i = 1; i < arr.length; i++) {
+			let index = Math.floor(Math.random() * i);
+			let temp = arr[i];
+			arr[i] = arr[index];
+			arr[index] = temp;
+		}	
 	}
-	
-	handleChannels(output) {
-		output.channelStates = [];
-		this.config.channels.forEach((channel) => {
-			
-			let read_mask = this.getMaskFromSelector(channel.canRead);
-			let write_mask = this.getMaskFromSelector(channel.canWrite);
-			let anonymous_read_mask = this.getMaskFromSelector(channel.canAnonymousRead);
-			let anonymous_write_mask = this.getMaskFromSelector(channel.canAnonymousWrite);
-			
-			output.channelStates.push({id: channel.id, 
-								canRead: read_mask, 
-								canXRayRead: 0,
-								canAnonymousRead: anonymous_read_mask,
-								canWrite: write_mask,
-								canXRayWrite: 0,
-								canAnonymousWrite: anonymous_write_mask,
-								color: channel.color});
-		});
-	}
-	
-	initPolls() {
-		let polls = [];
-		this.config.abilities.forEach((ability) => {
-			
-			polls.push({
-				id: ability.id, 
-				description: ability.description, 
-				channel: ability.channel,
-				showVotes: ability.showVotes,
-				min_selection: 1, 
-				max_selection: 1,
-				self_use: ability.self_use});
-		});
-		
-		return polls;
-	}
-	
-	handlePolls(output) {
-		output.pollStates = [];
-		this.config.abilities.forEach((ability) => {
-			
-			let candidate_mask = this.getMaskFromSelector(ability.candidates);
-			let user_mask = this.getMaskFromSelector(ability.canUse);
-			
-			output.pollStates.push({
-				id: ability.id,
-				candidates: this.toCandidateList(candidate_mask),
-				can_vote: user_mask
-			});
-		});
-	}
-	
 	
 	start(config) {
 		this.config = config;
@@ -196,10 +133,10 @@ class Engine {
 		this.config.roles.forEach((role) => {this.count += role.count;});
 		
 		this.state.status_mask = new Map();
-		this.state.players = [];
+		this.state.statuses = [];
+		this.state.status_count = [];
 		for (let i = 0; i < this.count; i++)
-			this.state.players.push({status_count: new Map(), statuses: []});
-		
+			this.state.status_count.push(new Map());
 		
 		this.state.time = this.config.times[0].id;
 		this.state.day_counter = 1;
@@ -210,8 +147,7 @@ class Engine {
 			this.state.fraction_mask[fraction.id] = 0;
 		});
 		
-		this.state.output = {};
-		this.state.output.messages = [];
+		this.outputBuilder = new OutputBuilder(this.config, this.getMaskFromSelector);
 		this.state.role_mask = {};
 		this.state.fractions = [];
 		this.state.roles = [];
@@ -231,7 +167,7 @@ class Engine {
 					}
 				}
 				
-				this.state.output.messages.push(role.description);
+				this.outputBuilder.addMessage(index, role.description);
 				
 				this.state.fraction_mask[role.fraction] |= 1 << index;
 				this.state.role_mask[role.id] |= 1 << index;
@@ -239,13 +175,14 @@ class Engine {
 			}
 		}
 		
-		this.handleChannels(this.state.output);
-		this.handlePolls(this.state.output);
-		this.state.output.stage = this.state.time + " #" + this.state.day_counter + " @" + this.branch;
-		this.state.output.duration = this.config.times[0].duration;
-		this.state.output.finish = false;
+		let output = this.outputBuilder.build(
+			this.state.time + " #" + this.state.day_counter + " @" + this.branch, 
+			this.config.times[0].duration, 
+			true);
+			
+		this.state.output = output.initState;
 		
-		return {initState: this.state.output, channels: this.initChannels(), polls: this.initPolls()};
+		return output;
 	}
 	
 	getSelected(user_mask, table,  ability) {
@@ -332,17 +269,19 @@ class Engine {
 	
 	addStatus(status, duration, target, user) {
 		status = this.formatText(status, target, user);
+		
+		this.state.statuses.push({id: status, duration: duration, target: target, user: user});
+		
 		let parts = status.split("/");
 		let path = "";
-		let player = this.state.players[target];
 		
 		for (const part of parts) {
 			path += part;
-			if (player.status_count.has(path)) {
-				let count = player.status_count.get(path);
-				player.status_count.set(path, count + 1);
+			if (this.state.status_count[target].has(path)) {
+				let count = this.state.status_count[target].get(path);
+				this.state.status_count[target].set(path, count + 1);
 			} else {
-				player.status_count.set(path, 1);
+				this.state.status_count[target].set(path, 1);
 				
 				if (this.state.status_mask.has(path)) {
 					this.state.status_mask.set(path, this.state.status_mask.get(path) ^ (1 << target));
@@ -356,31 +295,30 @@ class Engine {
 		
 		//console.log("!!!!" + status + " " + target + " " + user);
 		
-		player.statuses.push({id: status, duration: duration, target: target, user: user});
+		//player.statuses.push({id: status, duration: duration, target: target, user: user});
 	}
 	
 	removeStatus(status, target, user) {
 		status = this.formatText(status, target, user);
-		let player = this.state.players[target];
 		
-		let index = player.statuses.findIndex(item => item.id === status);
+		let index = this.state.statuses.findIndex(item => item.id === status);
 
 		if (index === -1)
 			return;
 		
-		player.statuses.splice(index, 1);
+		this.state.statuses.splice(index, 1);
 		
 		let parts = status.split("/");
 		let path = "";
 		
 		for (const part of parts) {
 			path += part;
-			if (player.status_count.has(path)) {
-				let count = player.status_count.get(path);
-				player.status_count.set(path, count - 1);
+			if (this.state.status_count[target].has(path)) {
+				let count = this.state.status_count[target].get(path);
+				this.state.status_count[target].set(path, count - 1);
 				
 				if (count === 1) {
-					player.status_count.delete(path);
+					this.state.status_count[target].delete(path);
 					this.state.status_mask.set(path, this.state.status_mask.get(path) ^ (1 << target));
 					this.state.status_mask[path] ^= 1 << target;
 				}
@@ -390,36 +328,43 @@ class Engine {
 	}
 	
 	updateStatusDuration(messages) {
-		for (let pindex = 0; pindex < this.count; pindex++) {
-			
-			let player = this.state.players[pindex];
-			
-			for (let status of player.statuses) {
-				if (status.duration < 0)
-					continue;
-				
-				status.duration -= 0.5;
-			}
-			
-			while(true) {
-				let index = player.statuses.findIndex((item) => item.duration === 0);
-				
-				if (index === -1)
-					break;
+		
+		this.randomShuffle(this.state.statuses);
+		
+		for (const status of this.state.statuses) {
 
-				let status = player.statuses[index];
-				let action = this.getStatus(status.id).expireAction;
+			if (status.duration < 0)
+				continue;
 				
-				if (action)
-					this.tryAction({id: status.target, users: [status.user], direct_users: [status.user]}, status.user, action, messages);
-				
-				this.removeStatus(status.id, pindex, status.user);
-			}
+			status.duration -= 0.5;
+		}
+			
+		while(true) {
+			let index = this.state.statuses.findIndex((item) => item.duration === 0);
+			
+			if (index === -1)
+				break;
+
+			let status = this.state.statuses[index];
+			let action = this.getStatus(status.id).expireAction;
+			
+			if (action)
+				this.tryAction({id: status.target, users: [status.user], direct_users: [status.user]}, status.user, action, messages);
+			
+			this.removeStatus(status.id, status.target, status.user);
 		}
 	}
 	
 	getStatuses(pindex) {
-		return this.state.player[pindex].statuses;
+		
+		let res = [];
+		
+		for (let status of this.state.statuses) {
+			if (status.target === pindex)
+				res.push(status);	
+		}
+		
+		return res;
 	}
 	
 	updateStatuses(target, user, addStatuses, removeStatuses) {
@@ -456,19 +401,19 @@ class Engine {
 				this.updateStatuses(_user, target, reaction.addUsersStatuses, reaction.removeUsersStatuses);
 			
 			if (reaction.informTarget)
-				messages[target] += this.formatText(reaction.informTarget, target, user) + "\n";	
+				this.outputBuilder.addMessage(target, this.formatText(reaction.informTarget, target, user));	
 			
 			if (reaction.informUser)
-				messages[user] += this.formatText(reaction.informUser, target, user) + "\n";	
+				this.outputBuilder.addMessage(user, this.formatText(reaction.informUser, target, user));	
 			
 			if (reaction.informDirectUsers) {
 				for (const id of candidate.direct_users) 
-					messages[id] += this.formatText(reaction.informDirectUsers, target, user) + "\n";	
+					this.outputBuilder.addMessage(id, this.formatText(reaction.informDirectUsers, target, user));	
 			} 
 			
 			if (reaction.informUsers) {
 				for (const id of candidate.users) 
-					messages[id] += this.formatText(reaction.informUsers, target, user) + "\n";	
+					this.outputBuilder.addMessage(id, this.formatText(reaction.informUsers, target, user));	
 			}
 			
 			if (reaction.inform) {
@@ -479,14 +424,14 @@ class Engine {
 					
 					for (let i = 0; i < this.count; i++) {
 						if (mask & (1 << i))
-							messages[i] += this.formatText(group.text, target, user) + "\n";
+							this.outputBuilder.addMessage(i, this.formatText(group.text, target, user));
 					}	
 				}
 			}
 			
 			if (reaction.informAll) {
 				for (let i = 0; i < this.count; i++)
-					messages[i] += this.formatText(reaction.informAll, target, user) + "\n";	
+					this.outputBuilder.addMessage(i, this.formatText(reaction.informAll, target, user));	
 			}
 			
 			if (reaction.stop === true)
@@ -502,6 +447,7 @@ class Engine {
 	update(poll_results) {
 
 		this.state.old_state = JSON.parse(JSON.stringify(this.state));
+		this.outputBuilder = new OutputBuilder(this.config, this.getMaskFromSelector);
 		
 		//Обработка автоматического голосования вместо пользователя (например для Мести Дурака)
 		for(const poll_result of poll_results) {
@@ -522,10 +468,7 @@ class Engine {
 			}
 		}
 		
-		this.updateStatusDuration(this.state.output.messages);
-		
-		this.state.output = {};
-		this.state.output.messages = Array(30).fill("");
+		this.updateStatusDuration();
 		
 		for(const poll_result of poll_results) {
 			let ability = this.getAbility(poll_result.id);
@@ -533,6 +476,7 @@ class Engine {
 			//let candidate_mask = this.getMaskFromSelector(ability.candidates);
 			let user_mask = this.getMaskFromSelector(ability.canUse);
 			let selected = this.getSelected(user_mask, poll_result.table, ability);
+			this.randomShuffle(selected);
 			
 			for (const candidate of selected) {
 				
@@ -540,15 +484,16 @@ class Engine {
 					continue;
 				
 				for (const action of ability.actions) {
+					this.randomShuffle(candidate.users);
 					for (const user of candidate.users) {
-						if (this.tryAction(candidate, user, action, this.state.output.messages))
+						if (this.tryAction(candidate, user, action))
 							break;
 					}
 				}
 			}
 		}
 		
-		this.updateStatusDuration(this.state.output.messages);
+		this.updateStatusDuration();
 		
 		var time_index = this.config.times.findIndex((time) => time.id === this.state.time);
 
@@ -560,43 +505,33 @@ class Engine {
 			time_index++;
 		
 		this.state.time = this.config.times[time_index].id;
-		this.state.output.duration = this.config.times[time_index].duration;
-		
-		this.state.output.finish = false;
-		
+
 		for (let winCase of this.config.finishConditions) {
-			
-			//console.log(winCase.condition + " $$$$ " + this.getMaskFromSelector(winCase.condition));
-			
+
 			if(!this.getMaskFromSelector(winCase.condition)) {
 				
 				let winners_mask = this.getMaskFromSelector(winCase.winners);
 				
 				for (let i = 0; i < this.count; i++) {
 					if (winners_mask & (1 << i)) {
-						this.state.output.messages[i] += winCase.winText + "\n";
+						this.outputBuilder.addMessage(i, winCase.winText);
 					} else {
-						this.state.output.messages[i] += winCase.loseText + "\n";
+						this.outputBuilder.addMessage(i, winCase.loseText);
 					}
 					
 					if (winCase.winTextAll)
-						this.state.output.messages[i] += winCase.winTextAll + "\n";
+						this.outputBuilder.addMessage(i, winCase.winTextAll);
 				}
 				
-				this.state.output.finish = true;
+				this.outputBuilder.setFinish();
 				break;	
 			}
 		}
 		
-		this.handleChannels(this.state.output);
-		this.state.output.polls = [];
-		
-		if (!this.state.output.finish)
-			this.handlePolls(this.state.output);
-		else
-			this.state.output.pollStates = []; 
-		
-		this.state.output.stage = this.state.time + " #" + this.state.day_counter + " @" + this.branch;
+		this.state.output = this.outputBuilder.build(
+			this.state.time + " #" + this.state.day_counter + " @" + this.branch,
+			this.config.times[time_index].duration,  
+			false);
 		
 		return this.state.output;
 	}

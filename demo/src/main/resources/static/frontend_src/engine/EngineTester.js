@@ -108,7 +108,7 @@ class EngineTester {
 			
 			var poll_results = data.pollStates.map((poll) => {return {id: poll.id, table: new Array(30).fill(0)};});
 			
-			//console.log(data);
+			console.log(data);
 			for (let player of this.players) {
 				while (player.actions.length > 0) {
 					
@@ -183,13 +183,13 @@ class EngineTester {
 							break;						
 						
 						case "no_status":
-							if (this.engine.state.players[player.pindex].status_count.get(action.status_id)) {
+							if (this.engine.state.status_count[player.pindex].get(action.status_id)) {
 								throw new Error("Ошибка, у игрока " + player.name + " статус " + action.status_id);
 							}
 							break;
 						
 						case "status":
-							if (!this.engine.state.players[player.pindex].status_count.get(action.status_id)) {
+							if (!this.engine.state.status_count[player.pindex].get(action.status_id)) {
 								throw new Error("Ошибка, у игрока  " + player.name + " нету статуса " + action.status_id);
 							}
 							break;
