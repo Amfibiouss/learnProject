@@ -13,7 +13,7 @@ public class DInputState {
 	
 	private List<String> messages;
 	
-	private List<String> win_fractions;
+	private boolean finish;
 	
 	private String stage;
 	
@@ -28,13 +28,13 @@ public class DInputState {
 	public void setPollStates(List<DInputPollState> pollStates) {
 		this.pollStates = pollStates;
 	}
-
-	public List<String> getWin_fractions() {
-		return win_fractions;
+	
+	public boolean isFinish() {
+		return finish;
 	}
 
-	public void setWin_fractions(List<String> win_fractions) {
-		this.win_fractions = win_fractions;
+	public void setFinish(boolean finish) {
+		this.finish = finish;
 	}
 
 	public List<DInputChannelState> getChannelStates() {

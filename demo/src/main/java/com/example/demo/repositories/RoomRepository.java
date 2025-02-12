@@ -239,7 +239,7 @@ public class RoomRepository {
 		session.persist(fstage);
 		room.setCurrentStage(fstage);
 		
-		if (state.getWin_fractions().size() > 0)
+		if (state.isFinish())
 			room.setStatus("finished");
 		else
 			room.setStatus("run");

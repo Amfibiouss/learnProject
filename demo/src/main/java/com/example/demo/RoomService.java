@@ -90,7 +90,7 @@ public class RoomService {
 		Map.Entry<List<DOutputMessage>, List<DOutputState> > results =
 				roomRepository.setState(room_id, state, null, null, false);
 		
-		if (state.getWin_fractions().size() > 0) {
+		if (state.isFinish()) {
 			closeRoomScheduler.schedule(() -> {closeRoom(room_id);}, Instant.now().plusSeconds(room_ttl_after_finish));
 		}
 		

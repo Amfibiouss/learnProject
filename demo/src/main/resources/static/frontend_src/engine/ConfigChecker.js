@@ -11,7 +11,6 @@ class ConfigChecker {
 				{
 					id: "times", 
 					type: "array",
-					required: true,
 					items: 
 					{
 						type: "object",
@@ -23,16 +22,29 @@ class ConfigChecker {
 				},
 				
 				{
+					id: "finishConditions", 
+					type: "array",
+					items: 
+					{
+						type: "object",
+						fields: [
+							{id: "condition",  type: "expression"},
+							{id: "winners",  type: "expression"},
+							{id: "winText",  type: "string"},
+							{id: "loseText",  type: "string"},
+							{id: "winTextAll",  type: "string", not_requied: true},
+						] 
+					}
+				},
+				
+				{
 					id: "fractions", 
 					type: "array",
-					required: true,
 					items: 
 					{
 						type: "object",
 						fields: [
 							{id: "id",  type: "string"},
-							{id: "win_condition",  type: "expression"},
-							{id: "win_text",  type: "string"},
 						]
 					}
 				},
@@ -49,6 +61,7 @@ class ConfigChecker {
 							{id: "description",  type: "string"},
 							{id: "fraction", from: "fractions", type: "string"},
 							{id: "count",  type: "number", min: 0},
+							{id: "statuses",  type: "array", items: {type: "string"}, not_required: true},
 						]
 					}
 				},
@@ -68,9 +81,10 @@ class ConfigChecker {
 							{id: "self_use",  type: "boolean"},
 							{id: "channel",  type: "string", from: "channels", items: {type: "string"}, not_required: true},
 							{id: "rule",  type: "string"},
+							{id: "autoVote",  type: "boolean", not_required: true},
 							{id: "showVotes",  type: "boolean", not_required: true},
-							{id: "visitor_effects",  type: "array", from: "effects", items: {type: "string"}, not_required: true},
-							{id: "effects",  type: "array", from: "effects", items: {type: "string"}, not_required: true},
+							{id: "actions",  type: "array", from: "actions", items: {type: "string"}, not_required: true},
+							
 						]
 					}
 				},
@@ -94,21 +108,69 @@ class ConfigChecker {
 				},
 				
 				{
-					id: "effects", 
+					id: "actions", 
 					type: "array",
 					items: 
 					{
 						type: "object",
 						fields:
 						[
-							{id: "id",  type: "string"},
-							{id: "text_to_all",  type: "string", not_required: true},
-							{id: "text_to_user",  type: "string", not_required: true},
-							{id: "text_to_pollers",  type: "string", not_required: true},
-							{id: "duration",  type: "number"},
-							{id: "protectFrom",  type: "array", from: "effects", items: {type: "string"}, not_required: true},
+							{
+								id: "id",  
+								type: "string"
+							},
+							{
+								id: "reactions",  type: "array", items: 
+								{
+									type: "object",
+									fields: [
+										{id: "condition", type: "expression"},
+										{id: "addTargetStatuses", type: "array", items: {type: "string"}, not_required: true},
+										{id: "addUserStatuses", type: "array", items: {type: "string"}, not_required: true},
+										{id: "addDirectUsersStatuses", type: "array", items: {type: "string"}, not_required: true},
+										{id: "addUsersStatuses", type: "array", items: {type: "string"}, not_required: true},
+										{id: "removeTargetStatuses", type: "array", items: {type: "string"}, not_required: true},
+										{id: "removeUserStatuses", type: "array", items: {type: "string"}, not_required: true},
+										{id: "removeDirectUsersStatuses", type: "array", items: {type: "string"}, not_required: true},
+										{id: "removeUsersStatuses", type: "array", items: {type: "string"}, not_required: true},	
+										{id: "informTarget", type: "string", not_required: true},
+										{id: "informUser", type: "string", not_required: true},
+										{id: "informDirectUsers", type: "string", not_required: true},
+										{id: "informUsers", type: "string", not_required: true},
+										{id: "informAll", type: "string", not_required: true},
+										{
+											id: "inform", 
+											type: "array", 
+											items: {
+												type: "object",
+												fields: [
+													{id: "address", type: "expression"},
+													{id: "text", type: "string"},
+												]
+											},
+											not_required: true
+										},
+										{id: "propagate", type: "boolean", not_required: true},
+										{id: "stop", type: "boolean", not_required: true},
+									]								
+								}
+							},
 						]
 					}		
+				},
+				
+				{
+					id: "statuses",
+					type: "array",
+					items: 
+					{
+						type: "object",
+						fields: [
+							{id: "id", type: "string"},
+							{id: "duration", type: "number"},
+							{id: "expireAction", type: "string", from: "actions",  not_required: true},
+						]
+					}
 				}
 			]
 		};
@@ -252,7 +314,7 @@ class ConfigChecker {
 				return false;
 			}
 			
-			if(!this.checkExpression(config.replaceAll(" ", ""), root_config)) {
+			if(!this.checkExpression(config, root_config)) {
 				this.error = "Поле " + rules.id + " содержит некорректное выражение " + config + ".";
 				return false;	
 			}
@@ -294,7 +356,7 @@ class ConfigChecker {
 		let comp = null;
 		let tree = null;
 		
-		const keywords = ["fraction", "role", "effect", "time"];
+		const keywords = ["fraction", "role", "status", "time"];
 		for (const keyword of keywords) {
 			if (str.startsWith(keyword)) {
 				let expr = this.getExprInBrackets(str.substring(keyword.length));
@@ -302,7 +364,7 @@ class ConfigChecker {
 				if (expr === null)
 					return [0, null];
 						
-				if (!config[keyword + "s"].find((elem) => expr === elem.id))
+				if (keyword != "status" && !config[keyword + "s"].find((elem) => expr === elem.id))
 					return [0, null];
 						
 				comp = keyword + "(" + expr + ")";
@@ -356,6 +418,7 @@ class ConfigChecker {
 		let opList = [];
 		
 		while(true) {
+			str = str.trim();
 			const [len, tree] = this.getFirstComp(str, config);
 			
 			if (!tree)
@@ -363,6 +426,7 @@ class ConfigChecker {
 			
 			compList.push(tree);
 			str = str.substring(len);
+			str = str.trim();
 			let op = this.getFirstOperation(str);	
 			
 			if (!op)

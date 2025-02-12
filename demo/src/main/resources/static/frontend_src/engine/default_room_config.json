@@ -4,67 +4,96 @@
 		{"id": "День", "duration": 30000}
 	],
 	
-	"fractions": [
+	"finishConditions": [
 		{
-			"id": "Горожане",
-			"win_condition": "fraction(Мафия) and not(effect(Мертвый))",
-			"win_text": "Горожане искоренили мафию из города."
+			"condition": "(fraction(Мафия) or fraction(Нейтрал/Маньяк)) and status(Живой)",
+			"winners": "fraction(Город) or (fraction(Нейтрал/Дурак) and status(Мертвый/Казнен))",
+			"winText": "Вы победили!",
+			"loseText": "Вы проиграли!",
+			"winTextAll": "Горожане выгнали мафию из города."
 		},
-		 
+		
 		{
-			"id": "Мафия",
-			"win_condition": "fraction(Горожане) and not(effect(Мертвый))",
-			"win_text": "Мафия получила полное господство над городом."
+			"condition": "(fraction(Город) or fraction(Нейтрал/Маньяк)) and status(Живой)",
+			"winners": "fraction(Мафия) or (fraction(Нейтрал/Дурак) and status(Мертвый/Казнен))",
+			"winText": "Вы победили!",
+			"loseText": "Вы проиграли!",
+			"winTextAll": "Мафия получила полное господство над городом"
+		},
+		
+		{
+			"condition": "not(fraction(Нейтрал/Маньяк)) and status(Живой)",
+			"winners": "fraction(Нейтрал/Маньяк) or (fraction(Нейтрал/Дурак) and status(Мертвый/Казнен))",
+			"winText": "Вы победили!",
+			"loseText": "Вы проиграли!",
+			"winTextAll": "Маньяк победил"
 		}
+	],
+	
+	"fractions": [
+		{"id": "Город"},
+		 
+		{"id": "Мафия"},
+		
+		{"id": "Нейтрал/Дурак"},
+		
+		{"id": "Нейтрал/Маньяк"}
 	],
 	
 	"roles": [
 		{
 			"id": "Радиолюбитель",
-			"fraction": "Горожане",
+			"fraction": "Город",
 			"description": "Вы Радиолюбитель. Вы можете слушать и разговаривать с Мафией, при этом ваша личность и личность мафии остаются в секрете.",
+			"statuses": ["Живой"],
 			"count": 1
 		},		
 		
 		{
 			"id": "Медиум",
-			"fraction": "Горожане",
+			"fraction": "Город",
 			"description": "Вы Медиум. Вы можете разговаривать с мертвецами, но мертвые не могут узнать вашу личность",
+			"statuses": ["Живой"],
 			"count": 1
 		},		
 	
 		{
 			"id": "Следопыт",
-			"fraction": "Горожане",
+			"fraction": "Город",
 			"description": "Вы Следопыт. Вы принадлежите фракции горожан. Вы можете узнать кто приходил к определенному человеку ночью",
+			"statuses": ["Живой"],
 			"count": 1
 		},
 				
 		{
 			"id": "Шериф",
-			"fraction": "Горожане",
+			"fraction": "Город",
 			"description": "Вы Шериф. Вы принадлежите фракции горожан. Вы можете узнать ночью является ли игрок мафией",
+			"statuses": ["Живой"],
 			"count": 1
 		},
 		
 		{
 			"id": "Доктор",
-			"fraction": "Горожане",
+			"fraction": "Город",
 			"description": "Вы Доктор. Вы принадлежите фракции горожан. Вы можете лечить людей ночью и они выживут при покущении",
+			"statuses": ["Живой"],
 			"count": 1
 		},
 		
 		{
 			"id": "Любовница",
-			"fraction": "Горожане",
+			"fraction": "Город",
 			"description": "Вы Любовница. Вы принадлежите фракции горожан. Вы можете лишить способностей игрока на один день и ночь",
+			"statuses": ["Живой"],
 			"count": 1
 		},
 		
 		{
 			"id": "Горожанин",
-			"fraction": "Горожане",
+			"fraction": "Город",
 			"description": "Вы простой трудяга. Вы принадлежите фракции горожан.",
+			"statuses": ["Живой"],
 			"count": 11
 		},
 		
@@ -72,6 +101,23 @@
 			"id": "Мафия",
 			"fraction": "Мафия",
 			"description": "Убивай, убивай, убивай!",
+			"statuses": ["Живой"],
+			"count": 1
+		},
+		
+		{
+			"id": "Дурак",
+			"fraction": "Нейтрал/Дурак",
+			"description": "Ваша цель - быть убитым на дневном голосовании. После победы вы превращаетесь в призрака и терроризируете одного из своих убийц.",
+			"statuses": ["Живой"],
+			"count": 1
+		},
+		
+		{
+			"id": "Маньяк",
+			"fraction": "Нейтрал/Маньяк",
+			"description": "Ваша цель - убить всех.",
+			"statuses": ["Живой"],
 			"count": 1
 		}
 	],
@@ -81,63 +127,84 @@
 		{
 			"id": "Дневное голосование",
 			"description": "Умрет тот, за кого проголосовало больше. При равном количество голосов никто не умирает.",
-			"candidates": "not(effect(Мертвый))",
-			"canUse": "time(День) and not(effect(Мертвый)) and not(effect(Блок))",
+			"candidates": "status(Живой)",
+			"canUse": "time(День) and status(Живой) and not(status(Заблокирован))",
 			"self_use": false,
 			"channel": "Общий",
 			"rule": "most_voted",
 			"showVotes": true,
-			"effects": ["Мертвый"]
+			"actions": ["Казнь"]
+		},
+		
+		{
+			"id": "Месть Дурака",
+			"description": "Выберите человека, которому хотите отомстить.",
+			"candidates": "status(Живой) and status(Метка Дурака)",
+			"canUse":  "time(Ночь) and role(Дурак) and status(Мертвый/Казнен) and not(status(Месть окончена))",
+			"self_use": false,
+			"rule": "each_voted",
+			"autoVote": true,
+			"actions": ["Атака Дурака"]
 		},
 		
 		{
 			"id": "Любовь",
 			"description": "Выберите человека,  которого вы хотите лишить способностей этой ночью и днем.",
-			"candidates": "not(effect(Мертвый))",
-			"canUse":  "time(Ночь) and role(Любовница) and not(effect(Мертвый)) and not(effect(Блок))",
+			"candidates": "status(Живой)",
+			"canUse":  "time(Ночь) and role(Любовница) and status(Живой) and not(status(Заблокирован))",
 			"self_use": false,
 			"rule": "each_voted",
-			"effects": ["Блок"]
+			"actions": ["Блок"]
 		},
 		
 		{
 			"id": "Расследование",
 			"description": "Выберите человека, фракцию которого вы хотите узнать ночью.",
-			"candidates": "not(effect(Мертвый))",
-			"canUse":  "time(Ночь) and role(Шериф) and not(effect(Мертвый)) and not(effect(Блок))",
+			"candidates": "status(Живой)",
+			"canUse":  "time(Ночь) and role(Шериф) and status(Живой) and not(status(Заблокирован))",
 			"self_use": false,
 			"rule": "each_voted",
-			"effects": ["Раскрыт"]
+			"actions": ["Расследование"]
+		},
+		
+		{
+			"id": "Ночное голосование",
+			"description": "Умрет тот, за кого проголосовало больше. При равном количество голосов никто не умирает.",
+			"candidates": "not(fraction(Мафия)) and status(Живой)",
+			"canUse":  "time(Ночь) and fraction(Мафия) and status(Живой) and not(status(Заблокирован))",
+			"self_use": false,
+			"rule": "most_voted",
+			"actions": ["Атака"]
+		},
+		
+		{
+			"id": "Охота",
+			"description": "Выберите человека, которого хотите ВЖИК ВЖИК.",
+			"candidates": "status(Живой)",
+			"canUse":  "time(Ночь) and role(Маньяк) and status(Живой)",
+			"self_use": false,
+			"rule": "each_voted",
+			"actions": ["Атака"]
 		},	
 		
 		{
 			"id": "Лечение",
 			"description": "Выберите человека, которого хотите защитить ночью.",
-			"candidates": "not(effect(Мертвый))",
-			"canUse":  "time(Ночь) and role(Доктор) and not(effect(Мертвый)) and not(effect(Блок))",
+			"candidates": "status(Живой)",
+			"canUse":  "time(Ночь) and role(Доктор) and status(Живой) and not(status(Заблокирован))",
 			"self_use": false,
 			"rule": "each_voted",
-			"effects": ["Защита"]
-		},	
-		
-		{
-			"id": "Ночное голосование",
-			"description": "Умрет тот, за кого проголосовало больше. При равном количество голосов никто не умирает.",
-			"candidates": "fraction(Горожане) and not(effect(Мертвый))",
-			"canUse":  "time(Ночь) and fraction(Мафия) and not(effect(Мертвый)) and not(effect(Блок))",
-			"self_use": false,
-			"rule": "most_voted",
-			"effects": ["Мертвый"]
+			"actions": ["Лечение"]
 		},
 		
 		{
 			"id": "Слежка",
 			"description": "Выберите человека, имена ночных посетителей которого вы хотите узнать",
-			"candidates": "not(effect(Мертвый))",
-			"canUse":  "time(Ночь) and role(Следопыт) and not(effect(Мертвый)) and not(effect(Блок))",
+			"candidates": "status(Живой)",
+			"canUse":  "time(Ночь) and role(Следопыт) and status(Живой) and not(status(Заблокирован))",
 			"self_use": false,
 			"rule": "each_voted",
-			"visitor_effects": ["Замечен"]
+			"actions": ["Слежка"]
 		}	
 	],
 	
@@ -145,61 +212,284 @@
 		{
 			"id": "Общий",
 			"canRead": "all()",
-			"canWrite":  "time(День) and not(effect(Мертвый))",
+			"canWrite":  "time(День) and status(Живой)",
 			"color": "#007700"
 		},
 		
 		{
 			"id": "Мертвые",
-			"canRead":  "effect(Мертвый) or role(Медиум)",
-			"canWrite":  "effect(Мертвый)",
-			"canAnonymousWrite":  "role(Медиум)",
+			"canRead":  "status(Мертвый) or role(Медиум)",
+			"canWrite":  "status(Мертвый)",
+			"canAnonymousWrite":  "role(Медиум) and status(Живой)",
 			"color": "#880088"
 		},
 		
 		{
 			"id": "Мафия",
 			"canRead": "fraction(Мафия)",
-			"canAnonymousRead":  "role(Радиолюбитель)",
-			"canWrite":  "fraction(Мафия) and not(effect(Мертвый))",
-			"canAnonymousWrite":  "role(Радиолюбитель)",
+			"canAnonymousRead":  "role(Радиолюбитель) and status(Живой)",
+			"canWrite":  "fraction(Мафия) and status(Живой)",
+			"canAnonymousWrite":  "role(Радиолюбитель) and status(Живой)",
 			"color": "#aa0000"
-		}
-	],
-	
-	"effects": [
-		{
-			"id": "Мертвый",
-			"text_to_all": "$target.name погиб.",
-			"text_to_user": "Вы погибли.",
-			"duration": -1
 		},
 		
 		{
-			"id": "Защита",
-			"text_to_user": "На вас использовали способность $ability.",
-			"duration": 1,
-			"protectFrom": ["Мертвый"] 
+			"id": "Последнее слово",
+			"canRead":  "all()",
+			"canWrite":  "status(Последнее слово)",
+			"color": "#875f42"
+		}
+	],
+	
+	"actions": [
+	
+		{
+			"id": "Казнь",
+			
+			"reactions": [
+				{
+					"condition": "status(Живой) and role(Дурак)",
+					"addTargetStatuses": ["Мертвый/Казнен", "Последнее слово"],
+					"removeTargetStatuses": ["Живой", "Тяжело ранен"],
+					"addDirectUsersStatuses": ["Метка Дурака"],
+					"informAll": "$target.name был казнен. Он превратился в мстительного духа!",
+					"informTarget": "Вас казнили!",
+					"stop": true
+				},
+			
+				{
+					"condition": "status(Живой)",
+					"addTargetStatuses": ["Мертвый/Казнен", "Последнее слово"],
+					"removeTargetStatuses": ["Живой", "Тяжело ранен"],
+					"informAll": "$target.name был казнен. Его роль - $target.role.",
+					"informTarget": "Вас казнили!",
+					"stop": true
+				}
+			]
+		},
+		
+		{
+			"id": "Атака Дурака",
+			"reactions": [
+				{
+					"condition": "status(Живой)",
+					"addTargetStatuses": ["Мертвый/Убит дураком"],
+					"addUserStatuses": ["Месть окончена"],
+					"removeTargetStatuses": ["Живой", "Тяжело ранен"],
+					"informAll": "Призрак дурака утащил $target.name за собой.",
+					"informTarget": "Призрак дурака пришел за вами!"
+				}
+			]
+		},
+		
+		{
+			"id": "Атака",
+			
+			"reactions": [
+				{
+					"condition": "all()",
+					"addUserStatuses": ["След/$user.name"],
+					"propagate": true
+				},
+				
+				{
+					"condition": "status(Мертвый)",
+					"informUser": "Вы хотели напасть на $target.name, но придя к нему вы обнаружили его уже мертвым.",
+					"stop": true
+				},
+			
+				{
+					"condition": "status(Тяжело ранен)",
+					"informUser": "Вы хотели напасть на $target.name, но придя к нему вы обнаружили его уже присмерти и ушли.",
+					"stop": true
+				},
+				
+				{
+					"condition": "status(Живой) and role(Маньяк)",
+					"informUser": "Вы напали на $target.name, но не смогли его убить.",
+					"informTarget": "На вас напали, но вы отбили нападение",
+					"stop": true
+				},
+				
+				{
+					"condition": "status(Живой)",
+					"addTargetStatuses": ["Тяжело ранен"],
+					"informUser": "Вы напали на $target.name.",
+					"informTarget": "На вас напали!",
+					"stop": true
+				}
+			]
+		},
+		
+		{
+			"id": "Лечение",
+			
+			"reactions": [
+				{
+					"condition": "all()",
+					"addUserStatuses": ["След/$user.name"],
+					"propagate": true
+				},
+				
+				{
+					"condition": "status(Мертвый)",
+					"informUser": "Вы хотели полечить $target.name, но придя к нему вы обнаружили его мертвым."
+				},
+				
+				{
+					"condition": "status(Тяжело ранен)",
+					"removeTargetStatuses": ["Тяжело ранен"],
+					"informUser": "Вы вылечили $target.name от ран и спасли его жизнь.",
+					"informTarget": "Вас кто-то подлечил ночью."
+				}				
+			]
 		},
 		
 		{
 			"id": "Блок",
-			"text_to_user": "На вас использовали способность $ability.",
+			
+			"reactions": [
+				{
+					"condition": "all()",
+					"addUserStatuses": ["След/$user.name"],
+					"propagate": true
+				},
+			
+				
+				{
+					"condition": "status(Мертвый)",
+					"informUser": "Вы хотели очаровать $target.name, но придя к нему вы обнаружили его мертвым."
+				},
+			
+				{
+					"condition": "status(Тяжело ранен)",
+					"informUser": "Вы хотели очаровать $target.name, но придя к нему вы обнаружили его уже присмерти и ушли."
+				},
+				
+				{
+					"condition": "status(Живой) and role(Маньяк)",
+					"addUserStatuses": ["Мертвый"],
+					"removeUserStatuses": ["Живой"],
+					"informTarget": "Вы убили $user.name когда он пришел к вам в гости.",
+					"informUser": "Вы пришли к $target.name и он убил вас!",
+					"informAll": "$user.name был жестоко убит не оставив завещания. Его роль $user.role."
+				},
+				
+				{
+					"condition": "status(Живой)",
+					"addTargetStatuses": ["Заблокирован"],
+					"informUser": "Вы очаровали $target.name.",
+					"informTarget": "К вам пришла любовница. Вы берете отпуск!"
+				}			
+			]
+		},
+		
+		{
+			"id": "Расследование",
+			
+			"reactions": [
+				{
+					"condition": "all()",
+					"addUserStatuses": ["След/$user.name"],
+					"propagate": true
+				},
+			
+				{
+					"condition": "all()",
+					"informUser": "Вы провели расследование в отношении $target.name. Он принадлежит фракции $target.fraction.",
+					"informTarget": "Кто-то раскрыл к какой фракции вы принадлежите"
+				}				
+			]
+		},
+		
+		{
+			"id": "Слежка",
+			
+			"reactions": [
+				{
+					"condition": "all()",
+					"addUserStatuses": ["Метка Следопыта/$user.name"],
+					
+					"propagate": true
+				}			
+			]
+		},
+		
+		{
+			"id": "Информировать Следопыта",
+			
+			"reactions": [
+				{
+					"condition": "all()",
+					"inform": [{
+						"address": "status(Метка Следопыта/$user.name)",
+						"text": "$target.name посещал ночью $user.name"
+					}]
+				}
+			]
+		},
+		
+		{
+			"id": "Смерть от ран",
+			
+			"reactions": [
+				{
+					"condition": "status(Тяжело ранен)",
+					"addTargetStatuses": ["Мертвый", "Последнее слово"],
+					"removeTargetStatuses": ["Живой"],
+					"informAll": "$target.name погиб. Его роль была $target.role.",
+					"informTarget": "Вы погибли."
+				}
+			]
+		}
+	],
+	
+	"statuses": [
+		{
+			"id": "Мертвый",
+			"duration": -1
+		},
+		
+		{
+			"id": "Живой",
+			"duration": -1
+		},
+		
+		{
+			"id": "Тяжело ранен",
+			"duration": 0.5,
+			"expireAction": "Смерть от ран"
+		},
+		
+		{
+			"id": "Заблокирован",
 			"duration": 1
 		},
 		
 		{
-			"id": "Раскрыт",
-			"text_to_user": "На вас использовали способность $ability.",
-			"text_to_pollers": "$target.name принадлежит к фракции $target.fraction",
-			"duration": 0
+			"id": "След",
+			"duration": 0.5,
+			"expireAction": "Информировать Следопыта"
 		},
 		
 		{
-			"id": "Замечен",
-			"text_to_user": "Вас заметили, когда вы посещали игрока $host.name.",
-			"text_to_pollers": "$target.name ночью посетил игрока $host.name.",
-			"duration": 0
+			"id": "Метка Следопыта",
+			"duration": 1
+		},
+		
+		{
+			"id": "Метка Дурака",
+			"duration": -1
+		},
+		
+		{
+			"id": "Месть окончена",
+			"duration": -1
+		}, 
+		
+		{
+			"id": "Последнее слово",
+			"duration": 1
 		}
 	]
 }
