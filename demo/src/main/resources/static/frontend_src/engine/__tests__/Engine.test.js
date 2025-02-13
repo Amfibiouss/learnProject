@@ -211,3 +211,28 @@ test("Проверка последнего слова", () => {
 
 	tester.play(init_data);
 });
+
+
+test("Проверка способностей Дона", () => {
+
+	let tester = new EngineTester();
+
+	let player1 = tester.createPlayer("Игрок 1", "Шериф");
+	let player2 = tester.createPlayer("Игрок 2", "Дон");
+	let player3 = tester.createPlayer("Игрок 3", "Мафия");
+
+	let init_data = tester.initialize();
+
+	//Ночь 1 Иммунитет к Шерифу
+	player1.vote("Расследование", player2).next()
+		.message("Вы провели расследование в отношении " + player2 + ". Он принадлежит фракции Город.");
+	player3.next();
+	//День 1 - День 2 Смерть Дона и назначение нового Дона
+	player1.vote("Дневное голосование", player2).next().next().next();
+	player3.status("role/Мафия").next().next().status("role/Дон").next();
+	//Ночь 3 Убийство Шерифа новым Доном и победа Мафии
+	player3.vote("Ночное голосование", player1).next().win();
+	
+
+	tester.play(init_data);
+});

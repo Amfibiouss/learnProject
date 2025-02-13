@@ -7,6 +7,16 @@
 			}
 		}
 		
+		html *::-webkit-scrollbar {
+		  height: 0.5rem;
+		  width: 0.5rem;
+		  background-color: lightgrey;
+		}
+				
+		html *::-webkit-scrollbar-thumb {
+		  background-color: grey;
+		}
+		
 		html.dark *::-webkit-scrollbar-thumb {
 		  background-color: rgb(180, 180, 180);
 		}
@@ -15,6 +25,11 @@
 		  height: 0.5rem;
 		  width: 0.5rem;
 		  background-color: rgb(100, 100, 100);
+		}
+		
+		input[type="number"]::-webkit-outer-spin-button,
+		input[type="number"]::-webkit-inner-spin-button {
+		    -webkit-appearance: none;
 		}
 	</style>
 	<head>

@@ -1,6 +1,7 @@
 import React from "react";
 import '../Main.css';
 import Button from "../common_components/Button.js";
+import NumberInput from "../common_components/NumberInput.js";
 import ConfigChecker from "../engine/ConfigChecker.js";
 
 class RoomsPage extends React.Component {
@@ -231,6 +232,21 @@ class Room extends React.Component {
 
 class CreateForm extends React.Component {
 
+	
+	roles = [
+		{name: "citizen", value: "Горожанин", default: 1},
+		{name: "doctor", value: "Доктор", default: 1},
+		{name: "sheriff", value: "Шериф", default: 1},
+		{name: "mistress", value: "Любовница", default: 1},
+		{name: "tracker", value: "Следопыт", default: 1},
+		{name: "medium", value: "Медиум", default: 1},
+		{name: "radio_fan", value: "Радиолюбитель", default: 1},
+		{name: "fool", value: "Дурак", default: 1},
+		{name: "maniac", value: "Маньяк", default: 1},
+		{name: "mafia", value: "Мафия", default: 1},
+	];
+
+	
 	constructor(props) {
 		    super(props);
 		    this.state = {showCreateClassic: true, mode: "game", error: ""};
@@ -261,22 +277,10 @@ class CreateForm extends React.Component {
 			
 			config.roles.forEach((role) => {role.count = 0;});
 			
-			const role_map = 
-			[
-				{key: "citizen", value: "Горожанин"},
-				{key: "doctor", value: "Доктор"},
-				{key: "sheriff", value: "Шериф"},
-				{key: "mafia", value: "Мафия"},
-				{key: "mistress", value: "Любовница"},
-				{key: "tracker", value: "Следопыт"},
-				{key: "medium", value: "Медиум"},
-				{key: "radio_fan", value: "Радиолюбитель"},
-			];
-			
-			role_map.forEach((entry) => {
+			this.roles.forEach((entry) => {
 				let role = config.roles.find((role) => role.id === entry.value);
-				role.count = Number(formData.get(entry.key));
-				formData.delete(entry.key);
+				role.count = Number(formData.get(entry.name));
+				formData.delete(entry.name);
 			});
 			
 			formData.set("config", JSON.stringify(config));
@@ -315,6 +319,10 @@ class CreateForm extends React.Component {
 	
 	render() {
 		
+		let role_list = this.roles.map(
+			(role) => <NumberInput key={role.name} name={role.name} text={role.value} value={role.default}></NumberInput>
+		);
+		
 		return 	<div className="flex flex-col justify-center bg-gray-200 dark:bg-gray-800 rounded-xl mt-4" style={{width:"min(100%, 40rem)"}}>
 			<div className="flex">
 				<button className={"grow hover:bg-gray-400 dark:hover:bg-gray-600 transition-colors duration-300 "
@@ -345,14 +353,7 @@ class CreateForm extends React.Component {
 					<fieldset>
 						<legend>Число ролей:</legend>
 						<div className="flex flex-col gap-1">
-							<div><label><input type="number" name="citizen" className="border-2 border-black bg-gray-100 dark:bg-gray-500" defaultValue="10"/> Горожанин</label></div>
-							<div><label><input type="number" name="doctor" className="border-2 border-black bg-gray-100 dark:bg-gray-500" defaultValue="1"/> Доктор</label></div>
-							<div><label><input type="number" name="sheriff" className="border-2 border-black bg-gray-100 dark:bg-gray-500" defaultValue="1"/> Шериф</label></div>
-							<div><label><input type="number" name="mistress" className="border-2 border-black bg-gray-100 dark:bg-gray-500" defaultValue="1"/> Любовница</label></div>
-							<div><label><input type="number" name="tracker" className="border-2 border-black bg-gray-100 dark:bg-gray-500" defaultValue="1"/> Следопыт</label></div>
-							<div><label><input type="number" name="medium" className="border-2 border-black bg-gray-100 dark:bg-gray-500" defaultValue="1"/> Медиум</label></div>
-							<div><label><input type="number" name="radio_fan" className="border-2 border-black bg-gray-100 dark:bg-gray-500" defaultValue="1"/> Радиолюбитель</label></div>
-							<div><label><input type="number" name="mafia" className="border-2 border-black bg-gray-100 dark:bg-gray-500" defaultValue="1"/> Мафия</label></div>
+							{role_list}
 						</div>
 					</fieldset>
 				</div>

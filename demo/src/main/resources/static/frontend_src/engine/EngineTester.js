@@ -87,10 +87,10 @@ class EngineTester {
 	}
 	
 	initialize() {
-		var data = this.engine.start(this.config);
+		let data = this.engine.start(this.config);
 				
-		for (var i = 0; i < this.players.length; i++) {
-			var player = this.players.find((player) => (player.pindex === -1 && player.role === this.engine.state.roles[i]));
+		for (let i = 0; i < this.players.length; i++) {
+			let player = this.players.find((player) => (player.pindex === -1 && this.engine.state.status_count[i].has("role/" + player.role)));
 			player.pindex = i;
 		}
 		

@@ -356,6 +356,36 @@ class ConfigChecker {
 		let comp = null;
 		let tree = null;
 		
+		const two_argument_functions = ["less", "greather", "equal"];
+		for (const keyword of two_argument_functions) {
+			if (str.startsWith(keyword)) {
+				let expr = this.getExprInBrackets(str.substring(keyword.length));
+	
+				if (expr === null)
+					return [0, null];
+					
+				let i;
+				for (i = expr.length - 1; i >= 0; i--) {
+					if (expr.substr(i, 1) === ",")
+						break;
+				}
+				
+				if (i === -1)
+					return [0, null];
+				
+				let number = Number(expr.substr(i + 1).trim());
+				
+				let subtree = this.checkExpression(expr.substr(0, i), config);
+				
+				if (subtree === null || isNaN(number))
+					return [0, null];
+					
+				comp = keyword + "(" + expr + ")";
+				tree = {type: keyword, operand1: subtree, operand2: number};
+				break;
+			}
+		}
+		
 		const keywords = ["fraction", "role", "status", "time"];
 		for (const keyword of keywords) {
 			if (str.startsWith(keyword)) {

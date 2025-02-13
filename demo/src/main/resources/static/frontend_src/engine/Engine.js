@@ -22,11 +22,33 @@ class Engine {
 			return this.state.all_mask ^ this.calcExpressionByTree(node.operand1);
 		}
 		
-		if (node.fraction)
-			return this.state.fraction_mask[node.fraction];
+		if (node.type === "less") {
+			return (this.bitCount(this.calcExpressionByTree(node.operand1)) < node.operand2)? this.state.all_mask : 0;
+		}
 		
-		if (node.role)
-			return this.state.role_mask[node.role];
+		if (node.type === "greather") {
+			return (this.bitCount(this.calcExpressionByTree(node.operand1)) > node.operand2)? this.state.all_mask : 0;
+		}
+		
+		if (node.type === "equal") {
+			//console.log(JSON.stringify(node.operand1) + " " + this.calcExpressionByTree(node.operand1) + " " + node.operand2);
+			
+			return (this.bitCount(this.calcExpressionByTree(node.operand1)) === node.operand2)? this.state.all_mask : 0;
+		}
+		
+		if (node.fraction) {
+			if (this.state.status_mask.has("fraction/" + node.fraction))
+				return this.state.status_mask.get("fraction/" + node.fraction);
+			else
+				return 0;
+		}
+		
+		if (node.role) {			
+			if (this.state.status_mask.has("role/" + node.role))
+				return this.state.status_mask.get("role/" + node.role);
+			else
+				return 0;
+		}
 		
 		if (node.status) {	
 			
@@ -82,7 +104,7 @@ class Engine {
 		return this.config.statuses.find((status) => status.id === parts[0]);
 	}
 	
-	bitCount(num) {
+	bitCount = (num) => {
 		let count = 0;
 		
 		for (let i = 0; i < 32; i++) {
@@ -125,6 +147,8 @@ class Engine {
 	
 	start(config) {
 		this.config = config;
+		config.statuses.push({id: "role", duration: -1});
+		config.statuses.push({id: "fraction", duration: -1});
 		this.expMap = new Map();
 		this.checker = new ConfigChecker();
 		this.state = {};
@@ -142,24 +166,13 @@ class Engine {
 		this.state.day_counter = 1;
 		this.state.all_mask = (1 << this.count) - 1;
 		
-		this.state.fraction_mask = {};
-		this.config.fractions.forEach((fraction) => {
-			this.state.fraction_mask[fraction.id] = 0;
-		});
-		
 		this.outputBuilder = new OutputBuilder(this.config, this.getMaskFromSelector);
-		this.state.role_mask = {};
-		this.state.fractions = [];
-		this.state.roles = [];
 		let index = 0;
 		for (const role of this.config.roles) {
-			this.state.role_mask[role.id] = 0;
-			
+
 			for (let i = 0; i < role.count; i++) {
-				this.state.roles.push(role.id.split("/")[0]);
-				this.state.fractions.push(role.fraction.split("/")[0]);
-				this.addStatus("role/$target.role", -1, index, index);
-				this.addStatus("fraction/$target.fraction", -1, index, index);
+				this.addStatus("role/" + role.id, -1, index, index);
+				this.addStatus("fraction/" + role.fraction, -1, index, index);
 				
 				if (role.statuses) {
 					for (let status of role.statuses) {
@@ -168,9 +181,6 @@ class Engine {
 				}
 				
 				this.outputBuilder.addMessage(index, role.description);
-				
-				this.state.fraction_mask[role.fraction] |= 1 << index;
-				this.state.role_mask[role.id] |= 1 << index;
 				index++;
 			}
 		}
@@ -254,22 +264,30 @@ class Engine {
 		return selected;
 	}
 	
+	getRoleByPindex(pindex) {
+		return this.config.roles.find(role => 
+			this.state.status_mask.get("role/" + role.id) & (1 << pindex)).id;
+	}
+	
+	getFractionByPindex(pindex) {
+		return this.config.fractions.find(fraction => 
+			this.state.status_mask.get("fraction/" + fraction.id) & (1 << pindex)).id;
+	}
+	
 	formatText(text, target, user) {
 		text = text.replace("$target.name", "Игрок #" + target);
-		text = text.replace("$target.fraction", this.state.fractions[target]);
-		text = text.replace("$target.role", this.state.roles[target]);
+		text = text.replace("$target.fraction", this.getFractionByPindex(target));
+		text = text.replace("$target.role", this.getRoleByPindex(target));
 		
 		text = text.replace("$user.name", "Игрок #" + user);
-		text = text.replace("$user.fraction", this.state.fractions[user]);
-		text = text.replace("$user.role", this.state.roles[user]);
+		text = text.replace("$user.fraction", this.getFractionByPindex(user));
+		text = text.replace("$user.role", this.getRoleByPindex(user));
 		
 		
 		return text;
 	}
 	
 	addStatus(status, duration, target, user) {
-		status = this.formatText(status, target, user);
-		
 		this.state.statuses.push({id: status, duration: duration, target: target, user: user});
 		
 		let parts = status.split("/");
@@ -353,30 +371,18 @@ class Engine {
 			
 			this.removeStatus(status.id, status.target, status.user);
 		}
-	}
-	
-	getStatuses(pindex) {
-		
-		let res = [];
-		
-		for (let status of this.state.statuses) {
-			if (status.target === pindex)
-				res.push(status);	
-		}
-		
-		return res;
-	}
-	
+	}	
+
 	updateStatuses(target, user, addStatuses, removeStatuses) {
 		if (addStatuses) {
 			for (const status of addStatuses) {
-				this.addStatus(status, this.getStatus(status).duration, target, user);
+				this.addStatus(this.formatText(status, target, user), this.getStatus(status).duration, target, user);
 			}
 		}
 
 		if (removeStatuses) {
 			for (const status of removeStatuses) {
-				this.removeStatus(status, target, user);
+				this.removeStatus(this.formatText(status, target, user), target, user);
 			}
 		}
 	}
@@ -391,9 +397,11 @@ class Engine {
 			if (!condition)
 				continue;
 			
+			console.log(action + " (");
+			
 			this.updateStatuses(target, user, reaction.addTargetStatuses, reaction.removeTargetStatuses);
 			this.updateStatuses(user, target, reaction.addUserStatuses, reaction.removeUserStatuses);
-			
+			console.log(") " + action);
 			for (const direct_user of candidate.direct_users)
 				this.updateStatuses(direct_user, target, reaction.addDirectUsersStatuses, reaction.removeDirectUsersStatuses);
 			
@@ -507,10 +515,12 @@ class Engine {
 		this.state.time = this.config.times[time_index].id;
 
 		for (let winCase of this.config.finishConditions) {
-
+			
 			if(!this.getMaskFromSelector(winCase.condition)) {
 				
 				let winners_mask = this.getMaskFromSelector(winCase.winners);
+				
+				//console.log(winCase.winners + " " + this.getMaskFromSelector(winCase.winners) + " " + this.getMaskFromSelector("fraction(Нейтрал/Дурак)"));
 				
 				for (let i = 0; i < this.count; i++) {
 					if (winners_mask & (1 << i)) {

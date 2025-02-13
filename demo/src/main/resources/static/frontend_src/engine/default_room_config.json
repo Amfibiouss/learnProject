@@ -22,7 +22,7 @@
 		},
 		
 		{
-			"condition": "not(fraction(Нейтрал/Маньяк)) and status(Живой)",
+			"condition": "(not(fraction(Нейтрал/Маньяк)) and status(Живой)) or not(equal(fraction(Нейтрал/Маньяк) and status(Живой), 1))",
 			"winners": "fraction(Нейтрал/Маньяк) or (fraction(Нейтрал/Дурак) and status(Мертвый/Казнен))",
 			"winText": "Вы победили!",
 			"loseText": "Вы проиграли!",
@@ -119,6 +119,14 @@
 			"description": "Ваша цель - убить всех.",
 			"statuses": ["Живой"],
 			"count": 1
+		},
+		
+		{
+			"id": "Дон",
+			"fraction": "Мафия",
+			"description": "Ваша цель - уничтожить Город. Руководите мафией. Вас не может раскрыть Шериф.",
+			"statuses": ["Живой"],
+			"count": 1
 		}
 	],
 	
@@ -148,6 +156,17 @@
 		},
 		
 		{
+			"id": "Выборы Дона",
+			"description": "Выберите человека, которого хотите избрать новым Доном.",
+			"candidates": "status(Живой) and role(Мафия)",
+			"canUse":  "time(Ночь) and greather(role(Дон) and status(Мертвый), 0) and fraction(Мафия) and status(Живой)",
+			"self_use": true,
+			"rule": "most_voted",
+			"autoVote": true,
+			"actions": ["Назначение Дона"]
+		},
+		
+		{
 			"id": "Любовь",
 			"description": "Выберите человека,  которого вы хотите лишить способностей этой ночью и днем.",
 			"candidates": "status(Живой)",
@@ -171,7 +190,7 @@
 			"id": "Ночное голосование",
 			"description": "Умрет тот, за кого проголосовало больше. При равном количество голосов никто не умирает.",
 			"candidates": "not(fraction(Мафия)) and status(Живой)",
-			"canUse":  "time(Ночь) and fraction(Мафия) and status(Живой) and not(status(Заблокирован))",
+			"canUse":  "time(Ночь) and (role(Мафия) or role(Дон)) and status(Живой) and not(status(Заблокирован))",
 			"self_use": false,
 			"rule": "most_voted",
 			"actions": ["Атака"]
@@ -321,6 +340,35 @@
 		},
 		
 		{
+			"id": "Назначение Дона",
+			
+			"reactions": [
+				{
+					"condition": "status(Мертвый)",
+					"inform": [
+						{
+							"address": "fraction(Мафия)",
+							"text": "Кандидат в Дона умер прямо перед назначением."
+						}
+					]
+				},
+				
+				{
+					"condition": "status(Живой)",
+					"addTargetStatuses": ["role/Дон"],
+					"removeTargetStatuses": ["role/Мафия"],
+					"inform": [
+						{
+							"address": "fraction(Мафия)",
+							"text": "Новый Дон выбран! Это $target.name."
+						}
+					],
+					"informTarget": "Вы новый Дон. Руководите мафией. У вас есть защита от проверок Шерифа."
+				}				
+			]
+		},
+		
+		{
 			"id": "Лечение",
 			
 			"reactions": [
@@ -391,6 +439,12 @@
 					"condition": "all()",
 					"addUserStatuses": ["След/$user.name"],
 					"propagate": true
+				},
+				
+				{
+					"condition": "role(Дон)",
+					"informUser": "Вы провели расследование в отношении $target.name. Он принадлежит фракции Город.",
+					"informTarget": "Кто-то пытался раскрыть к какой фракции вы принадлежите и он наивно решил, что вы из фракции Города."
 				},
 			
 				{
