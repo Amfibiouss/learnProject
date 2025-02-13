@@ -107,15 +107,18 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         		if (!daoService.check(vote.getRoomId(), vote.getStage(), vote.getPindex(), username)) 
         			return;
         		
-        		List<DCandidateState> dcandidates = daoService.addVote(
+        		Map.Entry<List<DCandidateState>, Short> res = daoService.addVote(
         				vote.getSelected(),
         				vote.getRoomId(), 
         				vote.getPollName(),
         				vote.getStage(),
         				vote.getPindex());
         		
-        		if (dcandidates == null)
+        		if (res == null)
         			return;
+        		
+        		List<DCandidateState> dcandidates = res.getKey();
+        		short alias = res.getValue();
         		
         		if (daoService.showVotes(vote.getRoomId(), vote.getPollName())) { 
 	    			List<String> players = daoService.getPlayersForPoll(vote.getRoomId(), vote.getPollName(), vote.getStage());
@@ -131,7 +134,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     			}
     			
         		Long message_id = daoService.addSystemMessage(
-        				"Игрок #" + vote.getPindex() + " проголосовал за " + names_str + " в \"" + vote.getPollName() + "\""
+        				"Игрок #" + alias + " проголосовал за " + names_str + " в \"" + vote.getPollName() + "\""
         				, vote.getRoomId(), vote.getPollName(), vote.getStage());
         		
         		if (message_id == null)

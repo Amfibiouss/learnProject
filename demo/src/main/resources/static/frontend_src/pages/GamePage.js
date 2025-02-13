@@ -208,6 +208,11 @@ class GamePage extends React.Component {
 			this.state.stages.sort((a, b) => a.date - b.date);
 			this.setState({stages: this.state.stages});	
 			return;
+		} else {
+			if (stage.messages.length === 0) {
+				stage.date = message.date;
+				this.state.stages.sort((a, b) => a.date - b.date);
+			}
 		}
 
 		if (stage.messages.find((msg) => msg.id === message.id))
@@ -215,7 +220,7 @@ class GamePage extends React.Component {
 			
 		stage.messages.push(message);
 		stage.messages.sort((a, b) => a.date - b.date);
-
+		
 		this.setState({stages: this.state.stages});	
 	}
 	
@@ -380,36 +385,10 @@ class GamePage extends React.Component {
 		if (timer && state_room.status === "closed")
 			timer.innerHTML = "Комната закрыта";
 		
-		state_room.staticState.polls.forEach(
-			(static_poll) => {
-				let poll = state_room.polls.find((item) => item.name === static_poll.name);
-				
-				if (!poll) {
-					static_poll.candidates.forEach(
-						(candidate1) => {
-							candidate1.selected = false;
-							candidate1.votes = 0;
-						}
-					);
-				} else {
-					static_poll.candidates.sort((a, b) => a.id - b.id);
-					poll.candidates.sort((a, b) => a.id - b.id);
-					
-					static_poll.candidates.forEach(
-						(candidate1, index) => {
-							let candidate2 = poll.candidates.at(index);
-							candidate1.selected = candidate2.selected;
-							candidate1.votes = candidate2.votes;
-						}
-					);	
-				}
-			}
-		)
-		
 		this.setState({
 			status: state_room.status,
 			channels: state_room.staticState.channels,
-			polls: state_room.staticState.polls,
+			polls: state_room.polls,
 			stage: state_room.staticState.stage,
 			pindex: state_room.pindex
 		});
@@ -552,7 +531,6 @@ class MainWindow extends React.Component {
 			<PollWindow key={this.props.pindex + ":" + poll.name} 
 					name={poll.name} 
 					pindex={this.props.pindex}
-					selfUse={poll.selfUse}
 					showVotes={poll.showVotes}
 					description={poll.description} 
 					max_selection={poll.max_selection} 
@@ -643,7 +621,7 @@ class PollWindow extends React.Component {
 								votes={candidate.votes}  
 								onSelect={(voted)? ()=>{} : this.onSelect} 
 								selected={candidate.selected || this.state.selected.indexOf(candidate.id) >= 0}
-								canVote = {!voted && (this.props.selfUse === true || this.props.pindex !== candidate.id) 
+								canVote = {!voted && !candidate.blocked
 									&& (this.state.selected.indexOf(candidate.id) >= 0 || this.state.selected.length < this.props.max_selection)}>
 					</PollOption>
 				)}</div>
@@ -860,7 +838,7 @@ class Message extends React.Component {
 					<span className="font-semibold" style={{color: this.props.channel_color}}>{"[" + this.props.channel_name + "]"}</span>
 					<span className="text-gray-500">{this.getDateFormat(this.props.date)}</span>
 				</div>
-				<div className={(isSystem)? "text-lg italic" : ""}>{this.props.text}</div>
+				<div className={`whitespace-pre-line ${(isSystem)? " text-lg italic " : ""}`}>{this.props.text}</div>
 			</div>
 		</div>
     }

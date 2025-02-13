@@ -5,6 +5,8 @@ public class DCandidate {
 	
 	private String name;
 	
+	private boolean blocked;
+	
 	private long votes;
 	
 	private boolean selected;
@@ -15,14 +17,6 @@ public class DCandidate {
 
 	public void setId(long id) {
 		this.id = id;
-	}
-
-	public String getName() {
-		return name;
-	}
-
-	public void setName(String name) {
-		this.name = name;
 	}
 
 	public long getVotes() {
@@ -39,6 +33,22 @@ public class DCandidate {
 
 	public void setSelected(boolean selected) {
 		this.selected = selected;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public boolean isBlocked() {
+		return blocked;
+	}
+
+	public void setBlocked(boolean blocked) {
+		this.blocked = blocked;
 	}
 	
 	

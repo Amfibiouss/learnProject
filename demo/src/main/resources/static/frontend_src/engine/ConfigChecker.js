@@ -78,7 +78,6 @@ class ConfigChecker {
 							{id: "description",  type: "string"},
 							{id: "candidates",  type: "expression", not_required: true},
 							{id: "canUse",  type: "expression", not_required: true},
-							{id: "self_use",  type: "boolean"},
 							{id: "channel",  type: "string", from: "channels", items: {type: "string"}, not_required: true},
 							{id: "rule",  type: "string"},
 							{id: "autoVote",  type: "boolean", not_required: true},

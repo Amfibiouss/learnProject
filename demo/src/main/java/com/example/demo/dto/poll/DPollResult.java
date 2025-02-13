@@ -1,10 +1,11 @@
 package com.example.demo.dto.poll;
 
+import java.util.List;
 
 public class DPollResult {
 	private String id;
 	
-	private long[] table;
+	private List<Long> table;
 
 	public String getId() {
 		return id;
@@ -14,13 +15,11 @@ public class DPollResult {
 		this.id = id;
 	}
 
-	public long[] getTable() {
+	public List<Long> getTable() {
 		return table;
 	}
 
-	public void setTable(long[] table) {
+	public void setTable(List<Long> table) {
 		this.table = table;
 	}
-
-	
 }

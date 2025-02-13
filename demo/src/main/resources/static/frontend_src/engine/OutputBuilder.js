@@ -1,7 +1,8 @@
 class OutputBuilder {
 	
-	constructor(config, getMaskFromSelector) {
+	constructor(config, getMaskFromSelector, formatText) {
 		this.getMaskFromSelector = getMaskFromSelector;
+		this.formatText = formatText;
 		this.config = config;
 		this.count = 0;
 		this.finish = false;
@@ -12,13 +13,20 @@ class OutputBuilder {
 			this.messages.push([]);
 	}
 	
-	toCandidateList(mask) {
+	toCandidateList(user_mask, candidate_selector) {
 		var candidate_list = [];
 		
-		for (var i = 0; i < 30; i++) {
-			if (mask & (1 << i)) {
-				candidate_list.push({id: i, name: "Игрок #" + i});
-			}
+		for (var i = 0; i < this.count; i++) {
+			let candidate_mask = this.getMaskFromSelector(this.formatText(candidate_selector, null, i));
+			
+			candidate_list.push({
+				id: i, 
+				name: "Игрок #" + i,
+				weight: 1,
+				alias: i,
+				canVote: (user_mask & (1 << i)) != 0,
+				candidates: candidate_mask
+			});
 		}
 		
 		return candidate_list;
@@ -76,13 +84,12 @@ class OutputBuilder {
 		let pollStates = [];
 		this.config.abilities.forEach((ability) => {
 			
-			let candidate_mask = this.getMaskFromSelector(ability.candidates);
+			//let candidate_mask = this.getMaskFromSelector(ability.candidates);
 			let user_mask = this.getMaskFromSelector(ability.canUse);
 			
 			pollStates.push({
 				id: ability.id,
-				candidates: this.toCandidateList(candidate_mask),
-				can_vote: user_mask
+				candidates: this.toCandidateList(user_mask, ability.candidates),
 			});
 		});
 		
@@ -90,7 +97,7 @@ class OutputBuilder {
 	}
 	
 	addMessage(pindex, text) {
-		this.messages[pindex].push(text + "\\\\n");
+		this.messages[pindex].push(text + "\n");
 	}
 	
 	setFinish() {

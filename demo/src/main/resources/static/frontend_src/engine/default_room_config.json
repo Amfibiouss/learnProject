@@ -135,9 +135,8 @@
 		{
 			"id": "Дневное голосование",
 			"description": "Умрет тот, за кого проголосовало больше. При равном количество голосов никто не умирает.",
-			"candidates": "status(Живой)",
+			"candidates": "status(Живой) and not(status(player/$user.name))",
 			"canUse": "time(День) and status(Живой) and not(status(Заблокирован))",
-			"self_use": false,
 			"channel": "Общий",
 			"rule": "most_voted",
 			"showVotes": true,
@@ -149,7 +148,6 @@
 			"description": "Выберите человека, которому хотите отомстить.",
 			"candidates": "status(Живой) and status(Метка Дурака)",
 			"canUse":  "time(Ночь) and role(Дурак) and status(Мертвый/Казнен) and not(status(Месть окончена))",
-			"self_use": false,
 			"rule": "each_voted",
 			"autoVote": true,
 			"actions": ["Атака Дурака"]
@@ -160,7 +158,6 @@
 			"description": "Выберите человека, которого хотите избрать новым Доном.",
 			"candidates": "status(Живой) and role(Мафия)",
 			"canUse":  "time(Ночь) and greather(role(Дон) and status(Мертвый), 0) and fraction(Мафия) and status(Живой)",
-			"self_use": true,
 			"rule": "most_voted",
 			"autoVote": true,
 			"actions": ["Назначение Дона"]
@@ -169,9 +166,8 @@
 		{
 			"id": "Любовь",
 			"description": "Выберите человека,  которого вы хотите лишить способностей этой ночью и днем.",
-			"candidates": "status(Живой)",
+			"candidates": "status(Живой) and not(status(player/$user.name))",
 			"canUse":  "time(Ночь) and role(Любовница) and status(Живой) and not(status(Заблокирован))",
-			"self_use": false,
 			"rule": "each_voted",
 			"actions": ["Блок"]
 		},
@@ -179,9 +175,8 @@
 		{
 			"id": "Расследование",
 			"description": "Выберите человека, фракцию которого вы хотите узнать ночью.",
-			"candidates": "status(Живой)",
+			"candidates": "status(Живой) and not(status(player/$user.name))",
 			"canUse":  "time(Ночь) and role(Шериф) and status(Живой) and not(status(Заблокирован))",
-			"self_use": false,
 			"rule": "each_voted",
 			"actions": ["Расследование"]
 		},
@@ -191,7 +186,6 @@
 			"description": "Умрет тот, за кого проголосовало больше. При равном количество голосов никто не умирает.",
 			"candidates": "not(fraction(Мафия)) and status(Живой)",
 			"canUse":  "time(Ночь) and (role(Мафия) or role(Дон)) and status(Живой) and not(status(Заблокирован))",
-			"self_use": false,
 			"rule": "most_voted",
 			"actions": ["Атака"]
 		},
@@ -199,9 +193,8 @@
 		{
 			"id": "Охота",
 			"description": "Выберите человека, которого хотите ВЖИК ВЖИК.",
-			"candidates": "status(Живой)",
+			"candidates": "status(Живой) and not(status(player/$user.name))",
 			"canUse":  "time(Ночь) and role(Маньяк) and status(Живой)",
-			"self_use": false,
 			"rule": "each_voted",
 			"actions": ["Атака"]
 		},	
@@ -209,9 +202,8 @@
 		{
 			"id": "Лечение",
 			"description": "Выберите человека, которого хотите защитить ночью.",
-			"candidates": "status(Живой)",
+			"candidates": "status(Живой) and not(status(player/$user.name))",
 			"canUse":  "time(Ночь) and role(Доктор) and status(Живой) and not(status(Заблокирован))",
-			"self_use": false,
 			"rule": "each_voted",
 			"actions": ["Лечение"]
 		},
@@ -221,7 +213,6 @@
 			"description": "Выберите человека, имена ночных посетителей которого вы хотите узнать",
 			"candidates": "status(Живой)",
 			"canUse":  "time(Ночь) and role(Следопыт) and status(Живой) and not(status(Заблокирован))",
-			"self_use": false,
 			"rule": "each_voted",
 			"actions": ["Слежка"]
 		}	

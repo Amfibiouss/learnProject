@@ -7,8 +7,6 @@ public class DInputPollState {
 	
 	private List<DInputCandidate> candidates;
 
-	private long can_vote;
-
 	public String getId() {
 		return id;
 	}
@@ -23,13 +21,5 @@ public class DInputPollState {
 
 	public void setCandidates(List<DInputCandidate> candidates) {
 		this.candidates = candidates;
-	}
-
-	public long getCan_vote() {
-		return can_vote;
-	}
-
-	public void setCan_vote(long can_vote) {
-		this.can_vote = can_vote;
 	}
 }

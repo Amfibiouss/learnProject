@@ -138,7 +138,7 @@ class EngineTester {
 						break;
 					}
 					
-					let poll, poll_state;
+					let poll, poll_state, voter;
 					let channel;
 					
 					switch(action.type) {
@@ -147,19 +147,15 @@ class EngineTester {
 							let poll_result = poll_results.find((poll_result) => poll_result.id === action.poll_id);
 							poll_state = data.pollStates.find((poll) => poll.id === action.poll_id);
 							poll = initial_data.polls.find((poll) => poll.id === action.poll_id);
+							voter = poll_state.candidates.find((item) => item.id === player.pindex);
 							
-							if (!(poll_state.can_vote & (1 << player.pindex))) {
+							if (!voter.canVote) {
 								throw new Error("Ошибка, игрок " + player.name + " почему-то не может использовать способность " + action.poll_id);
 							}
 
 							if (action.target) {
-								
-								if(!poll.self_use && player.pindex === action.target.pindex) 
-									throw new Error("Ошибка, игрок " + player.name + " не может использовать на себе способность " + action.poll_id);
-								
-								//console.log(JSON.stringify(poll_state));
-								
-								if(!poll_state.candidates.find((candidate) => (candidate.id === action.target.pindex)))
+
+								if(!(voter.candidates & (1 << action.target.pindex)))
 									throw new Error("Ошибка, игрок " + player.name + " почему-то не может использовать способность " + action.poll_id + " на игроке " + action.target.name);
 									
 								poll_result.table[player.pindex] |= 1 << action.target.pindex;
@@ -170,13 +166,13 @@ class EngineTester {
 						case "no_vote":	
 							poll_state = data.pollStates.find((poll) => poll.id === action.poll_id);
 							poll = initial_data.polls.find((poll) => poll.id === action.poll_id);
+							voter = poll_state.candidates.find((item) => item.id === player.pindex);
 							
-							if ((poll_state.can_vote & (1 << player.pindex))) {
+							if (voter.canVote) {
 								throw new Error("Ошибка, игрок " + player.name + " почему-то может использовать способность " + action.poll_id);
 							}
 							
-							if (action.target && (poll_state.candidates.find((candidate) => (candidate.id === action.target.pindex)))
-								 && !(!poll.self_use && action.target.pindex === player.pindex)) {
+							if (action.target && (voter.candidates & (1 << action.target.pindex))) {
 								throw new Error("Ошибка, игрок " + player.name + " почему-то может использовать способность " + action.poll_id + " на игроке " + action.target.name);
 							}
 							

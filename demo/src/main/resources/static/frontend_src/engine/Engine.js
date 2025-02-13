@@ -149,6 +149,7 @@ class Engine {
 		this.config = config;
 		config.statuses.push({id: "role", duration: -1});
 		config.statuses.push({id: "fraction", duration: -1});
+		config.statuses.push({id: "player", duration: -1});
 		this.expMap = new Map();
 		this.checker = new ConfigChecker();
 		this.state = {};
@@ -166,13 +167,14 @@ class Engine {
 		this.state.day_counter = 1;
 		this.state.all_mask = (1 << this.count) - 1;
 		
-		this.outputBuilder = new OutputBuilder(this.config, this.getMaskFromSelector);
+		this.outputBuilder = new OutputBuilder(this.config, this.getMaskFromSelector, this.formatText);
 		let index = 0;
 		for (const role of this.config.roles) {
 
 			for (let i = 0; i < role.count; i++) {
 				this.addStatus("role/" + role.id, -1, index, index);
 				this.addStatus("fraction/" + role.fraction, -1, index, index);
+				this.addStatus("player/Игрок #" + index, -1, index, index);
 				
 				if (role.statuses) {
 					for (let status of role.statuses) {
@@ -264,17 +266,17 @@ class Engine {
 		return selected;
 	}
 	
-	getRoleByPindex(pindex) {
+	getRoleByPindex = (pindex) => {
 		return this.config.roles.find(role => 
 			this.state.status_mask.get("role/" + role.id) & (1 << pindex)).id;
 	}
 	
-	getFractionByPindex(pindex) {
+	getFractionByPindex = (pindex) => {
 		return this.config.fractions.find(fraction => 
 			this.state.status_mask.get("fraction/" + fraction.id) & (1 << pindex)).id;
 	}
 	
-	formatText(text, target, user) {
+	formatText = (text, target, user) => {
 		text = text.replace("$target.name", "Игрок #" + target);
 		text = text.replace("$target.fraction", this.getFractionByPindex(target));
 		text = text.replace("$target.role", this.getRoleByPindex(target));
@@ -455,7 +457,7 @@ class Engine {
 	update(poll_results) {
 
 		this.state.old_state = JSON.parse(JSON.stringify(this.state));
-		this.outputBuilder = new OutputBuilder(this.config, this.getMaskFromSelector);
+		this.outputBuilder = new OutputBuilder(this.config, this.getMaskFromSelector, this.formatText);
 		
 		//Обработка автоматического голосования вместо пользователя (например для Мести Дурака)
 		for(const poll_result of poll_results) {

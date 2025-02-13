@@ -59,7 +59,7 @@ public class DaoService {
     	return messageRepository.getMessages(room_id, username, pindex);
     }
 	
-	public List<DCandidateState> addVote(
+	public Map.Entry<List<DCandidateState>, Short> addVote(
 			List<Integer> selected, 
 			long room_id, 
 			String pollName,

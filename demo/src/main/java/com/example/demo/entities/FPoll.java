@@ -33,9 +33,6 @@ public class FPoll {
 	
 	private boolean showVotes;
 	
-	@OneToOne(optional=true, fetch=FetchType.EAGER)
-	private FPollFStage currentState;
-	
 	@Override
 	public int hashCode() {
 		return Objects.hash(name, room);
@@ -61,14 +58,6 @@ public class FPoll {
 
 	public void setShowVotes(boolean showVotes) {
 		this.showVotes = showVotes;
-	}
-
-	public FPollFStage getCurrentState() {
-		return currentState;
-	}
-
-	public void setCurrentState(FPollFStage currentState) {
-		this.currentState = currentState;
 	}
 
 	public FRoom getRoom() {
