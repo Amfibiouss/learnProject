@@ -124,14 +124,14 @@ class ConfigChecker {
 									type: "object",
 									fields: [
 										{id: "condition", type: "expression"},
-										{id: "addTargetStatuses", type: "array", items: {type: "string"}, not_required: true},
-										{id: "addUserStatuses", type: "array", items: {type: "string"}, not_required: true},
-										{id: "addDirectUsersStatuses", type: "array", items: {type: "string"}, not_required: true},
-										{id: "addUsersStatuses", type: "array", items: {type: "string"}, not_required: true},
-										{id: "removeTargetStatuses", type: "array", items: {type: "string"}, not_required: true},
-										{id: "removeUserStatuses", type: "array", items: {type: "string"}, not_required: true},
-										{id: "removeDirectUsersStatuses", type: "array", items: {type: "string"}, not_required: true},
-										{id: "removeUsersStatuses", type: "array", items: {type: "string"}, not_required: true},	
+										{id: "addTargetStatuses", type: "array", items: {type: "string"}, from: "statuses", not_required: true},
+										{id: "addUserStatuses", type: "array", items: {type: "string"}, from: "statuses", not_required: true},
+										{id: "addDirectUsersStatuses", type: "array", items: {type: "string"}, from: "statuses", not_required: true},
+										{id: "addUsersStatuses", type: "array", items: {type: "string"}, from: "statuses", not_required: true},
+										{id: "removeTargetStatuses", type: "array", items: {type: "string"}, from: "statuses", not_required: true},
+										{id: "removeUserStatuses", type: "array", items: {type: "string"}, from: "statuses", not_required: true},
+										{id: "removeDirectUsersStatuses", type: "array", items: {type: "string"}, from: "statuses", not_required: true},
+										{id: "removeUsersStatuses", type: "array", items: {type: "string"}, from: "statuses", not_required: true},	
 										{id: "informTarget", type: "string", not_required: true},
 										{id: "informUser", type: "string", not_required: true},
 										{id: "informDirectUsers", type: "string", not_required: true},
@@ -145,6 +145,31 @@ class ConfigChecker {
 												fields: [
 													{id: "address", type: "expression"},
 													{id: "text", type: "string"},
+												]
+											},
+											not_required: true
+										},
+										{
+											id: "affect", 
+											type: "array", 
+											items: {
+												type: "object",
+												fields: [
+													{id: "address", type: "expression"},
+													{
+														id: "addStatuses", 
+														type: "array", 
+														items: {type:"string"}, 
+														from: "statuses",
+														not_required: true
+													},
+													{
+														id: "removeStatuses", 
+														type: "array", 
+														items: {type:"string"}, 
+														from: "statuses", 
+														not_required: true
+													},
 												]
 											},
 											not_required: true
@@ -209,8 +234,24 @@ class ConfigChecker {
 			
 			if (res && rules.items.type === "string") {
 				
-				if (typeof(root_config[rules.from]) !== "undefined" && (root_config[rules.from] instanceof Array)) 
-					res &= config.every((item) => root_config[rules.from].find((obj) => obj.id === item));
+				if (typeof(root_config[rules.from]) !== "undefined" && (root_config[rules.from] instanceof Array)) {
+					switch (rules.from) {
+						case "statuses":
+							res = config.every((item) => root_config[rules.from].some((obj) => 
+								(obj.id === item || item.startsWith(obj.id + "/") 
+								|| item.startsWith("player/") || item.startsWith("fraction/") 
+								|| item.startsWith("role/") ||  item.startsWith("controlledBy/"))));
+							break;
+						case "roles":
+						case "fractions":
+							res = config.every((item) => root_config[rules.from].some(
+								(obj) => (obj.id === item || item.startsWith(obj.id + "/"))));
+							break;
+						default:
+							res = config.every((item) => root_config[rules.from].some(
+								(obj) => obj.id === item));
+					}
+				}
 				
 				if (!res) {
 					let unknown_item = config.find((item) => !root_config[rules.from].find((obj) => obj.id === item));
@@ -257,9 +298,18 @@ class ConfigChecker {
 			}
 			
 			if (rules.from && typeof(root_config[rules.from]) !== "undefined" && (root_config[rules.from] instanceof Array)) {
-				if (!root_config[rules.from].find((obj) => obj.id === config)) {
-					this.error = "Поле " + rules.id + " содержит неизвестное значение " + config;
-					return false;
+				
+				if (rules.from === "statuses" || rules.from === "fractions" || rules.from === "roles") {
+					if (!root_config[rules.from].some((obj) => (obj.id === config || config.startsWith(obj.id + "/")))) {
+						
+						this.error = "Поле " + rules.id + " содержит неизвестное значение " + config;
+						return false;
+					}
+				} else {
+					if (!root_config[rules.from].some((obj) => obj.id === config)) {
+						this.error = "Поле " + rules.id + " содержит неизвестное значение " + config;
+						return false;
+					}
 				}
 			}
 			
@@ -392,9 +442,23 @@ class ConfigChecker {
 
 				if (expr === null)
 					return [0, null];
-						
-				if (keyword != "status" && !config[keyword + "s"].find((elem) => expr === elem.id))
-					return [0, null];
+				
+				switch (keyword) {
+					case "time":
+						if(!config["times"].some((elem) => expr === elem.id))
+							return [0, null];
+						break;
+					case "status":
+						if (!expr.startsWith("player/") && !expr.startsWith("role/") 
+						&& !expr.startsWith("fraction/") && !expr.startsWith("controlledBy/")
+						&& !config["statuses"].some((elem) => (expr === elem.id || expr.startsWith(elem.id + "/"))))
+							return [0, null];
+						break;
+					default:
+						if (keyword !== "status" && !config[keyword + "s"].some((elem) => (expr === elem.id || expr.startsWith(elem.id + "/"))))
+							return [0, null];
+					
+				}
 						
 				comp = keyword + "(" + expr + ")";
 				tree = {};

@@ -18,13 +18,13 @@ class Player {
 		return this;
 	}
 	
-	vote(poll_id, player) {
-		this.actions.push({type: "vote", poll_id: poll_id, target: player});
+	vote(poll_id, player, controlled_player) {
+		this.actions.push({type: "vote", poll_id: poll_id, target: player, controlled_player: controlled_player});
 		return this;
 	}
 	
-	no_vote(poll_id, player) {
-		this.actions.push({type: "no_vote", poll_id: poll_id, target: player});
+	no_vote(poll_id, player, controlled_player) {
+		this.actions.push({type: "no_vote", poll_id: poll_id, target: player, controlled_player: controlled_player});
 		return this;
 	}
 	
@@ -108,7 +108,7 @@ class EngineTester {
 			
 			var poll_results = data.pollStates.map((poll) => {return {id: poll.id, table: new Array(30).fill(0)};});
 			
-			console.log(data);
+			//console.log(data);
 			for (let player of this.players) {
 				while (player.actions.length > 0) {
 					
@@ -147,7 +147,17 @@ class EngineTester {
 							let poll_result = poll_results.find((poll_result) => poll_result.id === action.poll_id);
 							poll_state = data.pollStates.find((poll) => poll.id === action.poll_id);
 							poll = initial_data.polls.find((poll) => poll.id === action.poll_id);
-							voter = poll_state.candidates.find((item) => item.id === player.pindex);
+							
+							if (action.controlled_player)
+								voter = poll_state.candidates.find((item) => item.id === action.controlled_player.pindex);
+							else 
+								voter = poll_state.candidates.find((item) => item.id === player.pindex);
+							
+							if (voter.controlledBy !== player.pindex) {
+								throw new Error("Ошибка, игрок " + player.name
+									 + " почему-то не может контролировать способность " + action.poll_id
+									 + " другого игрока " + ((action.controlled_player)? action.controlled_player.name : player.name));
+							}
 							
 							if (!voter.canVote) {
 								throw new Error("Ошибка, игрок " + player.name + " почему-то не может использовать способность " + action.poll_id);
@@ -158,7 +168,7 @@ class EngineTester {
 								if(!(voter.candidates & (1 << action.target.pindex)))
 									throw new Error("Ошибка, игрок " + player.name + " почему-то не может использовать способность " + action.poll_id + " на игроке " + action.target.name);
 									
-								poll_result.table[player.pindex] |= 1 << action.target.pindex;
+								poll_result.table[voter.id] |= 1 << action.target.pindex;
 							}
 							
 							break;
@@ -166,7 +176,14 @@ class EngineTester {
 						case "no_vote":	
 							poll_state = data.pollStates.find((poll) => poll.id === action.poll_id);
 							poll = initial_data.polls.find((poll) => poll.id === action.poll_id);
-							voter = poll_state.candidates.find((item) => item.id === player.pindex);
+							
+							if (action.controlled_player)
+								voter = poll_state.candidates.find((item) => item.id === action.controlled_player.pindex);
+							else 
+								voter = poll_state.candidates.find((item) => item.id === player.pindex);
+
+							if (voter.controlledBy != player.pindex)
+								break;
 							
 							if (voter.canVote) {
 								throw new Error("Ошибка, игрок " + player.name + " почему-то может использовать способность " + action.poll_id);

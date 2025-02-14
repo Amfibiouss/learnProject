@@ -296,7 +296,7 @@ public class RoomRepository {
 				voter.setPollId(fpoll.getName());
 				voter.setStageId(fstage.getName());
 				voter.setPindex(pindex);
-				voter.setAlias(candidates.get(pindex).getAlias());
+				voter.setControlledBy(candidates.get(pindex).getControlledBy());
 				voter.setCanVote(candidates.get(pindex).isCanVote());
 				voter.setWeight(candidates.get(pindex).getWeight());
 				voter.setName(candidates.get(pindex).getName());
@@ -330,47 +330,52 @@ public class RoomRepository {
     		new_state.setStaticState(character.getState());
     		
         	for (FPoll fpoll : fpolls) {			
-        		FPollFCharacterFStage voter = session.get(FPollFCharacterFStage.class,
-        				new FPollFCharacterFStageId(room, fpoll.getName(), fstage.getName(), character.getPindex()));
-        		
-    			if (voter == null || !voter.getCanVote()) 
-    				continue;
-    				
-        		DOutputPoll dpoll = new DOutputPoll();
-        		dpoll.setName(fpoll.getName());
-        		dpoll.setCandidates(new ArrayList<>());
-        		dpoll.setName(fpoll.getName());
-        		dpoll.setDescription(fpoll.getDescription());
-        		dpoll.setShowVotes(fpoll.isShowVotes());
-        		dpoll.setMax_selection(fpoll.getMaxSelection());
-        		dpoll.setMin_selection(fpoll.getMinSelection());
-        		
         		List<FPollFCharacterFStage> voters = session.createSelectionQuery(
-        				  "from FPollFCharacterFStage pcs "
-        				+ "where pcs.room = :room and pcs.pollId = :poll_id "
-        				+ "and pcs.stageId = :stage_id order by pcs.pindex", FPollFCharacterFStage.class)
-        				.setParameter("room", room)
-        				.setParameter("poll_id", fpoll.getName())
-        				.setParameter("stage_id", fstage.getName())
-        				.getResultList();
-        		
-        		for (FPollFCharacterFStage fvoter: voters) {
-        			
-        			DCandidate dcandidate = new DCandidate();
-        			dcandidate.setId(fvoter.getPindex());
-        			dcandidate.setVotes(0);
-        			dcandidate.setName(fvoter.getName());
-        			
-        			if ((voter.getCandidates() & (1 << dcandidate.getId())) != 0) {
-        				dcandidate.setBlocked(false);
-        			} else
-        				dcandidate.setBlocked(true);
-        			
-        			dcandidate.setSelected(false);
-        			dpoll.getCandidates().add(dcandidate);
-        		}
-        		
-        		new_state.getPolls().add(dpoll);
+      				  "from FPollFCharacterFStage pcs "
+      				+ "where pcs.room = :room and pcs.pollId = :poll_id "
+      				+ "and pcs.stageId = :stage_id order by pcs.pindex", FPollFCharacterFStage.class)
+      				.setParameter("room", room)
+      				.setParameter("poll_id", fpoll.getName())
+      				.setParameter("stage_id", fstage.getName())
+      				.getResultList();
+      		
+		  		List<FPollFCharacterFStage> controlled_voters = voters.stream()
+		  				.filter(item -> (item.isCanVote() && item.getControlledBy() == character.getPindex()))
+		  				.toList();
+		
+		  		for (FPollFCharacterFStage voter: controlled_voters) {
+		      		DOutputPoll dpoll = new DOutputPoll();
+		      		dpoll.setName(fpoll.getName());
+		      		dpoll.setCandidates(new ArrayList<>());
+		      		dpoll.setName(fpoll.getName());
+		      		dpoll.setDescription(fpoll.getDescription());
+		      		dpoll.setShowVotes(fpoll.isShowVotes());
+		      		dpoll.setMax_selection(fpoll.getMaxSelection());
+		      		dpoll.setMin_selection(fpoll.getMinSelection());
+		      		dpoll.setControlledPindex(voter.getPindex());
+		  		
+		    		for (FPollFCharacterFStage candidate: voters) {
+		    			
+		    			DCandidate dcandidate = new DCandidate();
+		    			dcandidate.setId(candidate.getPindex());
+		    			dcandidate.setVotes(Long.bitCount(candidate.getInVotesMask()));
+		    			dcandidate.setName(candidate.getName());
+		    			
+		    			if ((voter.getCandidates() & (1 << dcandidate.getId())) != 0) {
+		    				dcandidate.setBlocked(false);
+		    			} else
+		    				dcandidate.setBlocked(true);
+		    			
+		    			if ((voter.getOutVotesMask() & (1 << dcandidate.getId())) != 0)
+		    				dcandidate.setSelected(true);
+		    			else 
+		    				dcandidate.setSelected(false);
+		    			
+		    			dpoll.getCandidates().add(dcandidate);
+		    		}
+		    		
+		    		new_state.getPolls().add(dpoll);
+		  		}
         	}
     		
     		output_states.add(new_state);
@@ -438,21 +443,7 @@ public class RoomRepository {
 			state.setDuration(duration - date.until(OffsetDateTime.now(), ChronoUnit.MILLIS));
 		}
     	
-    	for (FPoll fpoll : fpolls) {			
-    		FPollFCharacterFStage voter = session.get(FPollFCharacterFStage.class,
-    				new FPollFCharacterFStageId(room, fpoll.getName(), fstage.getName(), pindex));
-    		
-			if (voter == null || !voter.getCanVote()) 
-				continue;
-				
-    		DOutputPoll dpoll = new DOutputPoll();
-    		dpoll.setName(fpoll.getName());
-    		dpoll.setCandidates(new ArrayList<>());
-    		dpoll.setName(fpoll.getName());
-    		dpoll.setDescription(fpoll.getDescription());
-    		dpoll.setShowVotes(fpoll.isShowVotes());
-    		dpoll.setMax_selection(fpoll.getMaxSelection());
-    		dpoll.setMin_selection(fpoll.getMinSelection());
+    	for (FPoll fpoll : fpolls) {	
     		
     		List<FPollFCharacterFStage> voters = session.createSelectionQuery(
     				  "from FPollFCharacterFStage pcs "
@@ -463,27 +454,43 @@ public class RoomRepository {
     				.setParameter("stage_id", fstage.getName())
     				.getResultList();
     		
-    		for (FPollFCharacterFStage fvoter: voters) {
-    			
-    			DCandidate dcandidate = new DCandidate();
-    			dcandidate.setId(fvoter.getPindex());
-    			dcandidate.setVotes(Long.bitCount(fvoter.getInVotesMask()));
-    			dcandidate.setName(fvoter.getName());
-    			
-    			if ((voter.getCandidates() & (1 << dcandidate.getId())) != 0) {
-    				dcandidate.setBlocked(false);
-    			} else
-    				dcandidate.setBlocked(true);
-    			
-    			if ((voter.getOutVotesMask() & (1 << dcandidate.getId())) != 0)
-    				dcandidate.setSelected(true);
-    			else 
-    				dcandidate.setSelected(false);
-    			
-    			dpoll.getCandidates().add(dcandidate);
+    		List<FPollFCharacterFStage> controlled_voters = voters.stream()
+    				.filter(item -> (item.isCanVote() && item.getControlledBy() == pindex))
+    				.toList();
+
+    		for (FPollFCharacterFStage voter: controlled_voters) {
+        		DOutputPoll dpoll = new DOutputPoll();
+        		dpoll.setName(fpoll.getName());
+        		dpoll.setCandidates(new ArrayList<>());
+        		dpoll.setName(fpoll.getName());
+        		dpoll.setDescription(fpoll.getDescription());
+        		dpoll.setShowVotes(fpoll.isShowVotes());
+        		dpoll.setMax_selection(fpoll.getMaxSelection());
+        		dpoll.setMin_selection(fpoll.getMinSelection());
+        		dpoll.setControlledPindex(voter.getPindex());
+        		
+	    		for (FPollFCharacterFStage candidate: voters) {
+	    			
+	    			DCandidate dcandidate = new DCandidate();
+	    			dcandidate.setId(candidate.getPindex());
+	    			dcandidate.setVotes(Long.bitCount(candidate.getInVotesMask()));
+	    			dcandidate.setName(candidate.getName());
+	    			
+	    			if ((voter.getCandidates() & (1 << dcandidate.getId())) != 0) {
+	    				dcandidate.setBlocked(false);
+	    			} else
+	    				dcandidate.setBlocked(true);
+	    			
+	    			if ((voter.getOutVotesMask() & (1 << dcandidate.getId())) != 0)
+	    				dcandidate.setSelected(true);
+	    			else 
+	    				dcandidate.setSelected(false);
+	    			
+	    			dpoll.getCandidates().add(dcandidate);
+	    		}
+	    		
+	    		state.getPolls().add(dpoll);
     		}
-    		
-    		state.getPolls().add(dpoll);
     	}
     	
     	return state;

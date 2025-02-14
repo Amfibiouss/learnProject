@@ -400,13 +400,14 @@ class GamePage extends React.Component {
 		this.stage = state_room.staticState.stage;
 	};
 	
-	onSendVote = (pollName, selected) => {
+	onSendVote = (pollName, controlledPindex, selected) => {
 		this.state.server.sendVote({
 			selected: selected,
 			roomId: this.room_id,
 			pollName: pollName,
 			stage: this.stage,
 			pindex: this.pindex,
+			controlledPindex: controlledPindex
 		});
 	}
 	
@@ -523,29 +524,37 @@ class MainWindow extends React.Component {
 	
 	render() {
 
-		if (this.state.active_tab !== -2 && !this.props.polls.find((poll) => poll.name === this.state.active_tab)) {
+		if (this.state.active_tab !== -2 && !this.props.polls.some(poll => (poll.name + ":" + poll.controlledPindex) === this.state.active_tab)) {
 			this.state.active_tab = -1;
 		}
 		
 		let pollWindow = this.props.polls.map((poll) => 
-			<PollWindow key={this.props.pindex + ":" + poll.name} 
+			<PollWindow key={poll.name + ":" + poll.controlledPindex} 
 					name={poll.name} 
 					pindex={this.props.pindex}
+					controlledPindex={poll.controlledPindex}
 					showVotes={poll.showVotes}
 					description={poll.description} 
 					max_selection={poll.max_selection} 
 					min_selection={poll.min_selection} 
 					candidates={poll.candidates} 
-					active={this.state.active_tab === poll.name}
+					active={this.state.active_tab === (poll.name + ":" + poll.controlledPindex)}
 					server={this.props.server}
 					onSendVote={this.props.onSendVote}>
 			</PollWindow>
 		);
 		
+		//console.log(this.props.polls.some(poll => (poll.name + ":" + poll.controlledPindex) === this.state.active_tab));
+		
 		const tab_list = <>
 			<Tab name="Чат" key={-1} active={this.state.active_tab === -1} onClick={()=>{this.setState({active_tab: -1});}}></Tab>
 			{this.props.polls.map((poll) => 
-					<Tab  key={poll.name} active={this.state.active_tab === poll.name} name={poll.name} onClick={()=>{this.setState({active_tab: poll.name});}}></Tab>)}
+				<Tab  key={poll.name + ":" + poll.controlledPindex} 
+					  active={this.state.active_tab === (poll.name + ":" + poll.controlledPindex)} 
+					  name={poll.name + ((poll.controlledPindex != this.props.pindex)? " (" + poll.controlledPindex + ")" : "")} 
+					  onClick={()=>{this.setState({active_tab: poll.name + ":" + poll.controlledPindex});}}>
+				</Tab>
+			)}
 				
 			<Tab name="Игроки" key={-2} active={this.state.active_tab === -2} onClick={()=>{this.setState({active_tab: -2});}}></Tab>	
 		</>;
@@ -595,7 +604,7 @@ class PollWindow extends React.Component {
 	};
 	
 	sendVote = () => {
-		this.props.onSendVote(this.props.name, this.state.selected);
+		this.props.onSendVote(this.props.name, this.props.controlledPindex, this.state.selected);
 		//this.props.server.sendVote(this.props.name, this.state.selected);
 		this.setState({voted: true});
 	};

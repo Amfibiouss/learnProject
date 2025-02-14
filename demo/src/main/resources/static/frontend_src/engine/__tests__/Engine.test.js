@@ -185,7 +185,7 @@ test("Проверка способностей маньяка", () => {
 	player1.vote("Охота", player3).next()
 		.message("На вас напали, но вы отбили нападение")
 		.message("Вы убили " + player2 + " когда он пришел к вам в гости.")
-		.message("Вы напали на " + player3 + ".");
+		.message("Вы успешно напали на " + player3 + ".");
 	player2.vote("Любовь", player1).next().message("Вы пришли к " + player1 + " и он убил вас!").status("Мертвый");
 	player3.next().status("Мертвый");
 	player4.vote("Ночное голосование", player1).next().message("Вы напали на " + player1 + ", но не смогли его убить.");
@@ -194,6 +194,26 @@ test("Проверка способностей маньяка", () => {
 	player4.next().lose();
 		
 	tester.play(init_data);
+});
+
+test("Проверка 2 маньяков", () => {
+	let tester = new EngineTester();
+
+	let player1 = tester.createPlayer("Игрок 1", "Горожанин");
+	let player2 = tester.createPlayer("Игрок 2", "Горожанин");
+	let player3 = tester.createPlayer("Игрок 3", "Маньяк");
+	let player4 = tester.createPlayer("Игрок 4", "Маньяк");
+
+	let init_data = tester.initialize();
+
+	player3.vote("Охота", player1).next();
+	player4.vote("Охота", player2).next();
+	
+	player3.vote("Дневное голосование", player4).next().win();
+	//player4.vote("Дневное голосование", player3).next();
+
+	tester.play(init_data);
+	
 });
 
 test("Проверка последнего слова", () => {
@@ -234,5 +254,60 @@ test("Проверка способностей Дона", () => {
 	player3.vote("Ночное голосование", player1).next().win();
 	
 
+	tester.play(init_data);
+});
+
+test("Проверка способностей Ведьмы", () => {
+
+	let tester = new EngineTester();
+
+	let player1 = tester.createPlayer("Игрок 1", "Ведьма");
+	let player2 = tester.createPlayer("Игрок 2", "Горожанин");
+	let player3 = tester.createPlayer("Игрок 3", "Мафия");
+
+	let init_data = tester.initialize();
+
+	player1.next().vote("Контроль", player3).next().vote("Ночное голосование", player2, player3).next().win();
+	player2.next().next().next().status("Мертвый");
+
+	tester.play(init_data);
+});
+
+test("Проверка способностей Ведьмы 2", () => {
+
+	let tester = new EngineTester();
+
+	let player1 = tester.createPlayer("Игрок 1", "Ведьма");
+	let player2 = tester.createPlayer("Игрок 2", "Шериф");
+
+	let init_data = tester.initialize();
+
+	player1.next().vote("Контроль", player2)
+		.next().vote("Расследование", player1, player2)
+		.next().message("Ваш подчиненный " + player2
+			 + " провел расследование в отношении " + player1
+			 + ". Он принадлежит фракции Нейтрал.")
+		.no_vote("Дневное голосование", player1, player2);
+
+	tester.play(init_data);
+});
+
+test("Проверка способностей Ведьмы на Следопыте", () => {
+
+	let tester = new EngineTester();
+
+	let player1 = tester.createPlayer("Игрок 1", "Ведьма");
+	let player2 = tester.createPlayer("Игрок 2", "Следопыт");
+	let player3 = tester.createPlayer("Игрок 3", "Шериф");
+
+	let init_data = tester.initialize();
+
+	player1.next().vote("Контроль", player2)
+		.next().vote("Слежка", player1, player2)
+		.next().message(player3 + " посещал ночью " + player1);
+		
+	player3.next().next().vote("Расследование", player1);
+	player2.next().next().no_vote("Слежка", player1);
+	
 	tester.play(init_data);
 });

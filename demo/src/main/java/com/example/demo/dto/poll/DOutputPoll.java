@@ -14,6 +14,16 @@ public class DOutputPoll {
 	private long max_selection;
 	
 	private boolean showVotes;
+	
+	private short controlledPindex;
+
+	public short getControlledPindex() {
+		return controlledPindex;
+	}
+
+	public void setControlledPindex(short controlledPindex) {
+		this.controlledPindex = controlledPindex;
+	}
 
 	public String getDescription() {
 		return description;

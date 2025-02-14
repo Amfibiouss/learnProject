@@ -11,19 +11,29 @@ class OutputBuilder {
 		
 		for (let i = 0; i < this.count; i++)
 			this.messages.push([]);
+		
+		
+		this.controlledByMap = new Map();
+		for (const ability of this.config.abilities) {
+			let arr = [];
+			for (let i = 0; i < this.count; i++) {
+				arr.push(i);
+			}
+			this.controlledByMap.set(ability.id, arr);
+		}
 	}
 	
-	toCandidateList(user_mask, candidate_selector) {
+	toCandidateList(user_mask, ability) {
 		var candidate_list = [];
 		
 		for (var i = 0; i < this.count; i++) {
-			let candidate_mask = this.getMaskFromSelector(this.formatText(candidate_selector, null, i));
+			let candidate_mask = this.getMaskFromSelector(this.formatText(ability.candidates, null, i));
 			
 			candidate_list.push({
 				id: i, 
 				name: "Игрок #" + i,
 				weight: 1,
-				alias: i,
+				controlledBy: this.controlledByMap.get(ability.id)[i],
 				canVote: (user_mask & (1 << i)) != 0,
 				candidates: candidate_mask
 			});
@@ -89,11 +99,26 @@ class OutputBuilder {
 			
 			pollStates.push({
 				id: ability.id,
-				candidates: this.toCandidateList(user_mask, ability.candidates),
+				candidates: this.toCandidateList(user_mask, ability),
 			});
 		});
 		
 		return pollStates;
+	}
+	
+	setControlledBy(target, user, ability_id) {
+		if (!ability_id) {
+			for (const ability of this.config.abilities) {
+				this.controlledByMap.get(ability.id)[target] = user;
+			}
+		} else {
+			let ability = this.config.abilities.find((item) => item.id === ability_id);
+			
+			if (!ability)
+				return;
+			
+			this.controlledByMap.get(ability.id)[target] = user;	
+		}
 	}
 	
 	addMessage(pindex, text) {
@@ -108,7 +133,7 @@ class OutputBuilder {
 		
 		for (let i = 0; i < this.count; i++) {
 			this.messages[i].sort();
-			this.messages[i] = this.messages[i].join();
+			this.messages[i] = this.messages[i].join("");
 		}
 		
 		let state = {

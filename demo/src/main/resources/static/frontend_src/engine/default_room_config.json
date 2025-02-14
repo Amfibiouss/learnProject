@@ -6,7 +6,7 @@
 	
 	"finishConditions": [
 		{
-			"condition": "(fraction(Мафия) or fraction(Нейтрал/Маньяк)) and status(Живой)",
+			"condition": "(fraction(Мафия) or fraction(Нейтрал/Маньяк) or fraction(Нейтрал/Ведьма)) and status(Живой)",
 			"winners": "fraction(Город) or (fraction(Нейтрал/Дурак) and status(Мертвый/Казнен))",
 			"winText": "Вы победили!",
 			"loseText": "Вы проиграли!",
@@ -15,7 +15,7 @@
 		
 		{
 			"condition": "(fraction(Город) or fraction(Нейтрал/Маньяк)) and status(Живой)",
-			"winners": "fraction(Мафия) or (fraction(Нейтрал/Дурак) and status(Мертвый/Казнен))",
+			"winners": "fraction(Мафия) or (fraction(Нейтрал/Дурак) and status(Мертвый/Казнен)) or (fraction(Нейтрал/Ведьма) and status(Живой))",
 			"winText": "Вы победили!",
 			"loseText": "Вы проиграли!",
 			"winTextAll": "Мафия получила полное господство над городом"
@@ -23,7 +23,7 @@
 		
 		{
 			"condition": "(not(fraction(Нейтрал/Маньяк)) and status(Живой)) or not(equal(fraction(Нейтрал/Маньяк) and status(Живой), 1))",
-			"winners": "fraction(Нейтрал/Маньяк) or (fraction(Нейтрал/Дурак) and status(Мертвый/Казнен))",
+			"winners": "(fraction(Нейтрал/Маньяк) and status(Живой)) or (fraction(Нейтрал/Дурак) and status(Мертвый/Казнен))",
 			"winText": "Вы победили!",
 			"loseText": "Вы проиграли!",
 			"winTextAll": "Маньяк победил"
@@ -35,9 +35,7 @@
 		 
 		{"id": "Мафия"},
 		
-		{"id": "Нейтрал/Дурак"},
-		
-		{"id": "Нейтрал/Маньяк"}
+		{"id": "Нейтрал"}
 	],
 	
 	"roles": [
@@ -127,6 +125,14 @@
 			"description": "Ваша цель - уничтожить Город. Руководите мафией. Вас не может раскрыть Шериф.",
 			"statuses": ["Живой"],
 			"count": 1
+		},
+		
+		{
+			"id": "Ведьма",
+			"fraction": "Нейтрал/Ведьма",
+			"description": "Ваша цель - уничтожить Город и выжить. Выберите жертву днем, которую будете контролировать ночью.",
+			"statuses": ["Живой"],
+			"count": 1
 		}
 	],
 	
@@ -144,9 +150,18 @@
 		},
 		
 		{
+			"id": "Контроль",
+			"description": "Выберите человека, которого хотите подчинить и управлять которым будете ночью. Также вы узнаете его роль.",
+			"candidates": "status(Живой) and not(status(player/$user.name))",
+			"canUse":  "time(День) and role(Ведьма) and status(Живой)",
+			"rule": "each_voted",
+			"actions": ["Контроль"]
+		},
+		
+		{
 			"id": "Месть Дурака",
 			"description": "Выберите человека, которому хотите отомстить.",
-			"candidates": "status(Живой) and status(Метка Дурака)",
+			"candidates": "status(Живой) and status(Метка Дурака/$user.name)",
 			"canUse":  "time(Ночь) and role(Дурак) and status(Мертвый/Казнен) and not(status(Месть окончена))",
 			"rule": "each_voted",
 			"autoVote": true,
@@ -157,7 +172,7 @@
 			"id": "Выборы Дона",
 			"description": "Выберите человека, которого хотите избрать новым Доном.",
 			"candidates": "status(Живой) and role(Мафия)",
-			"canUse":  "time(Ночь) and greather(role(Дон) and status(Мертвый), 0) and fraction(Мафия) and status(Живой)",
+			"canUse":  "time(Ночь) and equal(role(Дон) and status(Живой), 0) and greather(role(Дон) and status(Мертвый), 0) and fraction(Мафия) and status(Живой)",
 			"rule": "most_voted",
 			"autoVote": true,
 			"actions": ["Назначение Дона"]
@@ -187,7 +202,7 @@
 			"candidates": "not(fraction(Мафия)) and status(Живой)",
 			"canUse":  "time(Ночь) and (role(Мафия) or role(Дон)) and status(Живой) and not(status(Заблокирован))",
 			"rule": "most_voted",
-			"actions": ["Атака"]
+			"actions": ["Атака Мафии"]
 		},
 		
 		{
@@ -196,7 +211,7 @@
 			"candidates": "status(Живой) and not(status(player/$user.name))",
 			"canUse":  "time(Ночь) and role(Маньяк) and status(Живой)",
 			"rule": "each_voted",
-			"actions": ["Атака"]
+			"actions": ["Охота"]
 		},	
 		
 		{
@@ -260,8 +275,8 @@
 				{
 					"condition": "status(Живой) and role(Дурак)",
 					"addTargetStatuses": ["Мертвый/Казнен", "Последнее слово"],
-					"removeTargetStatuses": ["Живой", "Тяжело ранен"],
-					"addDirectUsersStatuses": ["Метка Дурака"],
+					"removeTargetStatuses": ["Живой"],
+					"addDirectUsersStatuses": ["Метка Дурака/$user.name"],
 					"informAll": "$target.name был казнен. Он превратился в мстительного духа!",
 					"informTarget": "Вас казнили!",
 					"stop": true
@@ -270,7 +285,7 @@
 				{
 					"condition": "status(Живой)",
 					"addTargetStatuses": ["Мертвый/Казнен", "Последнее слово"],
-					"removeTargetStatuses": ["Живой", "Тяжело ранен"],
+					"removeTargetStatuses": ["Живой"],
 					"informAll": "$target.name был казнен. Его роль - $target.role.",
 					"informTarget": "Вас казнили!",
 					"stop": true
@@ -283,9 +298,9 @@
 			"reactions": [
 				{
 					"condition": "status(Живой)",
-					"addTargetStatuses": ["Мертвый/Убит дураком"],
+					"addTargetStatuses": ["Мертвый/Убит дураком", "Последнее слово"],
 					"addUserStatuses": ["Месть окончена"],
-					"removeTargetStatuses": ["Живой", "Тяжело ранен"],
+					"removeTargetStatuses": ["Живой"],
 					"informAll": "Призрак дурака утащил $target.name за собой.",
 					"informTarget": "Призрак дурака пришел за вами!"
 				}
@@ -293,7 +308,7 @@
 		},
 		
 		{
-			"id": "Атака",
+			"id": "Атака Мафии",
 			
 			"reactions": [
 				{
@@ -304,27 +319,158 @@
 				
 				{
 					"condition": "status(Мертвый)",
-					"informUser": "Вы хотели напасть на $target.name, но придя к нему вы обнаружили его уже мертвым.",
-					"stop": true
-				},
-			
-				{
-					"condition": "status(Тяжело ранен)",
-					"informUser": "Вы хотели напасть на $target.name, но придя к нему вы обнаружили его уже присмерти и ушли.",
+
+					"inform": [
+						{
+							"address": "status(Контролирует/$user.name) and not(status(Забывчивый))",
+							"text": "Ваш подчиненный вместе с Мафией пошли убивать $target.name, но цель уже была мертва."
+						},
+						
+						{
+							"address": "status(player/$user.name) and not(status(Забывчивый))",
+							"text": "Вы хотели напасть на $target.name, но цель уже была мертва."
+						},
+						
+						{
+							"address": "((fraction(Мафия) and not(status(player/$user.name))) or status(Следит за мафией)) and not(status(Забывчивый))",
+							"text": "$user.name хотел напасть на $target.name, но цель уже была мертва."
+						}
+					],
 					"stop": true
 				},
 				
 				{
 					"condition": "status(Живой) and role(Маньяк)",
-					"informUser": "Вы напали на $target.name, но не смогли его убить.",
-					"informTarget": "На вас напали, но вы отбили нападение",
+					
+					"inform": [
+						{
+							"address": "status(player/$target.name) and not(status(Забывчивый))",
+							"text": "На вас напали, но вы отбили нападение."
+						},
+					
+						{
+							"address": "status(Контролирует/$user.name) and not(status(Забывчивый))",
+							"text": "Вы напали на $target.name, контролируя $user.name, но не смогли его убить."
+						},
+						
+						{
+							"address": "status(player/$user.name) and not(status(Забывчивый))",
+							"text": "Вы напали на $target.name, но не смогли его убить."
+						},
+						
+						{
+							"address": "((fraction(Мафия) and not(status(player/$user.name))) or status(Следит за мафией)) and not(status(Забывчивый))",
+							"text": "$user.name хотел напасть на $target.name, но цель отбила нападение. Вы решаете отступить."
+						}
+					],
+					
 					"stop": true
 				},
 				
 				{
 					"condition": "status(Живой)",
-					"addTargetStatuses": ["Тяжело ранен"],
-					"informUser": "Вы напали на $target.name.",
+					"removeTargetStatuses": ["Живой"],
+					"addTargetStatuses": ["Мертвый/Убит мафий", "Последнее слово"],
+					
+					"inform": [
+						{
+							"address": "status(player/$target.name) and not(status(Забывчивый))",
+							"text": "Вас убили!"
+						},
+					
+						{
+							"address": "status(Контролирует/$user.name) and not(status(Забывчивый))",
+							"text": "Вы успешно напали на $target.name, контролируя $user.name."
+						},
+						
+						{
+							"address": "status(player/$user.name) and not(status(Забывчивый))",
+							"text": "Вы успешно напали на $target.name."
+						},
+						
+						{
+							"address": "((fraction(Мафия) and not(status(player/$user.name))) or status(Следит за мафией)) and not(status(Забывчивый))",
+							"text": "$user.name успешно напал на $target.name. Дело сделано."
+						}
+					],
+					
+					"stop": true
+				}
+			]
+		},
+		
+		{
+			"id": "Охота",
+			
+			"reactions": [
+				{
+					"condition": "all()",
+					"addUserStatuses": ["След/$user.name"],
+					"propagate": true
+				},
+				
+				{
+					"condition": "status(Мертвый)",
+
+					"inform": [
+						{
+							"address": "status(Контролирует/$user.name) and not(status(Забывчивый))",
+							"text": "Вы хотели напасть на $target.name, контролируя $user.name, но цель уже была мертва."
+						},
+						
+						{
+							"address": "status(player/$user.name) and not(status(Забывчивый))",
+							"text": "Вы хотели напасть на $target.name, но цель уже была мертва."
+						}
+					],
+					"stop": true
+				},
+				
+				{
+					"condition": "status(Живой) and role(Маньяк)",
+					
+					"inform": [
+						{
+							"address": "status(player/$target.name) and not(status(Забывчивый))",
+							"text": "На вас напали, но вы отбили нападение"
+						},
+					
+						{
+							"address": "status(Контролирует/$user.name) and not(status(Забывчивый))",
+							"text": "Вы напали на $target.name, контролируя $user.name, но не смогли его убить."
+						},
+						
+						{
+							"address": "status(player/$user.name) and not(status(Забывчивый))",
+							"text": "Вы напали на $target.name, но не смогли его убить."
+						}
+					],
+					
+					"stop": true
+				},
+				
+				{
+					"condition": "status(Живой)",
+					"removeTargetStatuses": ["Живой"],
+					"addTargetStatuses": ["Мертвый/Убит маньяком", "Последнее слово"],
+					
+					"inform": [
+						{
+							"address": "status(player/$target.name) and not(status(Забывчивый))",
+							"text": "Вас убили!"
+						},
+					
+						{
+							"address": "status(Контролирует/$user.name) and not(status(Забывчивый))",
+							"text": "Вы успешно напали на $target.name, контролируя $user.name."
+						},
+						
+						{
+							"address": "status(player/$user.name) and not(status(Забывчивый))",
+							"text": "Вы успешно напали на $target.name."
+						}
+					],
+					
 					"stop": true
 				}
 			]
@@ -338,23 +484,85 @@
 					"condition": "status(Мертвый)",
 					"inform": [
 						{
-							"address": "fraction(Мафия)",
+							"address": "(fraction(Мафия) or status(Следит за мафией)) and not(status(Забывчивый))",
 							"text": "Кандидат в Дона умер прямо перед назначением."
+						}
+					],
+					"stop": true
+				},
+				
+				{
+					"condition": "status(Живой) and not(role(Дон))",
+					"addTargetStatuses": ["role/Дон"],
+					"removeTargetStatuses": ["role/Мафия"],
+					"inform": [
+						{
+							"address": "(fraction(Мафия) or status(Следит за мафией)) and not(status(Забывчивый))",
+							"text": "Новый Дон выбран! Это $target.name."
+						}
+					],
+					"informTarget": "Вы новый Дон. Руководите мафией. У вас есть защита от проверок Шерифа.",
+					"stop": true
+				}				
+			]
+		},
+		
+		{
+			"id": "Контроль",
+			
+			"reactions": [
+				
+				{
+					"condition": "status(Мертвый)",
+					"inform": [
+						{
+							"address": "status(player/$user.name) and not(status(Забывчивый))",
+							"text": "Вы почти взяли свою цель под контроль, но она умерла."
 						}
 					]
 				},
 				
 				{
-					"condition": "status(Живой)",
-					"addTargetStatuses": ["role/Дон"],
-					"removeTargetStatuses": ["role/Мафия"],
+					"condition": "status(Под контролем)",
 					"inform": [
 						{
-							"address": "fraction(Мафия)",
-							"text": "Новый Дон выбран! Это $target.name."
+							"address": "status(player/$user.name) and not(status(Забывчивый))",
+							"text": "Кто-то другой уже взял контроль над этой целью!"
 						}
-					],
-					"informTarget": "Вы новый Дон. Руководите мафией. У вас есть защита от проверок Шерифа."
+					]
+				},
+				
+				{
+					"condition": "role(Ведьма)",
+					"inform": [
+						{
+							"address": "status(player/$user.name) and not(status(Забывчивый))",
+							"text": "У цели иммунитет к контролю."
+						}
+					]
+				},
+				
+				{
+					"condition": "fraction(Мафия)",
+					"addUserStatuses": ["Следит за мафией"],
+					"propagate": true
+				},		
+				
+				{
+					"condition": "status(Живой)",
+					"addTargetStatuses": ["controlledBy/$user.name", "Под контролем", "Забывчивый"],
+					"addUserStatuses": ["Контролирует/$user.name"],
+					"inform": [
+						{
+							"address": "status(player/$target.name)",
+							"text": "Вы чувствуете, как вами манипулирует сверьхестественная сила."
+						},
+						
+						{
+							"address": "status(player/$user.name) and not(status(Забывчивый))",
+							"text": "Вы подчинили $target.name. Его роль - $target.role."
+						}
+					]
 				}				
 			]
 		},
@@ -371,15 +579,26 @@
 				
 				{
 					"condition": "status(Мертвый)",
-					"informUser": "Вы хотели полечить $target.name, но придя к нему вы обнаружили его мертвым."
-				},
-				
-				{
-					"condition": "status(Тяжело ранен)",
-					"removeTargetStatuses": ["Тяжело ранен"],
-					"informUser": "Вы вылечили $target.name от ран и спасли его жизнь.",
-					"informTarget": "Вас кто-то подлечил ночью."
-				}				
+					"addTargetStatuses": ["Живой"],
+					"removeTargetStatuses": ["Мертвый", "Последнее слово"],
+					
+					"inform": [
+						{
+							"address": "status(player/$target.name) and not(status(Забывчивый))",
+							"text": "Вас кто-то подлечил ночью."
+						},
+					
+						{
+							"address": "status(Контролирует/$user.name) and not(status(Забывчивый))",
+							"text": "Вы вылечили $target.name от ран и спасли его жизнь, контролируя $user.name"
+						},
+						
+						{
+							"address": "status(player/$user.name) and not(status(Забывчивый))",
+							"text": "Вы вылечили $target.name от ран и спасли его жизнь."
+						}
+					]
+				}	
 			]
 		},
 		
@@ -396,12 +615,17 @@
 				
 				{
 					"condition": "status(Мертвый)",
-					"informUser": "Вы хотели очаровать $target.name, но придя к нему вы обнаружили его мертвым."
-				},
-			
-				{
-					"condition": "status(Тяжело ранен)",
-					"informUser": "Вы хотели очаровать $target.name, но придя к нему вы обнаружили его уже присмерти и ушли."
+					"inform": [
+						{
+							"address": "status(Контролирует/$user.name) and not(status(Забывчивый))",
+							"text": "Вы хотели очаровать $target.name, контролируя $user.name, но обнаружили цель мертвой."
+						},
+						
+						{
+							"address": "status(player/$user.name) and not(status(Забывчивый))",
+							"text": "Вы хотели очаровать $target.name, но обнаружили цель мертвой."
+						}
+					]
 				},
 				
 				{
@@ -409,15 +633,36 @@
 					"addUserStatuses": ["Мертвый"],
 					"removeUserStatuses": ["Живой"],
 					"informTarget": "Вы убили $user.name когда он пришел к вам в гости.",
-					"informUser": "Вы пришли к $target.name и он убил вас!",
-					"informAll": "$user.name был жестоко убит не оставив завещания. Его роль $user.role."
+					"informAll": "$user.name был жестоко убит не оставив завещания. Его роль $user.role.",
+					"inform": [
+						{
+							"address": "status(Контролирует/$user.name) and not(status(Забывчивый))",
+							"text": "Вы хотели очаровать $target.name, контролируя $user.name, но цель безжалостно убила вашего подчиненного."
+						},
+						
+						{
+							"address": "status(player/$user.name)",
+							"text": "Вы пришли к $target.name и он убил вас!"
+						}
+					]
+					
 				},
 				
 				{
 					"condition": "status(Живой)",
 					"addTargetStatuses": ["Заблокирован"],
-					"informUser": "Вы очаровали $target.name.",
-					"informTarget": "К вам пришла любовница. Вы берете отпуск!"
+					"informTarget": "К вам пришла любовница. Вы берете отпуск!",
+					"inform": [
+						{
+							"address": "status(Контролирует/$user.name) and not(status(Забывчивый))",
+							"text": "Вы очаровали $target.name, контролируя $user.name."
+						},
+						
+						{
+							"address": "status(player/$user.name) and not(status(Забывчивый))",
+							"text": "Вы очаровали $target.name."
+						}
+					]
 				}			
 			]
 		},
@@ -434,14 +679,43 @@
 				
 				{
 					"condition": "role(Дон)",
-					"informUser": "Вы провели расследование в отношении $target.name. Он принадлежит фракции Город.",
-					"informTarget": "Кто-то пытался раскрыть к какой фракции вы принадлежите и он наивно решил, что вы из фракции Города."
+					
+					"inform": [
+						{
+							"address": "status(player/$target.name) and not(status(Забывчивый))",
+							"text": "Кто-то пытался раскрыть к какой фракции вы принадлежите и он наивно решил, что вы из фракции Города."
+						},
+					
+						{
+							"address": "status(Контролирует/$user.name) and not(status(Забывчивый))",
+							"text": "Ваш подчиненный $user.name провел расследование в отношении $target.name. Он принадлежит фракции Город."
+						},
+						
+						{
+							"address": "status(player/$user.name) and not(status(Забывчивый))",
+							"text": "Вы провели расследование в отношении $target.name. Он принадлежит фракции Город."
+						}
+					]
 				},
 			
 				{
 					"condition": "all()",
-					"informUser": "Вы провели расследование в отношении $target.name. Он принадлежит фракции $target.fraction.",
-					"informTarget": "Кто-то раскрыл к какой фракции вы принадлежите"
+					"inform": [
+						{
+							"address": "status(player/$target.name) and not(status(Забывчивый))",
+							"text": "Кто-то раскрыл к какой фракции вы принадлежите."
+						},
+					
+						{
+							"address": "status(Контролирует/$user.name) and not(status(Забывчивый))",
+							"text": "Ваш подчиненный $user.name провел расследование в отношении $target.name. Он принадлежит фракции $target.fraction."
+						},
+						
+						{
+							"address": "status(player/$user.name) and not(status(Забывчивый))",
+							"text": "Вы провели расследование в отношении $target.name. Он принадлежит фракции $target.fraction."
+						}
+					]
 				}				
 			]
 		},
@@ -452,9 +726,12 @@
 			"reactions": [
 				{
 					"condition": "all()",
-					"addUserStatuses": ["Метка Следопыта/$user.name"],
-					
-					"propagate": true
+					"affect": [
+						{
+							"address": "(status(player/$user.name) or status(Контролирует/$user.name)) and not(status(Забывчивый))",
+							"addStatuses": ["Метка Следопыта/$user.name"]
+						}
+					]
 				}			
 			]
 		},
@@ -466,7 +743,7 @@
 				{
 					"condition": "all()",
 					"inform": [{
-						"address": "status(Метка Следопыта/$user.name)",
+						"address": "status(Метка Следопыта/$user.name) and not(status(Забывчивый))",
 						"text": "$target.name посещал ночью $user.name"
 					}]
 				}
@@ -474,15 +751,13 @@
 		},
 		
 		{
-			"id": "Смерть от ран",
+			"id": "Снять контроль",
 			
 			"reactions": [
 				{
-					"condition": "status(Тяжело ранен)",
-					"addTargetStatuses": ["Мертвый", "Последнее слово"],
-					"removeTargetStatuses": ["Живой"],
-					"informAll": "$target.name погиб. Его роль была $target.role.",
-					"informTarget": "Вы погибли."
+					"condition": "all()",
+					"removeTargetStatuses": ["controlledBy/$user.name"],
+					"informTarget": "Вы чувствуете, что контроль над телом возвращается..."
 				}
 			]
 		}
@@ -497,12 +772,6 @@
 		{
 			"id": "Живой",
 			"duration": -1
-		},
-		
-		{
-			"id": "Тяжело ранен",
-			"duration": 0.5,
-			"expireAction": "Смерть от ран"
 		},
 		
 		{
@@ -534,6 +803,27 @@
 		{
 			"id": "Последнее слово",
 			"duration": 1
+		},
+		
+		{
+			"id": "Контролирует",
+			"duration": 2
+		},
+		
+		{
+			"id": "Следит за мафией",
+			"duration": 2
+		},
+		
+		{
+			"id": "Под контролем",
+			"duration": 1.5,
+			"expireAction": "Снять контроль"
+		},
+		
+		{
+			"id": "Забывчивый",
+			"duration": 2
 		}
 	]
 }

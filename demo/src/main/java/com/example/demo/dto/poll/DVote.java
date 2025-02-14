@@ -3,7 +3,7 @@ package com.example.demo.dto.poll;
 import java.util.List;
 
 public class DVote {
-	private List<Integer> selected;
+	private List<Short> selected;
 	
 	private long roomId;
 	
@@ -13,8 +13,16 @@ public class DVote {
 	
 	private short pindex;
 	
+	private short controlledPindex;
 	
-	
+	public short getControlledPindex() {
+		return controlledPindex;
+	}
+
+	public void setControlledPindex(short controlledPindex) {
+		this.controlledPindex = controlledPindex;
+	}
+
 	public long getRoomId() {
 		return roomId;
 	}
@@ -47,11 +55,11 @@ public class DVote {
 		this.pollName = poll_id;
 	}
 
-	public List<Integer> getSelected() {
+	public List<Short> getSelected() {
 		return selected;
 	}
 
-	public void setSelected(List<Integer> selected) {
+	public void setSelected(List<Short> selected) {
 		this.selected = selected;
 	}
 }

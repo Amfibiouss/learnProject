@@ -22,6 +22,8 @@ import com.example.demo.entities.FRoom;
 import com.example.demo.entities.FStage;
 import com.example.demo.views.UsernamePindex;
 
+import jakarta.persistence.LockModeType;
+
 @Component
 public class PollRepository {
     @Autowired
@@ -63,33 +65,55 @@ public class PollRepository {
     
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public Map.Entry<List<DCandidateState>, Short> addVote(
-    		List<Integer> selected, 
+    		List<Short> selected, 
     		long room_id, 
     		String pollName,
     		String stage,
-    		short pindex) {
+    		short pindex,
+    		short controlled_pindex) {
     	
     	Session session = sessionFactory.getCurrentSession();
     	FRoom room = session.getReference(FRoom.class, room_id);
-    	FPoll poll =  session.getReference(FPoll.class, new FPollId(pollName, room));
-    	
-		FPollFCharacterFStage voter = session.get(FPollFCharacterFStage.class,
-				new FPollFCharacterFStageId(room, pollName, stage, pindex), LockMode.PESSIMISTIC_WRITE);
+    	FPoll poll =  session.get(FPoll.class, new FPollId(pollName, room));
     	
     	if (selected.size() < poll.getMinSelection() || selected.size() > poll.getMaxSelection())
     		return null;
     	
-    	if (!voter.getCanVote())
+    	List<Short> pindexes = new ArrayList(selected);
+    	//pindexes.add(pindex);
+    	pindexes.add(controlled_pindex);
+    	pindexes.sort((Short a, Short b) -> (a - b));
+    	
+    	long count = session.createSelectionQuery(
+    			  "from FPollFCharacterFStage pcs "
+    			+ "where pcs.pindex in :pindexes "
+    			+ "and pcs.room = :room and pcs.pollId = :poll_id and pcs.stageId = :stage_id", FPollFCharacterFStage.class)
+    		.setParameterList("pindexes", pindexes)
+			.setParameter("room", room)
+			.setParameter("poll_id", pollName)
+			.setParameter("stage_id", stage)
+    		.setLockMode(LockModeType.PESSIMISTIC_WRITE)
+    		.getResultCount();
+    	
+    	System.out.println("@@@@@@");
+    	System.out.println(pindexes.size());
+    	System.out.println(count);
+    	
+    	if (count != pindexes.size())
     		return null;
     	
-		FPollFCharacterFStage alias_voter = voter;
+		FPollFCharacterFStage voter = session.get(FPollFCharacterFStage.class,
+				new FPollFCharacterFStageId(room, pollName, stage, controlled_pindex));
+    	
+		System.out.println(voter.getControlledBy());
 		
-		if (voter.getAlias() != voter.getPindex())
-			alias_voter = session.get(FPollFCharacterFStage.class,
-					new FPollFCharacterFStageId(room, pollName, stage, voter.getAlias()), LockMode.PESSIMISTIC_WRITE);
-    	
-    	if (alias_voter.getOutVotesMask() != 0)
-    		return null;
+		if (voter.getControlledBy() != pindex || !voter.isCanVote() || voter.getOutVotesMask() != 0)
+			return null;
+		
+		long mask = 0;
+		for (short index : selected)
+			mask |= 1L << index;
+		voter.setOutVotesMask(mask);
 		
     	List <DCandidateState> candidateStates = new ArrayList<>();
     	
@@ -98,14 +122,10 @@ public class PollRepository {
     		if ((voter.getCandidates() & (1L << index)) == 0)
     			return null;
     		
-    		//session.createNativeMutationQuery("update fpollfcharacterfstage set outvotesmask = outvotesmask | :mask where ");
-    		
-    		alias_voter.setOutVotesMask(alias_voter.getOutVotesMask() | (1L << index));
-    		
     		FPollFCharacterFStage option = session.get(FPollFCharacterFStage.class,
-    				new FPollFCharacterFStageId(room, pollName, stage, (short)index), LockMode.PESSIMISTIC_WRITE);
+    				new FPollFCharacterFStageId(room, pollName, stage, (short)index));
     		
-    		option.setInVotesMask(voter.getInVotesMask() | (1L << pindex));
+    		option.setInVotesMask(option.getInVotesMask() | (1L << pindex));
 			
 			DCandidateState candidate = new DCandidateState();
 			candidate.setPollName(pollName);
@@ -115,7 +135,7 @@ public class PollRepository {
 			candidateStates.add(candidate);
     	}
     	
-    	return Map.entry(candidateStates, voter.getAlias());
+    	return Map.entry(candidateStates, voter.getControlledBy());
     }
     
 

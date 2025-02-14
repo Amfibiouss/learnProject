@@ -60,12 +60,13 @@ public class DaoService {
     }
 	
 	public Map.Entry<List<DCandidateState>, Short> addVote(
-			List<Integer> selected, 
+			List<Short> selected, 
 			long room_id, 
 			String pollName,
 			String stage,
-			short pindex) {
-		return pollRepository.addVote(selected, room_id, pollName, stage, pindex);
+			short pindex,
+			short controlled_pindex) {
+		return pollRepository.addVote(selected, room_id, pollName, stage, pindex, controlled_pindex);
 	}
 
 	public void switchOnline(String username) {

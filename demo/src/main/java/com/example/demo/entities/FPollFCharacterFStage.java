@@ -23,7 +23,7 @@ public class FPollFCharacterFStage {
 	
 	private String name;
 	
-	private short alias;
+	private short controlledBy;
 	
 	private long weight;
 	
@@ -109,12 +109,12 @@ public class FPollFCharacterFStage {
 		this.pindex = pindex;
 	}
 
-	public short getAlias() {
-		return alias;
+	public short getControlledBy() {
+		return controlledBy;
 	}
 
-	public void setAlias(short alias) {
-		this.alias = alias;
+	public void setControlledBy(short alias) {
+		this.controlledBy = alias;
 	}
 
 	public long getWeight() {
@@ -125,7 +125,7 @@ public class FPollFCharacterFStage {
 		this.weight = weight;
 	}
 
-	public boolean getCanVote() {
+	public boolean isCanVote() {
 		return canVote;
 	}
 

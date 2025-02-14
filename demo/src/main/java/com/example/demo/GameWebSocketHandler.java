@@ -112,7 +112,8 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         				vote.getRoomId(), 
         				vote.getPollName(),
         				vote.getStage(),
-        				vote.getPindex());
+        				vote.getPindex(),
+        				vote.getControlledPindex());
         		
         		if (res == null)
         			return;

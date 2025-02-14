@@ -7,7 +7,7 @@ public class DInputCandidate {
 	
 	private long weight;
 	
-	private short alias;
+	private short controlledBy;
 
 	private boolean canVote;
 	
@@ -21,12 +21,12 @@ public class DInputCandidate {
 		this.weight = weight;
 	}
 
-	public short getAlias() {
-		return alias;
+	public short getControlledBy() {
+		return controlledBy;
 	}
 
-	public void setAlias(short alias) {
-		this.alias = alias;
+	public void setControlledBy(short controlledBy) {
+		this.controlledBy = controlledBy;
 	}
 
 	public boolean isCanVote() {

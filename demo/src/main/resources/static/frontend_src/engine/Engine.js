@@ -76,7 +76,6 @@ class Engine {
 		}
 		else {
 			let tree = this.checker.checkExpression(selector, this.config);
-
 			this.expMap.set(selector, tree);
 			let res = this.calcExpressionByTree(tree);
 			return res;
@@ -150,6 +149,7 @@ class Engine {
 		config.statuses.push({id: "role", duration: -1});
 		config.statuses.push({id: "fraction", duration: -1});
 		config.statuses.push({id: "player", duration: -1});
+		config.statuses.push({id: "controlledBy", duration: -1});
 		this.expMap = new Map();
 		this.checker = new ConfigChecker();
 		this.state = {};
@@ -277,13 +277,13 @@ class Engine {
 	}
 	
 	formatText = (text, target, user) => {
-		text = text.replace("$target.name", "Игрок #" + target);
-		text = text.replace("$target.fraction", this.getFractionByPindex(target));
-		text = text.replace("$target.role", this.getRoleByPindex(target));
+		text = text.replaceAll("$target.name", "Игрок #" + target);
+		text = text.replaceAll("$target.fraction", this.getFractionByPindex(target));
+		text = text.replaceAll("$target.role", this.getRoleByPindex(target));
 		
-		text = text.replace("$user.name", "Игрок #" + user);
-		text = text.replace("$user.fraction", this.getFractionByPindex(user));
-		text = text.replace("$user.role", this.getRoleByPindex(user));
+		text = text.replaceAll("$user.name", "Игрок #" + user);
+		text = text.replaceAll("$user.fraction", this.getFractionByPindex(user));
+		text = text.replaceAll("$user.role", this.getRoleByPindex(user));
 		
 		
 		return text;
@@ -313,18 +313,18 @@ class Engine {
 			path += "/";
 		}
 		
-		//console.log("!!!!" + status + " " + target + " " + user);
-		
-		//player.statuses.push({id: status, duration: duration, target: target, user: user});
+		//console.log("@@@@" + status + " " + target + " " + user);
 	}
 	
 	removeStatus(status, target, user) {
 		status = this.formatText(status, target, user);
 		
-		let index = this.state.statuses.findIndex(item => item.id === status);
+		let index = this.state.statuses.findIndex(item => (item.id === status || item.id.startsWith(status + "/")));
 
 		if (index === -1)
 			return;
+
+		//console.log("####" + status + " " + target + " " + user);
 		
 		this.state.statuses.splice(index, 1);
 		
@@ -347,7 +347,7 @@ class Engine {
 		}
 	}
 	
-	updateStatusDuration(messages) {
+	updateStatusDuration() {
 		
 		this.randomShuffle(this.state.statuses);
 		
@@ -369,9 +369,39 @@ class Engine {
 			let action = this.getStatus(status.id).expireAction;
 			
 			if (action)
-				this.tryAction({id: status.target, users: [status.user], direct_users: [status.user]}, status.user, action, messages);
+				this.tryAction({id: status.target, users: [status.user], direct_users: [status.user]}, status.user, action);
 			
 			this.removeStatus(status.id, status.target, status.user);
+		}
+	}	
+	
+	updateControlledByStatus() {
+		
+		this.randomShuffle(this.state.statuses);
+
+		for (const status of this.state.statuses) {
+			
+			if (status.id.startsWith("controlledBy/")) {
+				
+				//console.log("!!!!" + JSON.stringify(status));
+				
+				let parts = status.id.split("/");
+				
+				if (parts.length < 2)
+					continue;
+				
+				let user = Number(parts[1].substring("Игрок #".length));
+				
+				if (isNaN(user))
+					continue;
+		
+				let pollId = null;
+				
+				if (parts.length > 2)
+					pollId = parts[2];
+				
+				this.outputBuilder.setControlledBy(status.target, user, pollId);
+			}
 		}
 	}	
 
@@ -389,7 +419,7 @@ class Engine {
 		}
 	}
 	
-	tryAction(candidate, user, action, messages) {
+	tryAction(candidate, user, action, stoppable) {
 		
 		let target = candidate.id;
 		let action_info = this.getAction(action);
@@ -399,16 +429,26 @@ class Engine {
 			if (!condition)
 				continue;
 			
-			console.log(action + " (");
 			
 			this.updateStatuses(target, user, reaction.addTargetStatuses, reaction.removeTargetStatuses);
 			this.updateStatuses(user, target, reaction.addUserStatuses, reaction.removeUserStatuses);
-			console.log(") " + action);
+
 			for (const direct_user of candidate.direct_users)
 				this.updateStatuses(direct_user, target, reaction.addDirectUsersStatuses, reaction.removeDirectUsersStatuses);
 			
 			for (const _user of candidate.users)
 				this.updateStatuses(_user, target, reaction.addUsersStatuses, reaction.removeUsersStatuses);
+			
+			if (reaction.affect) {
+				for (const group of reaction.affect) {
+					let mask = this.getMaskFromSelector(group.address, target, user);
+					for (let i = 0; i < this.count; i++) {
+						if (mask & (1 << i)) {
+							this.updateStatuses(i, target, group.addStatuses, group.removeStatuses);
+						}
+					}
+				}
+			}
 			
 			if (reaction.informTarget)
 				this.outputBuilder.addMessage(target, this.formatText(reaction.informTarget, target, user));	
@@ -444,7 +484,7 @@ class Engine {
 					this.outputBuilder.addMessage(i, this.formatText(reaction.informAll, target, user));	
 			}
 			
-			if (reaction.stop === true)
+			if (reaction.stop === true && stoppable)
 				return true;
 			
 			if (!reaction.propagate)
@@ -469,7 +509,7 @@ class Engine {
 					continue;	
 				
 				if (ability.autoVote && poll_result.table[i] === 0) {
-					let candidate_mask = this.getMaskFromSelector(ability.candidates);
+					let candidate_mask = this.getMaskFromSelector(this.formatText(ability.candidates, null, i));
 					let random_index = this.getRandomIndexFromMask(candidate_mask);
 
 					if (random_index !== null)
@@ -496,7 +536,7 @@ class Engine {
 				for (const action of ability.actions) {
 					this.randomShuffle(candidate.users);
 					for (const user of candidate.users) {
-						if (this.tryAction(candidate, user, action))
+						if (this.tryAction(candidate, user, action, (ability.rule === "each_voted")? false : true))
 							break;
 					}
 				}
@@ -504,6 +544,7 @@ class Engine {
 		}
 		
 		this.updateStatusDuration();
+		this.updateControlledByStatus();
 		
 		var time_index = this.config.times.findIndex((time) => time.id === this.state.time);
 
@@ -522,7 +563,8 @@ class Engine {
 				
 				let winners_mask = this.getMaskFromSelector(winCase.winners);
 				
-				//console.log(winCase.winners + " " + this.getMaskFromSelector(winCase.winners) + " " + this.getMaskFromSelector("fraction(Нейтрал/Дурак)"));
+				//console.log(winCase.winners + " " + this.getMaskFromSelector(winCase.winners)
+				//	 + " " + this.getMaskFromSelector("role(Ведьма) and status(Живой)"));
 				
 				for (let i = 0; i < this.count; i++) {
 					if (winners_mask & (1 << i)) {
