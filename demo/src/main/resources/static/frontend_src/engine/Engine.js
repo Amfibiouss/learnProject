@@ -544,8 +544,8 @@ class Engine {
 	}
 	
 	update(poll_results) {
-
-		this.state.old_state = JSON.parse(JSON.stringify(this.state));
+		this.state.old_state = structuredClone(this.state);
+		//this.state.old_state = JSON.parse(JSON.stringify(this.state));
 		this.outputBuilder = new OutputBuilder(this.config, this.getMaskFromSelector, this.formatText);
 		
 		//Обработка автоматического голосования вместо пользователя (например для Мести Дурака)

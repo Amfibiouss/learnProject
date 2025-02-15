@@ -171,10 +171,6 @@ class RealServer {
 		this.#sendState(data, "update");
 	}
 	
-	toPast(data) {	
-		this.#sendState(data, "past");
-	}
-	
 	getPollResults(onComplete) {
 		fetch("/api/room/" + this.room_id + "/update")
 		.then((response) => {

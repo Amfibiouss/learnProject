@@ -161,21 +161,6 @@ public class GameController {
 		roomService.updateRoom(room_id, state);
 		return;
 	}
-	
-	@PostMapping("past")
-	public void setPastState(Principal principal, 
-								HttpServletResponse response,
-								@PathVariable long room_id,
-								@RequestBody DInputState state) {
-		
-		if (roomService.getRoomIdByCreator(principal.getName()) != room_id) {
-			response.setStatus(403);
-			return;
-		}
-		
-		roomService.updateRoom(room_id, state);
-		return;
-	}
 }
 
 

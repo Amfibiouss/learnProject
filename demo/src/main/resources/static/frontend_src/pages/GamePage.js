@@ -249,17 +249,20 @@ class GamePage extends React.Component {
 	}
 	
 	toPast = () => {
+		
 		if (this.state.status !== "run")
 			return;
-		
+			
 		if (this.timerId) {
 			clearInterval(this.timerId);
 		}
+
+		this.state.server.getPollResults(() => {			
+			this.state.server.update(this.state.engine.toPast());
+		});
 		
-		var new_state_room = this.state.engine.toPast();	
-		
-		if (new_state_room)				
-			this.state.server.toPast(new_state_room);
+		if (this.state.status !== "run")
+			return;
 	}
 	
 	stopTime = () => {
