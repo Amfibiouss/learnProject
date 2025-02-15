@@ -134,7 +134,7 @@ class OutputBuilder {
 	build(stage, duration, init) {
 		
 		for (let i = 0; i < this.count; i++) {
-			this.messages[i].sort();
+			//this.messages[i].sort();
 			this.messages[i] = this.messages[i].join("");
 		}
 		

@@ -323,6 +323,9 @@ class Engine {
 	
 	formatText = (text, target, user) => {
 		
+		if (!text)
+			return null;
+		
 		if (typeof(target) === "number") {
 			text = text.replaceAll("$target.name", "Игрок #" + target);
 			text = text.replaceAll("$target.fraction", this.getFractionByPindex(target));
@@ -373,7 +376,7 @@ class Engine {
 			return;
 
 		status = this.state.statuses[index].id;
-		//console.log("####" + status + " " + this.state.statuses[index].id  + " " + target + " " + user);
+		//console.log("####" + status  + " " + target + " " + user);
 		
 		this.state.statuses.splice(index, 1);
 		
@@ -453,17 +456,23 @@ class Engine {
 		}
 	}	
 
-	updateStatuses(target, user, addStatuses, removeStatuses) {
+	updateStatuses(target, user, addStatuses, removeStatuses, reverse) {
 		
 		if (removeStatuses) {
-			for (const status of removeStatuses) {				
-				this.removeStatus(this.formatText(status, target, user), target, user);
+			for (const status of removeStatuses) {
+				if (reverse)
+					this.removeStatus(this.formatText(status, target, user), user, status);
+				else			
+					this.removeStatus(this.formatText(status, target, user), target, user);
 			}
 		}
 		
 		if (addStatuses) {
 			for (const status of addStatuses) {
-				this.addStatus(this.formatText(status, target, user), this.getStatus(status).duration, target, user);
+				if (reverse)
+					this.addStatus(this.formatText(status, target, user), this.getStatus(status).duration, user, target);
+				else
+					this.addStatus(this.formatText(status, target, user), this.getStatus(status).duration, target, user);
 			}
 		}
 	}
@@ -479,21 +488,22 @@ class Engine {
 				continue;
 			
 			
-			this.updateStatuses(target, user, reaction.addTargetStatuses, reaction.removeTargetStatuses);
-			this.updateStatuses(user, target, reaction.addUserStatuses, reaction.removeUserStatuses);
+			this.updateStatuses(target, user, reaction.addTargetStatuses, reaction.removeTargetStatuses, false);
+			this.updateStatuses(target, user, reaction.addUserStatuses, reaction.removeUserStatuses, true);
 
 			for (const direct_user of candidate.direct_users)
-				this.updateStatuses(direct_user, target, reaction.addDirectUsersStatuses, reaction.removeDirectUsersStatuses);
+				this.updateStatuses(target, direct_user, reaction.addDirectUsersStatuses, reaction.removeDirectUsersStatuses, true);
 			
 			for (const _user of candidate.users)
-				this.updateStatuses(_user, target, reaction.addUsersStatuses, reaction.removeUsersStatuses);
+				this.updateStatuses(target, _user, reaction.addUsersStatuses, reaction.removeUsersStatuses, true);
 			
 			if (reaction.affect) {
 				for (const group of reaction.affect) {
 					let mask = this.getMaskFromSelector(group.address, target, user);
 					for (let i = 0; i < this.count; i++) {
 						if (mask & (1 << i)) {
-							this.updateStatuses(i, target, group.addStatuses, group.removeStatuses);
+							this.updateStatuses(target, i, group.addStatuses, group.removeStatuses, true);
+							this.outputBuilder.addMessage(i, this.formatText(group.text, target, user));
 						}
 					}
 				}
@@ -513,19 +523,6 @@ class Engine {
 			if (reaction.informUsers) {
 				for (const id of candidate.users) 
 					this.outputBuilder.addMessage(id, this.formatText(reaction.informUsers, target, user));	
-			}
-			
-			if (reaction.inform) {
-				for (const group of reaction.inform) {
-					let mask = this.getMaskFromSelector(group.address, target, user);
-
-					//console.log("$$$" + action + " " + mask + " " + this.formatText(group.address, target, user));
-					
-					for (let i = 0; i < this.count; i++) {
-						if (mask & (1 << i))
-							this.outputBuilder.addMessage(i, this.formatText(group.text, target, user));
-					}	
-				}
 			}
 			
 			if (reaction.informAll) {

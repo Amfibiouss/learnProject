@@ -347,4 +347,24 @@ test("КЛОУНИРОВАТЬ ИСПЕПЕЛИТЬ ВОЗРОДИТЬ", () => {
 	tester.play(init_data);
 });
 
+test("Проверка способностей вигиланта", () => {
+
+	let tester = new EngineTester();
+
+	let player1 = tester.createPlayer("Игрок 1", "Вигилант");
+	let player2 = tester.createPlayer("Игрок 2", "Мафия");
+	let player3 = tester.createPlayer("Игрок 3", "Доктор");
+	let player4 = tester.createPlayer("Игрок 4", "Горожанин");
+
+	let init_data = tester.initialize();
+
+	player1.vote("Самосуд", player4).next();
+	player3.vote("Лечение", player4).next();
+	
+	player1.next().no_vote("Самосуд", player3).next().next().vote("Самосуд", player3);
+	
+	player1.next().next().next().next().no_vote("Самосуд", player4);
+	
+	tester.play(init_data);
+});
 

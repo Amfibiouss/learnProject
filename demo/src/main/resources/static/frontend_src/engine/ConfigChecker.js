@@ -139,18 +139,6 @@ class ConfigChecker {
 										{id: "informUsers", type: "string", not_required: true},
 										{id: "informAll", type: "string", not_required: true},
 										{
-											id: "inform", 
-											type: "array", 
-											items: {
-												type: "object",
-												fields: [
-													{id: "address", type: "expression"},
-													{id: "text", type: "string"},
-												]
-											},
-											not_required: true
-										},
-										{
 											id: "affect", 
 											type: "array", 
 											items: {
@@ -169,6 +157,12 @@ class ConfigChecker {
 														type: "array", 
 														items: {type:"string"}, 
 														from: "statuses", 
+														not_required: true
+													},
+													
+													{
+														id: "text", 
+														type: "string",
 														not_required: true
 													},
 												]

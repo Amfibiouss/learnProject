@@ -118,7 +118,7 @@ class EngineTester {
 			
 			var poll_results = data.pollStates.map((poll) => {return {id: poll.id, table: new Array(30).fill(0)};});
 			
-			//console.log(data);
+			console.log(data);
 			for (let player of this.players) {
 				while (player.actions.length > 0) {
 					
@@ -175,7 +175,7 @@ class EngineTester {
 
 							if (action.target) {
 
-								if(!(voter.candidates & (1 << action.target.pindex)))
+								if(!(voter.candidates & (1 << action.target.pindex)) || !voter.canVote)
 									throw new Error("Ошибка, игрок " + player.name + " почему-то не может использовать способность " + action.poll_id + " на игроке " + action.target.name);
 									
 								poll_result.table[voter.id] |= 1 << action.target.pindex;
@@ -199,7 +199,7 @@ class EngineTester {
 								throw new Error("Ошибка, игрок " + player.name + " почему-то может использовать способность " + action.poll_id);
 							}
 							
-							if (action.target && (voter.candidates & (1 << action.target.pindex))) {
+							if (action.target && voter.canVote && (voter.candidates & (1 << action.target.pindex))) {
 								throw new Error("Ошибка, игрок " + player.name + " почему-то может использовать способность " + action.poll_id + " на игроке " + action.target.name);
 							}
 							
