@@ -168,21 +168,45 @@ class Engine {
 		this.state.all_mask = (1 << this.count) - 1;
 		
 		this.outputBuilder = new OutputBuilder(this.config, this.getMaskFromSelector, this.formatText);
+		
+		let permutation = Array(this.count - 1).fill().map((_, index) => index + 1);
+		this.randomShuffle(permutation);
+		permutation = [0].concat(permutation);
 		let index = 0;
+		
 		for (const role of this.config.roles) {
-
 			for (let i = 0; i < role.count; i++) {
-				this.addStatus("role/" + role.id, -1, index, index);
-				this.addStatus("fraction/" + role.fraction, -1, index, index);
-				this.addStatus("player/Игрок #" + index, -1, index, index);
+				this.addStatus("role/" + role.id, -1, permutation[index], permutation[index]);
+				this.addStatus("fraction/" + role.fraction, -1, permutation[index], permutation[index]);
+				this.addStatus("player/Игрок #" + permutation[index], -1, permutation[index], permutation[index]);
+				index++;
+			}
+		}
+		
+		index = 0;
+		for (const role of this.config.roles) {
+			for (let i = 0; i < role.count; i++) {
+				
+				if (role.revealRoles) {
+					let mask = this.getMaskFromSelector(this.formatText(role.revealRoles, permutation[index], null));
+					let str = "";
+					
+					for (let j = 0; j < this.count; j++) {
+						if (mask & (1 << j)) {
+							str += "У Игрока #" + j + " роль " + this.getRoleByPindex(j) + ".\n";
+						}
+					}
+					
+					this.outputBuilder.addMessage(permutation[index], str);
+				}
 				
 				if (role.statuses) {
-					for (let status of role.statuses) {
-						this.addStatus(status, this.getStatus(status).duration, index, index);
+					for (const status of role.statuses) {
+						this.addStatus(this.formatText(status, permutation[index], null), this.getStatus(status).duration, permutation[index], permutation[index]);
 					}
 				}
 				
-				this.outputBuilder.addMessage(index, role.description);
+				this.outputBuilder.addMessage(permutation[index], role.description);
 				index++;
 			}
 		}
@@ -198,15 +222,15 @@ class Engine {
 	}
 	
 	getSelected(user_mask, table,  ability) {
-		let votes = Array(30).fill(0);
+		let votes = Array(this.count).fill(0);
 		let selected = [];
 		
-		for (var i = 0; i < 30; i++) {
+		for (var i = 0; i < this.count; i++) {
 			
 			if (!(user_mask & (1 << i))) 
 				continue;	
 			
-			for (var j = 0; j < 30; j++) {
+			for (var j = 0; j < this.count; j++) {
 				
 				if (table[i] & (1 << j)) {
 					votes[j]++;	
@@ -214,9 +238,9 @@ class Engine {
 			}
 		}
 		
-		if (ability.rule === "most_voted") {
+		if (ability.rule.startsWith("most_voted")) {
 			let max = -1, second_max = -1, max_index;
-			for (let i = 0; i < 30; i++) {
+			for (let i = 0; i < this.count; i++) {
 				if (votes[i] > max) {
 					second_max = max;
 					max = votes[i];
@@ -228,20 +252,38 @@ class Engine {
 				}
 			}
 			
-			if (second_max !== max && max > 0) {
-				let users = [];
-				let direct_users = [];
-				for (let i = 0; i < 30; i++) {
-					if (user_mask & (1 << i)) {
-						users.push(i);
-						
-						if (table[i] & (1 << max_index))
-							direct_users.push(i);
-					}
+			if (max <= 0)
+				return [];
+			
+			if (ability.rule === "most_voted - draw_random") {
+				
+				let arr = [];
+				
+				for (let i = 0; i < this.count; i++) {
+					if (votes[i] === max)
+						arr.push(i);
 				}
 				
-				selected = [{id: max_index, users: users, direct_users: direct_users}];
+				this.randomShuffle(arr);
+				max_index = arr[0];
 			}
+			
+			if (ability.rule === "most_voted - draw_none" && second_max === max)
+				return [];
+			
+			let users = [];
+			let direct_users = [];
+			for (let i = 0; i < this.count; i++) {
+				if (user_mask & (1 << i)) {
+					users.push(i);
+					
+					if (table[i] & (1 << max_index))
+						direct_users.push(i);
+				}
+			}
+			
+			selected = [{id: max_index, users: users, direct_users: direct_users}];
+			
 		} else if (ability.rule === "each_voted") {
 			for (let i = 0; i < 30; i++) {
 				if (!votes[i]) 
@@ -267,24 +309,30 @@ class Engine {
 	}
 	
 	getRoleByPindex = (pindex) => {
-		return this.config.roles.find(role => 
-			this.state.status_mask.get("role/" + role.id) & (1 << pindex)).id;
+		let res = this.config.roles.find(role => 
+					this.state.status_mask.get("role/" + role.id) & (1 << pindex));
+		return res? res.id : null;
 	}
 	
 	getFractionByPindex = (pindex) => {
-		return this.config.fractions.find(fraction => 
-			this.state.status_mask.get("fraction/" + fraction.id) & (1 << pindex)).id;
+		let res = this.config.fractions.find(fraction => 
+			this.state.status_mask.get("fraction/" + fraction.id) & (1 << pindex));
+			
+		return res? res.id : null;
 	}
 	
 	formatText = (text, target, user) => {
-		text = text.replaceAll("$target.name", "Игрок #" + target);
-		text = text.replaceAll("$target.fraction", this.getFractionByPindex(target));
-		text = text.replaceAll("$target.role", this.getRoleByPindex(target));
 		
-		text = text.replaceAll("$user.name", "Игрок #" + user);
-		text = text.replaceAll("$user.fraction", this.getFractionByPindex(user));
-		text = text.replaceAll("$user.role", this.getRoleByPindex(user));
-		
+		if (typeof(target) === "number") {
+			text = text.replaceAll("$target.name", "Игрок #" + target);
+			text = text.replaceAll("$target.fraction", this.getFractionByPindex(target));
+			text = text.replaceAll("$target.role", this.getRoleByPindex(target));
+		}
+		if (typeof(user) === "number") {
+			text = text.replaceAll("$user.name", "Игрок #" + user);
+			text = text.replaceAll("$user.fraction", this.getFractionByPindex(user));
+			text = text.replaceAll("$user.role", this.getRoleByPindex(user));
+		}
 		
 		return text;
 	}
@@ -319,12 +367,13 @@ class Engine {
 	removeStatus(status, target, user) {
 		status = this.formatText(status, target, user);
 		
-		let index = this.state.statuses.findIndex(item => (item.id === status || item.id.startsWith(status + "/")));
+		let index = this.state.statuses.findIndex(item => (item.target === target && (item.id === status || item.id.startsWith(status + "/"))));
 
 		if (index === -1)
 			return;
 
-		//console.log("####" + status + " " + target + " " + user);
+		status = this.state.statuses[index].id;
+		//console.log("####" + status + " " + this.state.statuses[index].id  + " " + target + " " + user);
 		
 		this.state.statuses.splice(index, 1);
 		
@@ -336,7 +385,6 @@ class Engine {
 			if (this.state.status_count[target].has(path)) {
 				let count = this.state.status_count[target].get(path);
 				this.state.status_count[target].set(path, count - 1);
-				
 				if (count === 1) {
 					this.state.status_count[target].delete(path);
 					this.state.status_mask.set(path, this.state.status_mask.get(path) ^ (1 << target));
@@ -406,20 +454,21 @@ class Engine {
 	}	
 
 	updateStatuses(target, user, addStatuses, removeStatuses) {
+		
+		if (removeStatuses) {
+			for (const status of removeStatuses) {				
+				this.removeStatus(this.formatText(status, target, user), target, user);
+			}
+		}
+		
 		if (addStatuses) {
 			for (const status of addStatuses) {
 				this.addStatus(this.formatText(status, target, user), this.getStatus(status).duration, target, user);
 			}
 		}
-
-		if (removeStatuses) {
-			for (const status of removeStatuses) {
-				this.removeStatus(this.formatText(status, target, user), target, user);
-			}
-		}
 	}
 	
-	tryAction(candidate, user, action, stoppable) {
+	tryAction(candidate, user, action) {
 		
 		let target = candidate.id;
 		let action_info = this.getAction(action);
@@ -484,7 +533,7 @@ class Engine {
 					this.outputBuilder.addMessage(i, this.formatText(reaction.informAll, target, user));	
 			}
 			
-			if (reaction.stop === true && stoppable)
+			if (reaction.stop === true)
 				return true;
 			
 			if (!reaction.propagate)
@@ -536,7 +585,7 @@ class Engine {
 				for (const action of ability.actions) {
 					this.randomShuffle(candidate.users);
 					for (const user of candidate.users) {
-						if (this.tryAction(candidate, user, action, (ability.rule === "each_voted")? false : true))
+						if (this.tryAction(candidate, user, action))
 							break;
 					}
 				}

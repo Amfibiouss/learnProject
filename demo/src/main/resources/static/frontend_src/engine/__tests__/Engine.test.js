@@ -188,7 +188,7 @@ test("Проверка способностей маньяка", () => {
 		.message("Вы успешно напали на " + player3 + ".");
 	player2.vote("Любовь", player1).next().message("Вы пришли к " + player1 + " и он убил вас!").status("Мертвый");
 	player3.next().status("Мертвый");
-	player4.vote("Ночное голосование", player1).next().message("Вы напали на " + player1 + ", но не смогли его убить.");
+	player4.vote("Ночное голосование", player1).next().message(player4 + " хотел напасть на " + player1 + ", но цель отбила нападение. Мафия решает отступить.");
 	
 	player1.vote("Дневное голосование", player4).next().win();
 	player4.next().lose();
@@ -311,3 +311,40 @@ test("Проверка способностей Ведьмы на Следопы
 	
 	tester.play(init_data);
 });
+
+test("Проверка клоунирования", () => {
+
+	let tester = new EngineTester();
+
+	let player1 = tester.createPlayer("Игрок 1", "Администратор");
+	let player2 = tester.createPlayer("Игрок 2", "Мафия");
+	let player3 = tester.createPlayer("Игрок 3", "Горожанин");
+	let player4 = tester.createPlayer("Игрок 4", "Мафия");
+
+	let init_data = tester.initialize();
+
+	player1.vote("Клоунировать", player2);
+	player2.next().cant_write("Мафия");
+	
+	tester.play(init_data);
+});
+
+test("КЛОУНИРОВАТЬ ИСПЕПЕЛИТЬ ВОЗРОДИТЬ", () => {
+
+	let tester = new EngineTester();
+
+	let player1 = tester.createPlayer("Игрок 1", "Администратор");
+	let player2 = tester.createPlayer("Игрок 2", "Мафия");
+	let player3 = tester.createPlayer("Игрок 3", "Горожанин");
+
+	let init_data = tester.initialize();
+
+	player1.vote("Клоунировать", player2);
+	player1.vote("Аннигиляция", player2);
+	player1.vote("Восстановление", player2);
+	player2.next().status("Живой").status("role/Клоун");
+	
+	tester.play(init_data);
+});
+
+

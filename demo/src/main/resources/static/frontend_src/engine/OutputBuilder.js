@@ -60,6 +60,8 @@ class OutputBuilder {
 			let anonymous_read_mask = this.getMaskFromSelector(channel.canAnonymousRead);
 			let anonymous_write_mask = this.getMaskFromSelector(channel.canAnonymousWrite);
 			
+			//console.log(channel.id + " " + write_mask + " " + anonymous_write_mask);
+			
 			channelStates.push({id: channel.id, 
 								canRead: read_mask, 
 								canXRayRead: 0,

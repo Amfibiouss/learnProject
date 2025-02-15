@@ -277,7 +277,10 @@ class CreateForm extends React.Component {
 			config = require("../engine/default_room_config.json");
 			//config = JSON.parse(JSON.stringify(default_room_config));
 			
-			config.roles.forEach((role) => {role.count = 0;});
+			config.roles.forEach((role, index) => {
+				if (index > 0)
+					role.count = 0;
+			});
 			
 			this.roles.forEach((entry) => {
 				let role = config.roles.find((role) => role.id === entry.value);

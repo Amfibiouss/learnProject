@@ -48,6 +48,16 @@ class Player {
 		return this;
 	}
 	
+	cant_read(channel_id) {
+		this.actions.push({type: "cant_read", channel_id: channel_id});
+		return this;
+	}
+
+	cant_write(channel_id) {
+		this.actions.push({type: "cant_write", channel_id: channel_id});
+		return this;
+	}
+	
 	message(pattern) {
 		this.actions.push({type: "message", pattern: pattern});
 		return this;
@@ -226,6 +236,21 @@ class EngineTester {
 							if (!((channel.canWrite | channel.canXRayWrite | channel.canAnonymousWrite) & (1 << player.pindex)))
 								throw new Error("Ошибка, Игрок " + player.name + " не может писать в канал " + action.channel_id);	
 						
+							break;
+							
+						case "cant_read":
+							channel = data.channelStates.find((channel) => channel.id === action.channel_id);
+							
+							if ((channel.canRead | channel.canXRayRead | channel.canAnonymousRead) & (1 << player.pindex))
+								throw new Error("Ошибка, Игрок " + player.name + " может читать канал " + action.channel_id);
+							
+							break;
+							
+						case "cant_write":
+							channel = data.channelStates.find((channel) => channel.id === action.channel_id);	
+							if ((channel.canWrite | channel.canXRayWrite | channel.canAnonymousWrite) & (1 << player.pindex))
+								throw new Error("Ошибка, Игрок " + player.name + " может писать в канал " + action.channel_id);	
+
 							break;
 							
 						case "win":

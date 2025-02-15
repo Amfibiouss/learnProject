@@ -3,6 +3,7 @@ package com.example.demo.entities;
 import java.time.OffsetDateTime;
 import java.util.Objects;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -16,6 +17,7 @@ public class FMessage {
 	@GeneratedValue(strategy = GenerationType.SEQUENCE)
 	private Long id;
 	
+	@Column(columnDefinition = "TEXT")
 	private String text;
 	
 	private OffsetDateTime date;

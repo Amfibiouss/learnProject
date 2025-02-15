@@ -60,8 +60,9 @@ class ConfigChecker {
 							{id: "id",  type: "string"},
 							{id: "description",  type: "string"},
 							{id: "fraction", from: "fractions", type: "string"},
-							{id: "count",  type: "number", min: 0},
 							{id: "statuses",  type: "array", items: {type: "string"}, not_required: true},
+							{id: "revealRoles",  type: "expression", not_required: true},
+							{id: "count",  type: "number", min: 0},
 						]
 					}
 				},
@@ -239,8 +240,8 @@ class ConfigChecker {
 						case "statuses":
 							res = config.every((item) => root_config[rules.from].some((obj) => 
 								(obj.id === item || item.startsWith(obj.id + "/") 
-								|| item.startsWith("player/") || item.startsWith("fraction/") 
-								|| item.startsWith("role/") ||  item.startsWith("controlledBy/"))));
+								|| item.startsWith("player") || item.startsWith("fraction") 
+								|| item.startsWith("role") ||  item.startsWith("controlledBy"))));
 							break;
 						case "roles":
 						case "fractions":
@@ -449,8 +450,8 @@ class ConfigChecker {
 							return [0, null];
 						break;
 					case "status":
-						if (!expr.startsWith("player/") && !expr.startsWith("role/") 
-						&& !expr.startsWith("fraction/") && !expr.startsWith("controlledBy/")
+						if (!expr.startsWith("player") && !expr.startsWith("role") 
+						&& !expr.startsWith("fraction") && !expr.startsWith("controlledBy")
 						&& !config["statuses"].some((elem) => (expr === elem.id || expr.startsWith(elem.id + "/"))))
 							return [0, null];
 						break;

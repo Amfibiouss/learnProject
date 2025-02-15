@@ -35,10 +35,29 @@
 		 
 		{"id": "Мафия"},
 		
-		{"id": "Нейтрал"}
+		{"id": "Нейтрал"},
+		
+		{"id": "???"}
 	],
 	
 	"roles": [
+		{
+			"id": "Администратор",
+			"fraction": "???",
+			"description": "Вы Администратор. Вам дана великая сила и ваша задача поддерживать баланс.",
+			"statuses": [],
+			"revealRoles": "all()", 
+			"count": 1
+		},	
+		
+		{
+			"id": "Клоун",
+			"fraction": "???",
+			"description": "Вы Клоун... не знаю что еще сказать.",
+			"statuses": ["Живой"],
+			"count": 0
+		},		
+	
 		{
 			"id": "Радиолюбитель",
 			"fraction": "Город",
@@ -98,15 +117,16 @@
 		{
 			"id": "Мафия",
 			"fraction": "Мафия",
-			"description": "Убивай, убивай, убивай!",
+			"description": "Вы Мафия. Чтобы победить вам нужно уничтожить Город и Маньяка. Вы можете убивать одного человека каждую ночь.",
 			"statuses": ["Живой"],
+			"revealRoles": "fraction(Мафия)",
 			"count": 1
 		},
 		
 		{
 			"id": "Дурак",
 			"fraction": "Нейтрал/Дурак",
-			"description": "Ваша цель - быть убитым на дневном голосовании. После победы вы превращаетесь в призрака и терроризируете одного из своих убийц.",
+			"description": "Вы.. эээ.. Умник. Ваша цель - быть убитым на дневном голосовании. После победы вы превращаетесь в призрака и убиваете одного из своих убийц.",
 			"statuses": ["Живой"],
 			"count": 1
 		},
@@ -114,7 +134,7 @@
 		{
 			"id": "Маньяк",
 			"fraction": "Нейтрал/Маньяк",
-			"description": "Ваша цель - убить всех.",
+			"description": "Вы Маньяк. Ваша цель - убить всех. Вас нельзя убить ночью и блокирующие роли умирают использовав на вас свою способность.",
 			"statuses": ["Живой"],
 			"count": 1
 		},
@@ -122,15 +142,16 @@
 		{
 			"id": "Дон",
 			"fraction": "Мафия",
-			"description": "Ваша цель - уничтожить Город. Руководите мафией. Вас не может раскрыть Шериф.",
+			"description": "Вы Дон. Ваша цель - уничтожить Город и Маньяка. Руководите мафией. Вас не может раскрыть Шериф.",
 			"statuses": ["Живой"],
+			"revealRoles": "fraction(Мафия)",
 			"count": 1
 		},
 		
 		{
 			"id": "Ведьма",
 			"fraction": "Нейтрал/Ведьма",
-			"description": "Ваша цель - уничтожить Город и выжить. Выберите жертву днем, которую будете контролировать ночью.",
+			"description": "Вы ведьма. Ваша цель - уничтожить Город и Маньяка и выжить. Выберите жертву днем, которую будете контролировать ночью.",
 			"statuses": ["Живой"],
 			"count": 1
 		}
@@ -139,12 +160,30 @@
 	"abilities": [
 		
 		{
+			"id": "Клоунировать",
+			"description": "Особая магия Администратора. Выберите человека, которого хотите превратить в Клоуна. Отменить заклинание не получится!",
+			"candidates": "all()",
+			"canUse":  "role(Администратор)",
+			"rule": "each_voted",
+			"actions": ["Клоунировать"]
+		},
+		
+		{
+			"id": "Аннигиляция",
+			"description": "Особая магия Администратора. Выберите человека, которого хотите испепелить. Рекомендую перед этим превратить его в Клоуна.",
+			"candidates": "all()",
+			"canUse":  "role(Администратор)",
+			"rule": "each_voted",
+			"actions": ["Аннигиляция"]
+		},
+		
+		{
 			"id": "Дневное голосование",
 			"description": "Умрет тот, за кого проголосовало больше. При равном количество голосов никто не умирает.",
 			"candidates": "status(Живой) and not(status(player/$user.name))",
-			"canUse": "time(День) and status(Живой) and not(status(Заблокирован))",
+			"canUse": "time(День) and status(Живой) and not(role(Клоун)) and not(status(Заблокирован))",
 			"channel": "Общий",
-			"rule": "most_voted",
+			"rule": "most_voted - draw_random",
 			"showVotes": true,
 			"actions": ["Казнь"]
 		},
@@ -173,7 +212,7 @@
 			"description": "Выберите человека, которого хотите избрать новым Доном.",
 			"candidates": "status(Живой) and role(Мафия)",
 			"canUse":  "time(Ночь) and equal(role(Дон) and status(Живой), 0) and greather(role(Дон) and status(Мертвый), 0) and fraction(Мафия) and status(Живой)",
-			"rule": "most_voted",
+			"rule": "most_voted - draw_random",
 			"autoVote": true,
 			"actions": ["Назначение Дона"]
 		},
@@ -201,7 +240,7 @@
 			"description": "Умрет тот, за кого проголосовало больше. При равном количество голосов никто не умирает.",
 			"candidates": "not(fraction(Мафия)) and status(Живой)",
 			"canUse":  "time(Ночь) and (role(Мафия) or role(Дон)) and status(Живой) and not(status(Заблокирован))",
-			"rule": "most_voted",
+			"rule": "most_voted - draw_random",
 			"actions": ["Атака Мафии"]
 		},
 		
@@ -230,7 +269,16 @@
 			"canUse":  "time(Ночь) and role(Следопыт) and status(Живой) and not(status(Заблокирован))",
 			"rule": "each_voted",
 			"actions": ["Слежка"]
-		}	
+		},
+		
+		{
+			"id": "Восстановление",
+			"description": "Особая магия Администратора. Выберите человека, которого хотите исчелить от всех дебаффов (Смерть, Блок, Контроль и т.д)",
+			"candidates": "all()",
+			"canUse":  "role(Администратор)",
+			"rule": "each_voted",
+			"actions": ["Восстановление"]
+		}
 	],
 	
 	"channels": [
@@ -267,6 +315,54 @@
 	],
 	
 	"actions": [
+	
+		{
+			"id": "Клоунировать",
+			
+			"reactions": [
+				{
+					"condition": "all()",
+					"removeTargetStatuses": ["role", "fraction"],
+					"addTargetStatuses": ["role/Клоун", "fraction/???"],
+					"informAll": "$target.name внезапно затрасся. Из головы начали расти рыжие волосы, нос покраснел, ботинки удлинились, пуговицы на рубашке отрываются одна за другой. ЧТО ЖЕ ЭТО?! Нету больше знакомого вам $target.name, его место занял... клоун! "
+				}
+			]
+		},
+		
+		{
+			"id": "Восстановление",
+			
+			"reactions": [
+				{
+					"condition": "all()",
+					"removeTargetStatuses": ["Мертвый", "Заблокирован", "Забывчивый", "controlledBy", "Под контролем"],
+					"affect": [
+						{
+							"address": "status(Контролирует/$target.name)",
+							"removeStatuses": ["Контролирует/$target.name"]
+						},
+						{
+							"address": "status(player/$target.name) and not(status(Живой)) and not(role(Администратор))",
+							"addStatuses": ["Живой"]
+						}
+					],
+					"informAll": "$target.name открывает глаза. Он как будто заново родился, полон сил и энергии."
+				}
+			]
+		},
+		
+		{
+			"id": "Аннигиляция",
+			
+			"reactions": [
+				{
+					"condition": "status(Живой)",
+					"removeTargetStatuses": ["Живой"],
+					"addTargetStatuses": ["Мертвый"],
+					"informAll": "В $target.name бьет молния. От него остается лишь горстка пепла."
+				}
+			]
+		},
 	
 		{
 			"id": "Казнь",
@@ -322,17 +418,7 @@
 
 					"inform": [
 						{
-							"address": "status(Контролирует/$user.name) and not(status(Забывчивый))",
-							"text": "Ваш подчиненный вместе с Мафией пошли убивать $target.name, но цель уже была мертва."
-						},
-						
-						{
-							"address": "status(player/$user.name) and not(status(Забывчивый))",
-							"text": "Вы хотели напасть на $target.name, но цель уже была мертва."
-						},
-						
-						{
-							"address": "((fraction(Мафия) and not(status(player/$user.name))) or status(Следит за мафией)) and not(status(Забывчивый))",
+							"address": "fraction(Мафия) or (status(Следит за мафией) and not(status(Забывчивый)))",
 							"text": "$user.name хотел напасть на $target.name, но цель уже была мертва."
 						}
 					],
@@ -347,20 +433,10 @@
 							"address": "status(player/$target.name) and not(status(Забывчивый))",
 							"text": "На вас напали, но вы отбили нападение."
 						},
-					
-						{
-							"address": "status(Контролирует/$user.name) and not(status(Забывчивый))",
-							"text": "Вы напали на $target.name, контролируя $user.name, но не смогли его убить."
-						},
 						
 						{
-							"address": "status(player/$user.name) and not(status(Забывчивый))",
-							"text": "Вы напали на $target.name, но не смогли его убить."
-						},
-						
-						{
-							"address": "((fraction(Мафия) and not(status(player/$user.name))) or status(Следит за мафией)) and not(status(Забывчивый))",
-							"text": "$user.name хотел напасть на $target.name, но цель отбила нападение. Вы решаете отступить."
+							"address": "fraction(Мафия) or (status(Следит за мафией) and not(status(Забывчивый)))",
+							"text": "$user.name хотел напасть на $target.name, но цель отбила нападение. Мафия решает отступить."
 						}
 					],
 					
@@ -370,27 +446,17 @@
 				{
 					"condition": "status(Живой)",
 					"removeTargetStatuses": ["Живой"],
-					"addTargetStatuses": ["Мертвый/Убит мафий", "Последнее слово"],
+					"addTargetStatuses": ["Мертвый/Убит мафией", "Последнее слово"],
 					
 					"inform": [
 						{
 							"address": "status(player/$target.name) and not(status(Забывчивый))",
 							"text": "Вас убили!"
 						},
-					
+												
 						{
-							"address": "status(Контролирует/$user.name) and not(status(Забывчивый))",
-							"text": "Вы успешно напали на $target.name, контролируя $user.name."
-						},
-						
-						{
-							"address": "status(player/$user.name) and not(status(Забывчивый))",
-							"text": "Вы успешно напали на $target.name."
-						},
-						
-						{
-							"address": "((fraction(Мафия) and not(status(player/$user.name))) or status(Следит за мафией)) and not(status(Забывчивый))",
-							"text": "$user.name успешно напал на $target.name. Дело сделано."
+							"address": "fraction(Мафия) or (status(Следит за мафией) and not(status(Забывчивый)))",
+							"text": "$user.name успешно убил $target.name"
 						}
 					],
 					
@@ -422,8 +488,7 @@
 							"address": "status(player/$user.name) and not(status(Забывчивый))",
 							"text": "Вы хотели напасть на $target.name, но цель уже была мертва."
 						}
-					],
-					"stop": true
+					]
 				},
 				
 				{
@@ -444,9 +509,7 @@
 							"address": "status(player/$user.name) and not(status(Забывчивый))",
 							"text": "Вы напали на $target.name, но не смогли его убить."
 						}
-					],
-					
-					"stop": true
+					]
 				},
 				
 				{
@@ -469,9 +532,7 @@
 							"address": "status(player/$user.name) and not(status(Забывчивый))",
 							"text": "Вы успешно напали на $target.name."
 						}
-					],
-					
-					"stop": true
+					]
 				}
 			]
 		},
@@ -484,7 +545,7 @@
 					"condition": "status(Мертвый)",
 					"inform": [
 						{
-							"address": "(fraction(Мафия) or status(Следит за мафией)) and not(status(Забывчивый))",
+							"address": "fraction(Мафия) or (status(Следит за мафией) and not(status(Забывчивый)))",
 							"text": "Кандидат в Дона умер прямо перед назначением."
 						}
 					],
@@ -497,7 +558,7 @@
 					"removeTargetStatuses": ["role/Мафия"],
 					"inform": [
 						{
-							"address": "(fraction(Мафия) or status(Следит за мафией)) and not(status(Забывчивый))",
+							"address": "fraction(Мафия) or (status(Следит за мафией) and not(status(Забывчивый)))",
 							"text": "Новый Дон выбран! Это $target.name."
 						}
 					],
