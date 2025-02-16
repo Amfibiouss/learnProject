@@ -55,14 +55,15 @@ public class GameController {
 	public void spellImperius(Principal principal,
 							HttpServletResponse response,
 							@PathVariable long room_id,
-							@RequestParam short target) {
+							@RequestParam String target,
+							@RequestParam short pindex) {
 		
 		if (roomService.getRoomIdByCreator(principal.getName()) != room_id) {
 			response.setStatus(403);
 			return;
 		}
 		
-		roomService.imperius(room_id, principal.getName(), target);
+		roomService.imperius(room_id, target, pindex);
 	}
 	
 	@PostMapping("avada_kedavra")

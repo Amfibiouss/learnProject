@@ -28,9 +28,7 @@ public class DOutputState {
 	public void setVersion(long version) {
 		this.version = version;
 	}
-
 	
-
 	public String getStaticState() {
 		return staticState;
 	}

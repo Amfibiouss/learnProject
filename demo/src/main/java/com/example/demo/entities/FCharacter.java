@@ -19,8 +19,6 @@ public class FCharacter {
 	@Id
 	private short pindex;
 	
-	private long version;
-	
 	@Column(columnDefinition = "TEXT")
 	private String state;
 	
@@ -47,14 +45,6 @@ public class FCharacter {
 
 	public void setState(String state) {
 		this.state = state;
-	}
-
-	public long getVersion() {
-		return version;
-	}
-
-	public void setVersion(long version) {
-		this.version = version;
 	}
 
 	public FRoom getRoom() {

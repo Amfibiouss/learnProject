@@ -2,8 +2,38 @@ package com.example.demo.dto.player;
 
 public class DPlayer {
 	private String username;
+
+	private short token;
+	
+	private long version;
 	
 	private Boolean online;
+	
+	private Short pindex;
+	
+	public long getVersion() {
+		return version;
+	}
+
+	public void setVersion(long version) {
+		this.version = version;
+	}
+
+	public Short getPindex() {
+		return pindex;
+	}
+
+	public void setPindex(Short pindex) {
+		this.pindex = pindex;
+	}
+
+	public short getToken() {
+		return token;
+	}
+
+	public void setToken(short token) {
+		this.token = token;
+	}
 
 	public String getUsername() {
 		return username;

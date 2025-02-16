@@ -149,7 +149,6 @@ public class RoomRepository {
         	FCharacter character = new FCharacter();
         	character.setPindex(pindex);
         	character.setRoom(room);
-        	character.setVersion(0);
         
     		try {
 				character.setState(objectMapper.writeValueAsString(static_state));
@@ -161,6 +160,7 @@ public class RoomRepository {
         	FParticipationToken token = new FParticipationToken();
         	token.setPindex(pindex);
         	token.setRoom(room);
+        	token.setVersion(0);
         	
         	if (pindex == 0) {
         		creator.setCharacter(character);

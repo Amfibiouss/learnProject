@@ -13,7 +13,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.example.demo.dto.player.DCharacter;
 import com.example.demo.dto.player.DPlayer;
 import com.example.demo.entities.FCharacter;
 import com.example.demo.entities.FCharacterId;
@@ -28,13 +27,13 @@ public class PlayerRepository {
     SessionFactory sessionFactory;
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
-	public boolean tryEnter(long room_id, String username) {
+	public DPlayer tryEnter(long room_id, String username) {
 		Session session = sessionFactory.getCurrentSession();
     	FUser user =  session.get(FUser.class, username, LockMode.PESSIMISTIC_WRITE);
     	FRoom room =  session.getReference(FRoom.class, room_id);
     	
     	if (user.getCharacter() != null)
-    		return false;
+    		throw new RuntimeException("Пользователь уже играет");
     	
     	FParticipationToken token = session.createNativeQuery(
     			"SELECT * "
@@ -45,7 +44,7 @@ public class PlayerRepository {
 				.setParameter("room_id", room_id).getSingleResultOrNull();
     	
     	if (token == null)
-    		return false;
+    		throw new RuntimeException("В комнате нет свободных мест");
     	
     	FCharacter character = session.getReference(FCharacter.class, new FCharacterId(room, token.getPindex()));
     	
@@ -54,50 +53,70 @@ public class PlayerRepository {
     	user.setCharacter(character);
     	
     	token.setFree(false);
-    	
-    	session.createMutationQuery("update FCharacter c set c.version = c.version + 1 where c = :character")
-    		.setParameter("character", character).executeUpdate();
+    	token.setVersion(token.getVersion() + 1);
     	
 		session.createMutationQuery("update FRoom r set r.playersCount = r.playersCount + 1 where r.id = :room_id" )
 			.setParameter("room_id", room_id).executeUpdate();
 		
-		return true;
+    	DPlayer dplayer = new DPlayer();
+    	dplayer.setUsername(username);
+    	dplayer.setPindex(token.getPindex());
+    	dplayer.setOnline(false);
+    	dplayer.setToken(token.getPindex());
+    	dplayer.setVersion(token.getVersion());
+		
+		return dplayer;
 	}
     
     @Transactional(isolation = Isolation.READ_COMMITTED)
-	public boolean tryExit(long room_id, String username) {
+	public DPlayer tryExit(long room_id, String username) {
 		Session session = sessionFactory.getCurrentSession();
     	FUser user =  session.get(FUser.class, username, LockMode.PESSIMISTIC_WRITE);
     	
     	if (user.getCharacter() == null || user.getCharacter().getRoom().getId() != room_id)
-    		return true;
-    		
-    	session.createMutationQuery("update FCharacter c set c.version = c.version + 1 where c = :character")
-			.setParameter("character", user.getCharacter()).executeUpdate();
+    		throw new RuntimeException("Игрока нет в комнате");
     	
+    	FParticipationToken token = user.getToken(); 
     	user.setCharacter(null);
-    	user.getToken().setFree(true);
     	user.setToken(null);
+    	
+    	token.setFree(true);
+    	token.setVersion(token.getVersion() + 1);
+    	
+    	DPlayer dplayer = new DPlayer();
+    	dplayer.setUsername(null);
+    	dplayer.setPindex(null);
+    	dplayer.setOnline(null);
+    	dplayer.setToken(token.getPindex());
+    	dplayer.setVersion(token.getVersion());
     	
 		session.createMutationQuery("update FRoom r set r.playersCount = r.playersCount - 1 where r.id = :room_id" )
 			.setParameter("room_id", room_id).executeUpdate();
 		
-		return true;
+		return dplayer;
 	}
     
     @Transactional(isolation = Isolation.READ_COMMITTED)
-	public void switchOnline(String username) {
+	public DPlayer switchOnline(String username) {
     	Session session = sessionFactory.getCurrentSession();
     	FUser user =  session.get(FUser.class, username, LockMode.PESSIMISTIC_WRITE);
     	
     	user.setOnline(user.getOnline() ^ true);
+    	FParticipationToken token = user.getToken();
+    	token.setVersion(token.getVersion() + 1);
     	
-    	session.createMutationQuery("update FCharacter c set c.version = c.version + 1 where c = :character")
-			.setParameter("character", user.getCharacter()).executeUpdate();
+    	DPlayer dplayer = new DPlayer();
+    	dplayer.setUsername(username);
+    	dplayer.setPindex(user.getCharacter().getPindex());
+    	dplayer.setOnline(user.getOnline());
+    	dplayer.setToken(token.getPindex());
+    	dplayer.setVersion(token.getVersion());
+    	
+    	return dplayer;
 	}
     
     @Transactional(isolation = Isolation.READ_COMMITTED)
-	public void imperius(long room_id, String username, short pindex) {
+	public DPlayer imperius(long room_id, String username, short pindex) {
     	Session session = sessionFactory.getCurrentSession();
     	FRoom room = session.get(FRoom.class, room_id);
     	FUser user = session.get(FUser.class, username, LockMode.PESSIMISTIC_WRITE);
@@ -109,82 +128,53 @@ public class PlayerRepository {
     		throw new RuntimeException();
     	}
     	
-    	short old_pindex = user.getCharacter().getPindex();
-    
-    	if (old_pindex < pindex) {
-    		session.createMutationQuery("update FCharacter c set c.version = c.version + 1 where c.room.id = :room_id and c.pindex = :pindex")
-    			.setParameter("room_id", room_id).setParameter("pindex", old_pindex).executeUpdate();
-    		
-    		session.createMutationQuery("update FCharacter c set c.version = c.version + 1 where c.room.id = :room_id and c.pindex = :pindex")
-				.setParameter("room_id", room_id).setParameter("pindex", pindex).executeUpdate();
-    	} else {
-    		session.createMutationQuery("update FCharacter c set c.version = c.version + 1 where c.room.id = :room_id and c.pindex = :pindex")
-				.setParameter("room_id", room_id).setParameter("pindex", pindex).executeUpdate();
-		
-			session.createMutationQuery("update FCharacter c set c.version = c.version + 1 where c.room.id = :room_id and c.pindex = :pindex")
-				.setParameter("room_id", room_id).setParameter("pindex", old_pindex).executeUpdate();
-    	}
-    	
     	user.setCharacter(session.getReference(FCharacter.class, new FCharacterId(room, pindex)));
+    	FParticipationToken token = user.getToken();
+    	token.setVersion(token.getVersion() + 1);
+    	
+    	DPlayer dplayer = new DPlayer();
+    	dplayer.setUsername(username);
+    	dplayer.setPindex(pindex);
+    	dplayer.setOnline(user.getOnline());
+    	dplayer.setToken(token.getPindex());
+    	dplayer.setVersion(token.getVersion());
+    	
+    	return dplayer;
 	}
 
-    @Transactional(isolation = Isolation.READ_COMMITTED, readOnly=true)
-	public DCharacter getCharacter(long room_id, short pindex) {
-    	Session session = sessionFactory.getCurrentSession();
-		FRoom room =  session.getReference(FRoom.class, room_id);
-		FCharacter character = session.get(FCharacter.class, new FCharacterId(room, pindex));
-		
-		List<FUser> players = session.createSelectionQuery(
-				"from FUser u where u.character = :character", FUser.class)
-				.setParameter("character", character)
-				.getResultList();
-		
-		DCharacter dcharacter = new DCharacter();
-		dcharacter.setPlayers(players.stream().map(item -> new DPlayer(item.getUsername(), item.getOnline())).toList());
-		dcharacter.setPindex(pindex);
-		dcharacter.setVersion(character.getVersion());
-		return dcharacter;
-	}
-    
-    @Transactional(isolation = Isolation.READ_COMMITTED, readOnly=true)
-	public List<DCharacter> getCharacters(long room_id) {
+    @Transactional(isolation = Isolation.REPEATABLE_READ, readOnly=true)
+	public List<DPlayer> getPlayers(long room_id) {
     	Session session = sessionFactory.getCurrentSession();
 		FRoom room =  (FRoom) session.get(FRoom.class, room_id);
-		List<FUser> players = session.createSelectionQuery(
-				"from FUser u join fetch u.character where u.character.room = :room", FUser.class)
+		
+		List<Object[]> raw_players = session.createSelectionQuery(
+				"select pt.user, pt from FParticipationToken pt left join pt.user where pt.room = :room", Object[].class)
 				.setParameter("room", room)
 				.getResultList();
 		
-		List<FCharacter> fcharacters = session.createSelectionQuery(
-				"from FCharacter c where c.room = :room order by c.pindex", FCharacter.class)
-				.setParameter("room", room).getResultList();
+		//System.out.println("####" + raw_players.size());
 		
-		Map<Short, List<FUser> > characters = players.stream().collect(Collectors.groupingBy(player -> player.getCharacter().getPindex()));
-		List<DCharacter> dcharacters = new ArrayList<>();
-		
-		for (Map.Entry<Short, List<FUser> > entry : characters.entrySet()) {
-		    DCharacter dcharacter = new DCharacter();
-		    dcharacter.setPindex(entry.getKey());
-		    dcharacter.setVersion(fcharacters.get(entry.getKey()).getVersion());
-		    dcharacter.setPlayers(entry.getValue().stream().map(fuser -> new DPlayer(fuser.getUsername(), fuser.getOnline())).toList());
-		    dcharacters.add(dcharacter);
+		List<DPlayer> dplayers = new ArrayList<>();
+		for (Object[] obj : raw_players) {
+			FUser user = (FUser) obj[0];
+			FParticipationToken token = (FParticipationToken) obj[1];
+			
+	    	DPlayer dplayer = new DPlayer();
+	    	if (user != null) {
+		    	dplayer.setUsername(user.getUsername());
+		    	dplayer.setPindex(user.getCharacter().getPindex());
+		    	dplayer.setOnline(user.getOnline());
+	    	}
+	    	dplayer.setToken(token.getPindex());
+	    	dplayer.setVersion(token.getVersion());
+		    dplayers.add(dplayer);
 		}
 		
-		for (short pindex = 0; pindex < room.getMax_population(); pindex++) {
-			if (!characters.containsKey(pindex)) {
-			    DCharacter dcharacter = new DCharacter();
-			    dcharacter.setPindex(pindex);
-			    dcharacter.setVersion(fcharacters.get(pindex).getVersion());
-			    dcharacter.setPlayers(new ArrayList<>());
-			    dcharacters.add(dcharacter);
-			}
-		}
-		
-		return dcharacters;
+		return dplayers;
 	}
     
     @Transactional(isolation = Isolation.READ_COMMITTED, readOnly=true)
-	public List<String> getPlayers(long room_id) {
+	public List<String> getPlayerUsernames(long room_id) {
 		Session session = sessionFactory.getCurrentSession();
 
     	return session.createSelectionQuery("select u.username from FUser u where u.character.room.id = :room_id", String.class)

@@ -14,7 +14,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import com.example.demo.dto.message.DInputMessage;
 import com.example.demo.dto.message.DOutputMessage;
-import com.example.demo.dto.player.DCharacter;
+import com.example.demo.dto.player.DPlayer;
 import com.example.demo.dto.poll.DCandidateState;
 import com.example.demo.dto.poll.DVote;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,17 +35,14 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 		String username = session.getPrincipal().getName();
 		
 		sessions.put(username, session);
-		daoService.switchOnline(username);
-		
+		DPlayer dplayer = daoService.switchOnline(username);
 		Long room_id = daoService.getRoomIdByPlayer(username);
-		Short pindex = daoService.getPindexByPlayer(username);
 		
-		if (room_id == null || pindex == null)
+		if (room_id == null)
 			return;
 		
-		DCharacter dcharacter = daoService.getCharacter(room_id, pindex);
-		List<String> players = daoService.getPlayers(room_id);
-		sendAll(players, dcharacter, "player");
+		List<String> players = daoService.getPlayerUsernames(room_id);
+		sendAll(players, dplayer, "player");
 	}
 	
 	@Override
@@ -53,17 +50,14 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 		String username = session.getPrincipal().getName();
 		
 		sessions.remove(session.getPrincipal().getName());
-		daoService.switchOnline(session.getPrincipal().getName());
-		
+		DPlayer dplayer = daoService.switchOnline(session.getPrincipal().getName());
 		Long room_id = daoService.getRoomIdByPlayer(username);
-		Short pindex = daoService.getPindexByPlayer(username);
 		
-		if (room_id == null || pindex == null)
+		if (room_id == null)
 			return;
 		
-		DCharacter dcharacter = daoService.getCharacter(room_id, pindex);
-		List<String> players = daoService.getPlayers(room_id);
-		sendAll(players, dcharacter, "player");
+		List<String> players = daoService.getPlayerUsernames(room_id);
+		sendAll(players, dplayer, "player");
 	}
 	
     @Override

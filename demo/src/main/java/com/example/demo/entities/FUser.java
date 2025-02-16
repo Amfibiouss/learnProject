@@ -47,8 +47,6 @@ public class FUser {
 		return Objects.equals(username, other.username);
 	}
 	
-	
-
 	public FParticipationToken getToken() {
 		return token;
 	}

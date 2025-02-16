@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.demo.DaoService;
 import com.example.demo.RoomService;
 import com.example.demo.dto.DRoom;
-import com.example.demo.dto.player.DCharacter;
+import com.example.demo.dto.player.DPlayer;
 
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -44,13 +44,13 @@ public class RoomsController {
 	}
 	
 	@GetMapping("players/{room_id}")
-	List<DCharacter> getPlayers(@PathVariable long room_id) {
+	List<DPlayer> getPlayers(@PathVariable long room_id) {
 		/*
 		try {
 		Thread.sleep(10000);
 		} catch(Exception e) {} 
 		*/
-		return daoService.getCharacters(room_id);
+		return daoService.getPlayers(room_id);
 	}
 	
 	@PostMapping("create")
@@ -78,8 +78,16 @@ public class RoomsController {
 					HttpServletResponse response,
 					@PathVariable long room_id) {
 		
-		if (!roomService.tryEnter(room_id, principal.getName())) {
-			response.setStatus(403);
+		try {
+			roomService.tryEnter(room_id, principal.getName());
+		} catch(RuntimeException e) {
+			if (e.getMessage().equals("В комнате нет свободных мест"))
+				response.setStatus(403);
+			else if (e.getMessage().equals("Пользователь уже играет")) {
+				response.setStatus(403);
+			} else {
+				throw new RuntimeException();
+			}
 		}
 	}
 	

@@ -8,6 +8,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 
 @Entity
 @IdClass(FParticipationTokenId.class)
@@ -20,7 +21,12 @@ public class FParticipationToken {
 	@Id
 	private short pindex;
 	
+	@OneToOne(cascade=CascadeType.ALL, fetch=FetchType.LAZY, mappedBy="token")
+	private FUser user;
+	
 	private boolean free;
+	
+	private long version;
 	
 	@Override
 	public int hashCode() {
@@ -38,7 +44,26 @@ public class FParticipationToken {
 		FParticipationToken other = (FParticipationToken) obj;
 		return pindex == other.pindex && Objects.equals(room, other.room);
 	}
+	
+	
 
+	public FUser getUser() {
+		return user;
+	}
+
+	public void setUser(FUser user) {
+		this.user = user;
+	}
+
+	public long getVersion() {
+		return version;
+	}
+
+	public void setVersion(long version) {
+		this.version = version;
+	}
+
+	
 	public FRoom getRoom() {
 		return room;
 	}

@@ -64,6 +64,9 @@ class RealServer {
 			case "poll":
 				this.onChangePoll(JSON.parse(msg.data));
 				break;
+			case "imperius":
+				this.loadStateAndMessages(JSON.parse(msg.data));
+				break;
 		}
 	}
 	
@@ -218,10 +221,12 @@ class RealServer {
 		);
 	}
 	
-	useMagic(spell, pindex) {
+	
+	useMagic(spell, username, pindex) {
 		let csrf_token = document.getElementById("_csrf").value;
+		let params = (spell === "imperius")? {target : username, pindex: pindex} :  {target : username};
 		
-		fetch("/api/room/" + this.room_id + "/" + spell + "?" + new URLSearchParams({target : pindex}),
+		fetch("/api/room/" + this.room_id + "/" + spell + "?" + new URLSearchParams(params),
 			{
 				method: "post",
 				headers: {"X-CSRF-TOKEN": csrf_token}
@@ -230,8 +235,6 @@ class RealServer {
 				if (response.status !== 200) {
 					console.log("Не удалось закастовать " + spell);
 					return;
-				} else {
-					this.loadStateAndMessages();
 				}
 			}
 		);

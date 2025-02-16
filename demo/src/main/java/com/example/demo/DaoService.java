@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 
 import com.example.demo.dto.message.DMessages;
 import com.example.demo.dto.message.DOutputMessage;
-import com.example.demo.dto.player.DCharacter;
+import com.example.demo.dto.player.DPlayer;
 import com.example.demo.dto.poll.DCandidateState;
 import com.example.demo.repositories.MessageRepository;
 import com.example.demo.repositories.PlayerRepository;
@@ -69,21 +69,17 @@ public class DaoService {
 		return pollRepository.addVote(selected, room_id, pollName, stage, pindex, controlled_pindex);
 	}
 
-	public void switchOnline(String username) {
-		playerRepository.switchOnline(username);
+	public DPlayer switchOnline(String username) {
+		return playerRepository.switchOnline(username);
 	}	
 	
 	
-	public List<String> getPlayers(long room_id) {
+	public List<String> getPlayerUsernames(long room_id) {
+		return playerRepository.getPlayerUsernames(room_id);
+	}
+	
+	public List<DPlayer> getPlayers(long room_id) {
 		return playerRepository.getPlayers(room_id);
-	}
-	
-	public List<DCharacter> getCharacters(long room_id) {
-		return playerRepository.getCharacters(room_id);
-	}
-	
-	public DCharacter getCharacter(long room_id, short pindex) {
-		return playerRepository.getCharacter(room_id, pindex);
 	}
 
 	public Long getRoomIdByPlayer(String username) {

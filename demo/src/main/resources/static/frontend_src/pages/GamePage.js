@@ -36,7 +36,8 @@ class GamePage extends React.Component {
 		this.pending_votes = null; 
 		this.countdown = 0;
 		this.state_version = -1;
-		this.messages_version = -1;
+		this.player_version = -1;
+		//this.messages_version = -1;
 		
 		this.pindex = -1;
 		this.stage = null;
@@ -54,7 +55,68 @@ class GamePage extends React.Component {
 					isHost: isHost};		
 	}
 	
-	loadStateAndMessages = () => {
+	loadMessages = () => {
+		this.pending_messages = [];
+		let _messages_load_id = ++this.messages_load_id;
+		
+		this.state.server.getMessages(this.pindex, (messages) => {
+			
+			if (_messages_load_id !==  this.messages_load_id)
+				return;
+				
+			if (messages.pindex !== this.pindex) {
+				this.pending_messages = null;
+				return;
+			}
+			
+			messages.stages.forEach((stage) => {
+				stage.messages = stage.messages.concat(stage.rowMessages);
+			});
+			
+			let stages = messages.stages;
+			let cnt = 0;
+		
+			for (const stage of stages) {
+				
+				cnt += stage.messages.length;
+				
+				for (const msg of stage.messages) {
+					msg.date = new Date(msg.date);
+				}
+				
+				if (stage.messages.length > 0) {
+					stage.date = stage.messages[0].date;
+				} else {
+					stage.date = new Date(0);
+				}
+			}
+			
+			//if (cnt > this.messages_version) {
+			this.messages_version = cnt;
+			
+			stages.sort((a, b) => a.date - b.date);
+			this.state.stages = stages;
+			this.setState({stages: stages});
+			
+			for (const msg of this.pending_messages)
+				this.addMessage(msg);
+			//}
+			this.pending_messages = null;
+		});
+	}
+	
+	loadStateAndMessages = (player) => {
+		
+		if (player) {
+			
+			console.log(JSON.stringify(player) + " " + this.player_version);
+			
+			if (this.player_version >= player.version)
+				return;
+			
+			this.pindex = player.pindex;
+			this.player_version = player.version;
+		}
 		
 		this.pending_votes = [];		
 		let _state_load_id = ++this.state_load_id;
@@ -75,59 +137,8 @@ class GamePage extends React.Component {
 				this.addVote(vote);
 			this.pending_votes = null;
 			
-			this.pending_messages = [];
-			let _messages_load_id = ++this.messages_load_id;
-			
-			this.state.server.getMessages(this.pindex, (messages) => {
-				
-				if (_messages_load_id !==  this.messages_load_id)
-					return;
-					
-				if (messages.pindex !== this.pindex) {
-					this.pending_messages = null;
-					return;
-				}
-				
-				messages.stages.forEach((stage) => {
-					stage.messages = stage.messages.concat(stage.rowMessages);
-				});
-				
-				let stages = messages.stages;
-				let cnt = 0;
-			
-				for (const stage of stages) {
-					
-					cnt += stage.messages.length;
-					
-					for (const msg of stage.messages) {
-						msg.date = new Date(msg.date);
-					}
-					
-					if (stage.messages.length > 0) {
-						stage.date = stage.messages[0].date;
-					} else {
-						stage.date = new Date(0);
-					}
-				}
-				
-				if (cnt > this.messages_version) {
-					this.messages_version = cnt;
-					
-					stages.sort((a, b) => a.date - b.date);
-					this.state.stages = stages;
-					this.setState({stages: stages});
-					
-					for (const msg of this.pending_messages)
-						this.addMessage(msg);
-				}
-				this.pending_messages = null;
-			});
+			this.loadMessages();
 		});
-		/*
-		this.state.server.getPlayers((players) => {
-			this.setState({players: players});
-		});
-		*/
 	}
 	
 	loadInitialInfo = () => {
@@ -137,6 +148,7 @@ class GamePage extends React.Component {
 		
 		this.state.server.getPlayers((players) => {
 			this.setState({players: players});
+			this.state.players = players;
 				
 			for (const change of this.pending_player_changes)
 				this.refreshPlayer(change);
@@ -174,17 +186,18 @@ class GamePage extends React.Component {
 	}
 	
 	refreshPlayer(player) {
-		let old_player = this.state.players.find((item) => item.pindex === player.pindex);
-
-		//console.log(player);
+		let old_player = this.state.players.find((item) => item.token === player.token);
+		
+		//console.log(JSON.stringify(player) + " " + JSON.stringify(this.state.players) + " " + old_player);
 		
 		if (!old_player)
 			return;
 		
 		if (player.version > old_player.version) {
 			old_player.version = player.version;
-			old_player.players = player.players;
+			old_player.username = player.username;
 			old_player.pindex = player.pindex;
+			old_player.online = player.online;
 			
 			this.setState({players: this.state.players});
 		}
@@ -358,14 +371,9 @@ class GamePage extends React.Component {
 	}
 	
 	onChangeState = (state_room) => {
-		
-		if (this.state_version > state_room.version) 
+		if (this.state_version > state_room.version || (this.pindex !== -1 && this.pindex != state_room.pindex)) 
 			return;
 		
-		if (this.pindex != state_room.pindex) {
-			this.messages_version = -1;
-		}
-			
 		this.state_version = state_room.version;
 		
 		if (this.timerId)
@@ -640,7 +648,7 @@ class PollWindow extends React.Component {
 			</div>
 		</div>
 		{(this.props.active && this.state.selected.length >= this.props.min_selection && !voted)? 
-			<div className="text-center text-xl">
+			<div className="text-center text-xl mt-3">
 				<Button value="Голосовать" onClick={this.sendVote}></Button>
 			</div>
 		 : <></>}</>
@@ -675,33 +683,138 @@ class PollOption extends React.Component {
 }
 
 class PlayerWindow extends React.Component {
+	
+	constructor(props) {
+		super(props);
+					
+		this.state = {selected_player: null, selected_pindex: null};		
+	}
+	
+	onSelectPlayer = (token, username) => {
+		if (this.state.selected_player && this.state.selected_player.token === token) {
+			this.setState({selected_player: null});
+		} else {
+			this.setState({selected_player: {token: token, username: username}});	
+		}
+	}
+	
+	onSelectPindex = (pindex) => {
+		if (this.state.selected_pindex === pindex) {
+			this.setState({selected_pindex: null});
+		} else {
+			this.setState({selected_pindex: pindex});	
+		}
+	}
+	
+	onImperius = () => {
+		if (this.state.selected_player && this.state.selected_pindex !== null) {
+			this.props.server.useMagic("imperius", this.state.selected_player.username, this.state.selected_pindex);
+			this.setState({selected_player: null, selected_pindex: null});
+		}
+	}
+	
+	onAvadaKedavre = () => {
+		if (this.state.selected_player) {
+			this.props.server.useMagic("avada_kedavra", this.state.selected_player.username);
+			this.setState({selected_player: null});
+		}
+	}
+	
+	onCruciatus = () => {
+		if (this.state.selected_player) {
+			this.props.server.useMagic("cruciatus", this.state.selected_player.username);
+			this.setState({selected_player: null});
+		}
+	}
+	
 	render() {
 		let players_limit = Number(document.getElementById("players_limit").value);
-		let population = this.props.players.filter((character) => character.players.length > 0).length;
-
-		let playersTab = this.props.players.map((character) => {
-			if (character.players.length > 0) {
-				return character.players.map((player) =>
-					<Player key={player.username + ":" + character.pindex}
-							username={player.username} 
-							pindex={character.pindex} 
-							online={player.online} 
-							server={this.props.server}>
-					</Player>)
-			} else { 
-				return <Player key={":" + character.pindex}
-						username={null} 
-						pindex={character.pindex} 
-						online={false} 
-						server={this.props.server}>
-				</Player>
-			}
-		});
+		let population = this.props.players.filter((player) => player.username !== null).length;
+		let characters = [];
 		
-		return <div className="overflow-y-auto px-2" 
-			style={(this.props.active)? {minHeight: "calc(100vh - 9rem)", maxHeight: "calc(100vh - 9rem)"} : {display: "none"}}>
-			<div className="text-3xl p-2">{"Игроков " + population + " / " + players_limit}</div>
-			{playersTab}
+		for (let i = 0; i < players_limit; i++) {
+			let players = this.props.players.filter(player => player.pindex === i);
+			characters.push(
+				<Character 
+					key={i}
+					players={players} 
+				   	pindex={i}
+				   	onSelectPlayer={this.onSelectPlayer}
+					onSelectPindex={this.onSelectPindex}
+				   	onImperius={this.onImperius}
+				   	selected_player={this.state.selected_player}
+					selected={this.state.selected_pindex === i}>
+				</Character>
+			);
+		}
+		
+		return <>
+			<div className="overflow-y-auto px-2" 
+				style={(this.props.active)? {minHeight: "calc(100vh - 12rem)", maxHeight: "calc(100vh - 12rem)"} : {display: "none"}}>
+				<div className="text-3xl p-2">{"Игроков " + population + " / " + players_limit}</div>
+				{characters}
+			</div>
+			{(this.props.active)? 
+				<div className="text-center text-xl mt-3 flex gap-1">
+					<div className={this.state.selected_player? "" : "hidden"}>
+						<Button value="Авада Кедавра" onClick={() => {this.onAvadaKedavre();}}></Button>
+					</div>
+					<div className={this.state.selected_player? "" : "hidden"}>
+						<Button value="Круциатус" onClick={() => {this.onCruciatus();}}></Button>
+					</div>
+					<div className={(this.state.selected_player  && this.state.selected_pindex !== null)? "" : "hidden"}>
+						<Button value="Империус" onClick={() => {this.onImperius();}}></Button>
+					</div>
+				</div>
+				: <></>}
+		</>;
+	}
+}
+
+class Character extends React.Component {
+	render() {
+		let isHost = document.getElementById("isHost").value === "true";
+		let cnt = this.props.players.length;
+		
+		let players = this.props.players.map((player, index) => 
+			
+			<Player 
+				key={player.token}
+				position={((index === 0) ^ (index === cnt - 1))? (index === 0)? "top" : "bottom" : (index == 0)? "one" : "middle"}
+				username={player.username} 
+				token={player.token} 
+				online={player.online} 
+				selected={this.props.selected_player && this.props.selected_player.token === player.token}
+				onSelectPlayer={this.props.onSelectPlayer}>
+			</Player>
+		);
+		
+		players.sort((a, b) => a.token - b.token);
+
+		let bg_color = this.props.selected? "bg-gray-400 dark:bg-gray-600" : "bg-gray-300 dark:bg-gray-700";
+		
+		return <div className = "flex justify-between items-center p-2 bg-gray-100 dark:bg-gray-900">
+			<div className = "flex flex-col grow">
+				{players}
+			</div>
+			
+			<div className = "flex grow">
+				<div className = "grow">
+					<div className = {(this.props.players.length > 0)? "h-[50%] w-full border-b border-black dark:border-white" : ""}></div>
+				</div>
+				<button className = {`flex justify-around items-center rounded-2xl ${bg_color}`} 
+							onClick={()=>{ if (isHost) this.props.onSelectPindex(this.props.pindex);}}>
+					<span className="w-10 h-10">
+						{this.props.selected? 
+							<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="h-10 w-10" viewBox="0 0 16 16">
+							  <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425z"/>
+							</svg> 
+							: <></>}
+					</span>
+					<span className="text-xl">{"Игрок #" + this.props.pindex}</span>
+					<span className="w-10 h-10"></span>
+				</button>
+			</div>
 		</div>;
 	}
 }
@@ -709,6 +822,37 @@ class PlayerWindow extends React.Component {
 class Player extends React.Component {
 	render() {
 		let isHost = document.getElementById("isHost").value === "true";
+		
+		let bg_color = this.props.selected? "bg-gray-400 dark:bg-gray-600" : "bg-gray-300 dark:bg-gray-700";
+		
+		let online_color =  this.props.online? " bg-green-500" : " bg-red-500";
+			
+		return <div className="flex grow">
+				<button className = {`flex justify-around items-center rounded-2xl ${bg_color} ${(this.props.position === "top" || this.props.position === "one")? "" : "mt-2"}`} 
+							onClick={()=>{ if (isHost) this.props.onSelectPlayer(this.props.token, this.props.username);}}>
+					<span className="w-10 h-10">
+						{this.props.selected? 
+							<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="h-10 w-10" viewBox="0 0 16 16">
+							  <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425z"/>
+							</svg> 
+							: <></>}
+					</span>
+					<span className="text-xl">{this.props.username}</span>
+					<span className="flex justify-center items-center w-10 h-10 text-2xl font-mono rounded-2xl">{this.props.token}</span>
+					<span className="flex justify-center items-center w-10 h-10 rounded-2xl">
+						<div className={`w-6 h-6 rounded-full ${online_color}`}>
+						</div>
+					</span>
+				</button>
+				<div className = "grow">
+					<div className = {"h-[50%] w-full border-b border-black dark:border-white " 
+						+ ((this.props.position === "bottom" || this.props.position === "middle")? "border-r" : "")}></div>
+					<div className = {"h-[50%] w-full border-black dark:border-white "
+						 + ((this.props.position === "top"  || this.props.position === "middle")? "border-r" : "")}></div>
+			
+				</div>
+			</div>
+		/*
 		let bg_color = (this.props.online)? "bg-gray-400 dark:bg-gray-600" : (this.props.username)? "bg-gray-300 dark:bg-gray-700" : "bg-gray-200 dark:bg-gray-800"; 
 		
 		return <div className = {bg_color + " flex gap-2 p-2 justify-between mb-1 last:mb-32 rounded-xl"}>
@@ -738,7 +882,7 @@ class Player extends React.Component {
 				</div>
 			</div>
 		</div>
-		
+		*/
 	}
 }
 

@@ -3,7 +3,6 @@ package com.example.demo;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,7 +11,7 @@ import org.springframework.stereotype.Component;
 
 import com.example.demo.dto.DRoom;
 import com.example.demo.dto.message.DOutputMessage;
-import com.example.demo.dto.player.DCharacter;
+import com.example.demo.dto.player.DPlayer;
 import com.example.demo.dto.poll.DPollResult;
 import com.example.demo.dto.state.DInitData;
 import com.example.demo.dto.state.DInputState;
@@ -56,14 +55,14 @@ public class RoomService {
 		long duration = res.getKey();
 		long version = res.getValue();
 		
-		List<String> players = playerRepository.getPlayers(room_id);
+		List<String> players = playerRepository.getPlayerUsernames(room_id);
 		for (String player : players) {
 			wsHandler.send(new DStatus(status, duration, version), "status", player);
 		}
 	}
 	
 	private void closeRoom(long room_id) {
-		List<String> players = playerRepository.getPlayers(room_id);
+		List<String> players = playerRepository.getPlayerUsernames(room_id);
 		roomRepository.closeRoom(room_id);
 		wsHandler.sendAll(players, new DStatus("closed", -1, 1000_000_000_000_000_000L), "status");
 	}
@@ -162,56 +161,39 @@ public class RoomService {
 		return roomRepository.getRoomIdByCreator(creator);
 	}
     
-	public boolean tryEnter(long room_id, String username) {
-		DCharacter dcharacter;
-		
+	public void tryEnter(long room_id, String username) {
+	
 		if (roomRepository.getRoomIdByPlayer(username) == Long.valueOf(room_id)) 
-			return true;
+			return;
 		
-		if(!playerRepository.tryEnter(room_id, username))
-			return false;
-			
-		short pindex = roomRepository.getPindexByPlayer(username);
-		dcharacter = playerRepository.getCharacter(room_id, pindex);
-		List<String> players = playerRepository.getPlayers(room_id);
-		wsHandler.sendAll(players, dcharacter, "player");
+		DPlayer dplayer = playerRepository.tryEnter(room_id, username);
+					
+		List<String> players = playerRepository.getPlayerUsernames(room_id);
+		wsHandler.sendAll(players, dplayer, "player");
 		
-    	return true;
+    	return;
 	}
 	
+	
 	public boolean tryExit(long room_id, String username) {
-		DCharacter dcharacter;
+		DPlayer dplayer = playerRepository.tryExit(room_id, username);
 
-		short pindex = roomRepository.getPindexByPlayer(username);
-		
-		if (!playerRepository.tryExit(room_id, username))
-			return false;
-		
 		if (roomRepository.getRoomIdByCreator(username) == room_id) 
 			closeRoom(room_id);
 		
-		dcharacter = playerRepository.getCharacter(room_id, pindex);
-			
-		List<String> players = playerRepository.getPlayers(room_id);
-		wsHandler.sendAll(players, dcharacter, "player");
+		List<String> players = playerRepository.getPlayerUsernames(room_id);
+		wsHandler.sendAll(players, dplayer, "player");
 		wsHandler.send("", "kick", username);
 		
 		return true;
 	}
 
 	public void imperius(long room_id, String username, short pindex) {
-		DCharacter dcharacter1, dcharacter2;
-		
-		short old_pindex = roomRepository.getPindexByPlayer(username);
-		
-		playerRepository.imperius(room_id, username, pindex);
-		dcharacter1 = playerRepository.getCharacter(room_id, old_pindex);
-		dcharacter2 = playerRepository.getCharacter(room_id, pindex);
+		DPlayer dplayer = playerRepository.imperius(room_id, username, pindex);
 			
+		List<String> players = playerRepository.getPlayerUsernames(room_id);
 		
-		List<String> players = playerRepository.getPlayers(room_id);
-		
-		wsHandler.sendAll(players, dcharacter1, "player");
-		wsHandler.sendAll(players, dcharacter2, "player");
+		wsHandler.sendAll(players, dplayer, "player");
+		wsHandler.send(dplayer, "imperius", username);
 	}
 }
