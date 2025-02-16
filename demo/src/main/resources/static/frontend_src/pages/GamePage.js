@@ -39,6 +39,8 @@ class GamePage extends React.Component {
 		this.player_version = -1;
 		//this.messages_version = -1;
 		
+		this.vote_store = new Map();
+		
 		this.pindex = -1;
 		this.stage = null;
 		this.room_id = room_id;
@@ -158,8 +160,16 @@ class GamePage extends React.Component {
 	}
 	
 	addVote = (candidateState) => {
-		if (this.stage != candidateState.stage)
+		if (this.stage != candidateState.stage) {
+			
+			if (this.vote_store.has(candidateState.stage)) {
+				this.vote_store.get(candidateState.stage).push(candidateState);
+			} else {
+				this.vote_store.set(candidateState.stage, [candidateState]);
+			}
+			
 			return;
+		}
 
 		let poll = this.state.polls.find((item) => item.id === candidateState.pollId);
 
@@ -409,6 +419,17 @@ class GamePage extends React.Component {
 
 		this.pindex = state_room.pindex;
 		this.stage = state_room.staticState.stage;
+		
+		this.state.status = state_room.status,
+		this.state.channels = state_room.staticState.channels,
+		this.state.polls = state_room.polls,
+		this.state.stage = state_room.staticState.stage,
+		this.state.pindex = state_room.pindex
+		
+		if (this.vote_store.has(this.state.stage)) {
+			for (item of this.vote_store.get(this.state.stage))
+				this.addVote(item);
+		}
 	};
 	
 	onSendVote = (pollName, controlledPindex, selected) => {
@@ -755,7 +776,7 @@ class PlayerWindow extends React.Component {
 				{characters}
 			</div>
 			{(this.props.active)? 
-				<div className="text-center text-xl mt-3 flex gap-1">
+				<div className="flex flex-wrap text-center text-xl mt-3 gap-1">
 					<div className={this.state.selected_player? "" : "hidden"}>
 						<Button value="Авада Кедавра" onClick={() => {this.onAvadaKedavre();}}></Button>
 					</div>
@@ -811,8 +832,7 @@ class Character extends React.Component {
 							</svg> 
 							: <></>}
 					</span>
-					<span className="text-xl">{"Игрок #" + this.props.pindex}</span>
-					<span className="w-10 h-10"></span>
+					<span className="text-xl mr-3">{"Игрок #" + this.props.pindex}</span>
 				</button>
 			</div>
 		</div>;
@@ -827,8 +847,10 @@ class Player extends React.Component {
 		
 		let online_color =  this.props.online? " bg-green-500" : " bg-red-500";
 			
+		let use_margit_top = (this.props.position === "bottom" || this.props.position === "middle");
+		
 		return <div className="flex grow">
-				<button className = {`flex justify-around items-center rounded-2xl ${bg_color} ${(this.props.position === "top" || this.props.position === "one")? "" : "mt-2"}`} 
+				<button className = {`flex justify-around items-center rounded-2xl ${bg_color} ${use_margit_top? "mt-2" : ""}`} 
 							onClick={()=>{ if (isHost) this.props.onSelectPlayer(this.props.token, this.props.username);}}>
 					<span className="w-10 h-10">
 						{this.props.selected? 
@@ -845,9 +867,9 @@ class Player extends React.Component {
 					</span>
 				</button>
 				<div className = "grow">
-					<div className = {"h-[50%] w-full border-b border-black dark:border-white " 
+					<div style={use_margit_top? {height: "calc(50% + 0.25rem)"} : {height: "50%"}} className = {"w-full border-b border-black dark:border-white " 
 						+ ((this.props.position === "bottom" || this.props.position === "middle")? "border-r" : "")}></div>
-					<div className = {"h-[50%] w-full border-black dark:border-white "
+					<div style={use_margit_top? {height: "calc(50% - 0.25rem)"} : {height: "50%"}} className = {"w-full border-black dark:border-white "
 						 + ((this.props.position === "top"  || this.props.position === "middle")? "border-r" : "")}></div>
 			
 				</div>
