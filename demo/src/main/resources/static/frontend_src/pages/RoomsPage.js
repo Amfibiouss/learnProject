@@ -61,7 +61,6 @@ class RoomsPage extends React.Component {
 				status={room.status}
 				population={room.population} 
 				max_population={room.max_population}
-				favorite={room.favorite}
 				key={room.id}
 				id={room.id} 
 				current={false}>
@@ -96,7 +95,6 @@ class RoomsPage extends React.Component {
 								status={this.state.current_room.status}
 								population={this.state.current_room.population} 
 								max_population={this.state.current_room.max_population}
-								favorite={this.state.current_room.favorite}
 								id={this.state.current_room.id} 
 								exit={() => {this.setState({current_room: null});}} 
 								current={true}>
@@ -125,7 +123,7 @@ class Room extends React.Component {
 	
 	constructor(props) {
 		super(props);
-		this.state = {error: "", show_players: false, players: []};
+		this.state = {error: null, show_players: false, players: []};
 	}
 	
 	getPlayers = () => {
@@ -201,18 +199,15 @@ class Room extends React.Component {
 	}
 	
 	render() {
-		let player_list = <div><span>Игроки: </span> {this.state.players.map((player) => 
-				<span key={player.username} className = {(player.pindex)? "" : "text-orange-500"}>{player.username}</span>
+		let player_list = <div><span>Игроки: </span> {this.state.players.filter((player) => player.username).map((player, index) => 
+				<span key={player.username} className = {(player.pindex)? "" : "text-orange-500"}>{(index? ", " : "") + player.username}</span>
 		)}</div>;
 		
-		return <li className={"rounded-2xl p-3 flex flex-col gap-2 " + ((this.props.current)? "dark:bg-gray-700 bg-gray-300" : "dark:bg-gray-800 bg-gray-200")} style={{width: "min(50rem, 90vw)"}}>
-			<div className = "text-red-500">{this.state.error}</div>
-			<div className="flex justify-between p-0">
-				<div>
-					<div className="font-semibold text-2xl">{this.props.name}</div>
-					<div>{' (Создатель ' + this.props.creator + ')'}</div>
-				</div>
-				<button className="text-4xl" style={{position:"relative", top: "-15px"}}>{this.props.favorite? '★': '☆'}</button>
+		return <li className={"rounded-2xl p-1 flex flex-col gap-2 " + ((this.props.current)? "dark:bg-gray-700 bg-gray-300" : "dark:bg-gray-800 bg-gray-200")} style={{width: "min(50rem, 90vw)"}}>
+			{this.state.error? <div className = "text-red-500">{this.state.error}</div> : <></>}
+			<div className="flex gap-2 p-0">
+				<span className="font-semibold text-2xl">{this.props.name}</span>
+				<span className="flex items-center">{' (Создатель ' + this.props.creator + ')'}</span>
 			</div>
 			<div className="break-words max-h-[150px]">{this.props.description}</div>
 			<div className="flex justify-end gap-3 text-xl flex-wrap p-0">

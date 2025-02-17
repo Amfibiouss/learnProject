@@ -33,12 +33,14 @@ public class RoomsController {
 	}
 	
 	@GetMapping("current")
-	DRoom getCurrentRoom(Principal principal) {
+	DRoom getCurrentRoom(Principal principal, HttpServletResponse response) {
 		
 		Long room_id = daoService.getRoomIdByPlayer(principal.getName());
 		
-		if (room_id == null)
+		if (room_id == null) {
+			response.setStatus(404);
 			return null;
+		}
 		
 		return roomService.getRoom(room_id);
 	}
