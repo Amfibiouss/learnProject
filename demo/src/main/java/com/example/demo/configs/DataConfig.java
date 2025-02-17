@@ -21,10 +21,11 @@ public class DataConfig {
 		builder.scanPackages("com.example.demo.entities");
 
 		Properties properties = new Properties();
+		//properties.setProperty("hibernate.hbm2ddl.auto", "update");
 		properties.setProperty("hibernate.hbm2ddl.auto", "create");
 		//properties.setProperty("hibernate.dialect", "org.hibernate.dialect.H2Dialect");
-		properties.setProperty("hibernate.show_sql", "true");
-		properties.setProperty("hibernate.format_sql", "true");
+		//properties.setProperty("hibernate.show_sql", "true");
+		//properties.setProperty("hibernate.format_sql", "true");
 		builder.addProperties(properties);
 		return builder.buildSessionFactory();
 	}

@@ -90,7 +90,7 @@ public class RoomRepository {
     	if (session.createSelectionQuery("from FRoom r where r.closed = false", FRoom.class).getResultCount() >= rooms_limit)
     		throw new RuntimeException("rooms are too much");
     	
-    	FUser creator = (FUser) session.get(FUser.class, creator_username);
+    	FUser creator = (FUser) session.get(FUser.class, creator_username, LockMode.PESSIMISTIC_WRITE);
     	
     	if (creator.getCharacter() != null)
     		throw new RuntimeException("user already has entered other room.");
