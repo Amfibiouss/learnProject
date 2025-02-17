@@ -14,11 +14,13 @@ public class FChannelFStage {
 
 	@Id
 	@ManyToOne(fetch=FetchType.LAZY)
-	private FChannel channel;
+	private FRoom room;
 	
 	@Id
-	@ManyToOne(fetch=FetchType.LAZY)
-	private FStage stage;
+	private String channelId;
+	
+	@Id
+	private String stageId;
 	
 	private long canAnonymousRead;
 	
@@ -26,15 +28,9 @@ public class FChannelFStage {
 	
 	private long canXRayRead;
 	
-	private long canAnonymousWrite;
-	
-	private long canWrite;
-	
-	private long canXRayWrite;
-
 	@Override
 	public int hashCode() {
-		return Objects.hash(channel, stage);
+		return Objects.hash(channelId, room, stageId);
 	}
 
 	@Override
@@ -46,39 +42,32 @@ public class FChannelFStage {
 		if (getClass() != obj.getClass())
 			return false;
 		FChannelFStage other = (FChannelFStage) obj;
-		return Objects.equals(channel, other.channel) && Objects.equals(stage, other.stage);
-	}
-	
-	public long getCanAnonymousWrite() {
-		return canAnonymousWrite;
+		return Objects.equals(channelId, other.channelId) && Objects.equals(room, other.room)
+				&& Objects.equals(stageId, other.stageId);
 	}
 
-	public void setCanAnonymousWrite(long canAnonymousWrite) {
-		this.canAnonymousWrite = canAnonymousWrite;
+	public FRoom getRoom() {
+		return room;
 	}
 
-	public long getCanXRayWrite() {
-		return canXRayWrite;
+	public void setRoom(FRoom room) {
+		this.room = room;
 	}
 
-	public void setCanXRayWrite(long canXRayWrite) {
-		this.canXRayWrite = canXRayWrite;
+	public String getChannelId() {
+		return channelId;
 	}
 
-	public FChannel getChannel() {
-		return channel;
+	public void setChannelId(String channelId) {
+		this.channelId = channelId;
 	}
 
-	public void setChannel(FChannel channel) {
-		this.channel = channel;
+	public String getStageId() {
+		return stageId;
 	}
 
-	public FStage getStage() {
-		return stage;
-	}
-
-	public void setStage(FStage stage) {
-		this.stage = stage;
+	public void setStageId(String stageId) {
+		this.stageId = stageId;
 	}
 
 	public long getCanAnonymousRead() {
@@ -103,13 +92,5 @@ public class FChannelFStage {
 
 	public void setCanRead(long canRead) {
 		this.canRead = canRead;
-	}
-
-	public long getCanWrite() {
-		return canWrite;
-	}
-
-	public void setCanWrite(long canWrite) {
-		this.canWrite = canWrite;
 	}
 }

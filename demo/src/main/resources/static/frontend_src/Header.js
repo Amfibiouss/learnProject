@@ -50,7 +50,7 @@ class Header extends React.Component {
 		
 		var username = document.getElementById("username").value;
 		
-    	return <div className="flex-none flex justify-between bg-gray-300 dark:bg-gray-800 gap-3 flex-wrap px-2">
+    	return <div className="flex-none flex justify-between bg-gray-300 dark:bg-gray-800 gap-3 flex-wrap px-2 pb-1">
 			
 			<div className="flex gap-2">
 				<button onClick={this.changeTheme}>

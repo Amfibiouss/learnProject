@@ -75,17 +75,18 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         	
         	if ("message".equals(type)) {
         		DInputMessage input_message = objectMapper.readValue(content, DInputMessage.class);
+
         		if (!daoService.check(input_message.getRoomId(), input_message.getStage(), input_message.getPindex(), username)) 
         			return;
-        		
-        		
+
         		Long message_id = daoService.addMessage(
         				input_message.getText(),
         				input_message.getRoomId(),
         				input_message.getChannelName(), 
         				input_message.getStage(),
         				input_message.getPindex(),
-        				username);
+        				username,
+        				input_message.getControlledPindex());
         		
         		if (message_id == null)
         			return;

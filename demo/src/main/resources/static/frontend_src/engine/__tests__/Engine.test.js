@@ -267,7 +267,7 @@ test("Проверка способностей Ведьмы", () => {
 
 	let init_data = tester.initialize();
 
-	player1.next().vote("Контроль", player3).next().vote("Ночное голосование", player2, player3).next().win();
+	player1.next().vote("Контроль", player3).next().vote("Ночное голосование", player2, player3).can_read("Мафия").next().win();
 	player2.next().next().next().status("Мертвый");
 
 	tester.play(init_data);

@@ -5,9 +5,8 @@ import java.util.Objects;
 
 import jakarta.persistence.Embeddable;
 
-
 @Embeddable
-public class FChannelFStageId implements Serializable {
+public class FChannelFCharacterFStageId  implements Serializable {
 
 	private static final long serialVersionUID = 1L;
 	
@@ -16,10 +15,12 @@ public class FChannelFStageId implements Serializable {
 	private String channelId;
 	
 	private String stageId;
+	
+	private short pindex;
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(channelId, room, stageId);
+		return Objects.hash(channelId, pindex, room, stageId);
 	}
 
 	@Override
@@ -30,21 +31,20 @@ public class FChannelFStageId implements Serializable {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		FChannelFStageId other = (FChannelFStageId) obj;
-		return Objects.equals(channelId, other.channelId) && Objects.equals(room, other.room)
+		FChannelFCharacterFStageId other = (FChannelFCharacterFStageId) obj;
+		return Objects.equals(channelId, other.channelId) && pindex == other.pindex && Objects.equals(room, other.room)
 				&& Objects.equals(stageId, other.stageId);
 	}
 
-	public FChannelFStageId(FRoom room, String channelId, String stageId) {
+	public FChannelFCharacterFStageId(FRoom room, String channelId, String stageId, short pindex) {
 		super();
 		this.room = room;
 		this.channelId = channelId;
 		this.stageId = stageId;
+		this.pindex = pindex;
 	}
 
-	public FChannelFStageId() {
+	public FChannelFCharacterFStageId() {
 		super();
 	}
-	
-	
 }

@@ -51,8 +51,9 @@ public class DaoService {
 			String channelName,
 			String stage,
 			short pindex,
-			String username) {
-    	return messageRepository.addMessage(text, room_id, channelName, stage, pindex, username);
+			String username,
+			short controlled_pindex) {
+    	return messageRepository.addMessage(text, room_id, channelName, stage, pindex, username, controlled_pindex);
 	}
     
 	public DMessages getMessages(long room_id, String username, short pindex) {

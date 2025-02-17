@@ -19,9 +19,6 @@ public class FCharacter {
 	@Id
 	private short pindex;
 	
-	@Column(columnDefinition = "TEXT")
-	private String state;
-	
 	@Override
 	public int hashCode() {
 		return Objects.hash(room, pindex);
@@ -37,14 +34,6 @@ public class FCharacter {
 			return false;
 		FCharacter other = (FCharacter) obj;
 		return Objects.equals(room, other.room) && Objects.equals(pindex, other.pindex);
-	}
-	
-	public String getState() {
-		return state;
-	}
-
-	public void setState(String state) {
-		this.state = state;
 	}
 
 	public FRoom getRoom() {

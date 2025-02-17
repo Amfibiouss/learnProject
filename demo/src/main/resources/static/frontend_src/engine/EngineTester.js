@@ -118,7 +118,7 @@ class EngineTester {
 			
 			var poll_results = data.pollStates.map((poll) => {return {id: poll.id, table: new Array(30).fill(0)};});
 			
-			console.log(data);
+			//console.log(data);
 			for (let player of this.players) {
 				while (player.actions.length > 0) {
 					
@@ -226,14 +226,16 @@ class EngineTester {
 						case "can_read":
 							channel = data.channelStates.find((channel) => channel.id === action.channel_id);
 							
-							if (!((channel.canRead | channel.canXRayRead | channel.canAnonymousRead) & (1 << player.pindex)))
+							if (!channel.readers.some(reader => (reader.earsControlledBy === player.pindex 
+								&& (reader.canRead || reader.canXRayRead || reader.canAnonymousRead))))
 								throw new Error("Ошибка, Игрок " + player.name + " не может читать канал " + action.channel_id);
 							
 							break;
 							
 						case "can_write":
 							channel = data.channelStates.find((channel) => channel.id === action.channel_id);	
-							if (!((channel.canWrite | channel.canXRayWrite | channel.canAnonymousWrite) & (1 << player.pindex)))
+							if (!channel.readers.some(reader => (reader.tongueControlledBy === player.pindex 
+								&& (reader.canWrite || reader.canXRayWrite || reader.canAnonymousWrite))))
 								throw new Error("Ошибка, Игрок " + player.name + " не может писать в канал " + action.channel_id);	
 						
 							break;
@@ -241,14 +243,16 @@ class EngineTester {
 						case "cant_read":
 							channel = data.channelStates.find((channel) => channel.id === action.channel_id);
 							
-							if ((channel.canRead | channel.canXRayRead | channel.canAnonymousRead) & (1 << player.pindex))
+							if (channel.readers.some(reader => (reader.earsControlledBy === player.pindex
+								 && (reader.canRead || reader.canXRayRead || reader.canAnonymousRead))))
 								throw new Error("Ошибка, Игрок " + player.name + " может читать канал " + action.channel_id);
 							
 							break;
 							
 						case "cant_write":
 							channel = data.channelStates.find((channel) => channel.id === action.channel_id);	
-							if ((channel.canWrite | channel.canXRayWrite | channel.canAnonymousWrite) & (1 << player.pindex))
+							if (channel.readers.some(reader => (reader.tongueControlledBy === player.pindex
+								 && (reader.canWrite || reader.canXRayWrite || reader.canAnonymousWrite))))
 								throw new Error("Ошибка, Игрок " + player.name + " может писать в канал " + action.channel_id);	
 
 							break;

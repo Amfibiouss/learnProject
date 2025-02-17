@@ -11,7 +11,7 @@ public class DInputMessage {
 	
 	private short pindex;
 
-	
+	private short controlledPindex;
 	
 	public long getRoomId() {
 		return roomId;
@@ -51,5 +51,13 @@ public class DInputMessage {
 
 	public void setPindex(short pindex) {
 		this.pindex = pindex;
+	}
+
+	public short getControlledPindex() {
+		return controlledPindex;
+	}
+
+	public void setControlledPindex(short controlledPindex) {
+		this.controlledPindex = controlledPindex;
 	}
 }

@@ -1,14 +1,24 @@
 package com.example.demo.dto.channel;
 
+import java.util.List;
+
 public class DOutputChannel {
 	
 	private String name;
 	
 	private boolean canRead;
 	
-	private boolean canWrite;
-	
 	private String color;
+	
+	private List<Short> pindexes;
+	
+	public List<Short> getPindexes() {
+		return pindexes;
+	}
+
+	public void setPindexes(List<Short> pindexes) {
+		this.pindexes = pindexes;
+	}
 
 	public String getName() {
 		return name;
@@ -24,14 +34,6 @@ public class DOutputChannel {
 
 	public void setCanRead(boolean canRead) {
 		this.canRead = canRead;
-	}
-
-	public boolean getCanWrite() {
-		return canWrite;
-	}
-
-	public void setCanWrite(boolean canWrite) {
-		this.canWrite = canWrite;
 	}
 
 	public String getColor() {

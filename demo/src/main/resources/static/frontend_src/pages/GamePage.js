@@ -408,9 +408,9 @@ class GamePage extends React.Component {
 		
 		this.setState({
 			status: state_room.status,
-			channels: state_room.staticState.channels,
+			channels: state_room.channels,
 			polls: state_room.polls,
-			stage: state_room.staticState.stage,
+			stage: state_room.stage,
 			pindex: state_room.pindex
 		});
 		
@@ -418,12 +418,12 @@ class GamePage extends React.Component {
 			this.startCountdown(state_room.duration);
 
 		this.pindex = state_room.pindex;
-		this.stage = state_room.staticState.stage;
+		this.stage = state_room.stage;
 		
 		this.state.status = state_room.status,
-		this.state.channels = state_room.staticState.channels,
+		this.state.channels = state_room.channels,
 		this.state.polls = state_room.polls,
-		this.state.stage = state_room.staticState.stage,
+		this.state.stage = state_room.stage,
 		this.state.pindex = state_room.pindex
 		
 		if (this.vote_store.has(this.state.stage)) {
@@ -443,12 +443,13 @@ class GamePage extends React.Component {
 		});
 	}
 	
-	onSendMessage = (channelName, text) => {
+	onSendMessage = (channelName, controlled_pindex, text) => {
 		this.state.server.sendMessage({
 			text: text, 
 			roomId: this.room_id,
 			channelName: channelName,
 			stage: this.stage,
+			controlledPindex: controlled_pindex,
 			pindex: this.pindex,
 		});
 	}
@@ -496,7 +497,7 @@ class TopBar extends React.Component {
 		let showStartButton = (this.props.status === "waiting" && isHost);
 		
 		return <div className="dark:border-white border-black border-b-2 min-h-8 text-center bg-gray-300 dark:bg-gray-800 relative">
-			<button className="absolute bottom-0 left-0 p-2 flex gap-2" 
+			<button className="absolute bottom-0 left-0 px-2 py-1 flex gap-2" 
 				onClick={()=>{this.props.server.tryExit();}}>
 				<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-7 h-7" viewBox="0 0 16 16">
 				  <path d="M8.5 10c-.276 0-.5-.448-.5-1s.224-1 .5-1 .5.448.5 1-.224 1-.5 1"/>
@@ -599,6 +600,7 @@ class MainWindow extends React.Component {
 									stage={this.props.stage} 
 									channels={this.props.channels} 
 									onSendMessage={this.props.onSendMessage}
+									pindex={this.props.pindex}
 									server={this.props.server}>
 						</ChatWindow>
 						{pollWindow}
@@ -956,7 +958,9 @@ class ChatWindow extends React.Component {
 					{maxHeight: "calc(100vh - 16rem)", minHeight: "calc(100vh - 16rem)"} : {display: "none"}}>
 				{chatTab}
 			</div>
-			<InputForm show = {this.props.active} 
+			<InputForm 
+					show = {this.props.active}
+					pindex={this.props.pindex} 
 					channels={this.props.channels} 
 					server={this.props.server} 
 					onSend={this.toBottom}
@@ -1044,10 +1048,11 @@ class InputForm extends React.Component {
 	
 	sendMessage = (event) => {
 		event.preventDefault();
-		var formData = new FormData(event.target);
-		var channelName = formData.get("select_input_channel");
-		var text = formData.get("input_text");
-		this.props.onSendMessage(channelName, text);
+		let formData = new FormData(event.target);
+		let channelName = formData.get("select_input_channel").split(":")[0];
+		let pindex = formData.get("select_input_channel").split(":")[1];
+		let text = formData.get("input_text");
+		this.props.onSendMessage(channelName, pindex, text);
 		//this.props.server.sendMessage(text, channelName);
 		this.props.onSend();
 		document.getElementById("input_text").value = "";
@@ -1055,7 +1060,21 @@ class InputForm extends React.Component {
 
 	render() {
 		
-		var channels_for_write = this.props.channels.filter((channel) => channel.canWrite);
+		let channels_for_write = [];
+		
+		for (const channel of this.props.channels) {
+			for (const pindex of channel.pindexes) {
+				channels_for_write.push({name: channel.name, pindex: pindex});
+			}
+		}
+		
+		let options = channels_for_write.map((channel) => 
+			<option key={channel.name + ":" + channel.pindex} value={channel.name + ":" + channel.pindex} >
+				{channel.name + ((this.props.pindex === channel.pindex)? "" : " (" + channel.pindex +  ")") }
+			</option>
+		);
+		
+		//let channels_for_write = this.props.channels.filter((channel) => channel.canWrite);
 		
 		return <div style={(this.props.show)? {} : {display: "none"}}>
 			<div className="relative">
@@ -1070,9 +1089,10 @@ class InputForm extends React.Component {
 				<div className="flex flex-wrap justify-between gap-2 mb-3">
 					<Button onClick={(event)=>{this.setState({showFilterMenu: !this.state.showFilterMenu}); event.preventDefault();}} value="Фильтр"></Button>
 					<div className="flex gap-2" style = {(channels_for_write.length > 0)? {} : {display: "none"}}>
-						<select name = "select_input_channel" className="bg-gray-300 dark:bg-gray-800 border-2 dark:border-white border-black">{
-							channels_for_write.map((channel) => 
-								<option key={channel.name} value={channel.name} >{channel.name}</option>)}</select>
+						<select name = "select_input_channel" 
+							className="bg-gray-300 dark:bg-gray-800 border-2 dark:border-white border-black">
+							{options}
+						</select>
 						<Button  className="text-xl" value="Отправить"></Button>
 					</div>
 				</div>

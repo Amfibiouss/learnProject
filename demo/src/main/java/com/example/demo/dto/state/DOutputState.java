@@ -3,15 +3,13 @@ package com.example.demo.dto.state;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.example.demo.dto.channel.DOutputChannel;
 import com.example.demo.dto.poll.DOutputPoll;
-import com.fasterxml.jackson.annotation.JsonRawValue;
 
 public class DOutputState {
-
-	@JsonRawValue
-	private String staticState;
-	
 	private List <DOutputPoll> polls = new ArrayList<>();
+	
+	private List<DOutputChannel> channels = new ArrayList<>();
 	
 	private String status;
 	
@@ -21,6 +19,16 @@ public class DOutputState {
 	
 	private long version;
 
+	private String stage;
+	
+	public List<DOutputChannel> getChannels() {
+		return channels;
+	}
+
+	public void setChannels(List<DOutputChannel> channels) {
+		this.channels = channels;
+	}
+
 	public long getVersion() {
 		return version;
 	}
@@ -29,12 +37,13 @@ public class DOutputState {
 		this.version = version;
 	}
 	
-	public String getStaticState() {
-		return staticState;
+	
+	public String getStage() {
+		return stage;
 	}
 
-	public void setStaticState(String staticState) {
-		this.staticState = staticState;
+	public void setStage(String stage) {
+		this.stage = stage;
 	}
 
 	public List<DOutputPoll> getPolls() {

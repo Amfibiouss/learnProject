@@ -194,6 +194,29 @@ class ConfigChecker {
 			]
 		};
 		
+		if (!config) {
+			this.error = "передана пустая конфигурация";
+			return false;
+		}
+		
+		config = JSON.parse(JSON.stringify(config));
+		
+		let fields = ["statuses", "abilities", "actions", "times", "roles", "fractions"];
+		
+		for (const field of fields) {
+			if (typeof(config[field]) === "undefined") {
+				this.error = "У конфигурации нету обязательного поля " + field;
+				return false;	
+			}
+		}
+		
+		config.statuses.push({id: "role", duration: -1});
+		config.statuses.push({id: "fraction", duration: -1});
+		config.statuses.push({id: "player", duration: -1});
+		config.statuses.push({id: "controlledBy", duration: -1});
+		config.statuses.push({id: "earsControlledBy", duration: -1});
+		config.statuses.push({id: "tongueControlledBy", duration: -1});
+		
 		return this.#check1(rules, config, config);
 	}
 	
@@ -230,21 +253,12 @@ class ConfigChecker {
 			if (res && rules.items.type === "string") {
 				
 				if (typeof(root_config[rules.from]) !== "undefined" && (root_config[rules.from] instanceof Array)) {
-					switch (rules.from) {
-						case "statuses":
-							res = config.every((item) => root_config[rules.from].some((obj) => 
-								(obj.id === item || item.startsWith(obj.id + "/") 
-								|| item.startsWith("player") || item.startsWith("fraction") 
-								|| item.startsWith("role") ||  item.startsWith("controlledBy"))));
-							break;
-						case "roles":
-						case "fractions":
-							res = config.every((item) => root_config[rules.from].some(
-								(obj) => (obj.id === item || item.startsWith(obj.id + "/"))));
-							break;
-						default:
-							res = config.every((item) => root_config[rules.from].some(
-								(obj) => obj.id === item));
+					if (rules.from === "statuses" || rules.from === "fractions" || rules.from === "roles") {
+						res = config.every((item) => root_config[rules.from].some(
+							(obj) => (obj.id === item || item.startsWith(obj.id + "/"))));
+					} else {
+						res = config.every((item) => root_config[rules.from].some(
+							(obj) => obj.id === item));
 					}
 				}
 				
@@ -438,21 +452,14 @@ class ConfigChecker {
 				if (expr === null)
 					return [0, null];
 				
-				switch (keyword) {
-					case "time":
-						if(!config["times"].some((elem) => expr === elem.id))
-							return [0, null];
-						break;
-					case "status":
-						if (!expr.startsWith("player") && !expr.startsWith("role") 
-						&& !expr.startsWith("fraction") && !expr.startsWith("controlledBy")
-						&& !config["statuses"].some((elem) => (expr === elem.id || expr.startsWith(elem.id + "/"))))
-							return [0, null];
-						break;
-					default:
-						if (keyword !== "status" && !config[keyword + "s"].some((elem) => (expr === elem.id || expr.startsWith(elem.id + "/"))))
-							return [0, null];
+				if (keyword === "time") {
+					if(!config["times"].some((elem) => expr === elem.id))
+						return [0, null];
+				} else {
+					let field = (keyword === "status")? "statuses" : (keyword + "s");
 					
+					if (!config[field].some((elem) => (expr === elem.id || expr.startsWith(elem.id + "/"))))
+						return [0, null];
 				}
 						
 				comp = keyword + "(" + expr + ")";

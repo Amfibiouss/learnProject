@@ -18,6 +18,8 @@ import com.example.demo.dto.message.DMessages;
 import com.example.demo.dto.message.DOutputMessage;
 import com.example.demo.dto.message.DStage;
 import com.example.demo.entities.FChannel;
+import com.example.demo.entities.FChannelFCharacterFStage;
+import com.example.demo.entities.FChannelFCharacterFStageId;
 import com.example.demo.entities.FChannelFStage;
 import com.example.demo.entities.FChannelFStageId;
 import com.example.demo.entities.FChannelId;
@@ -117,19 +119,21 @@ public class MessageRepository {
 			String channelName,
 			String stage,
 			short pindex,
-			String username) {
+			String username,
+			short controlled_pindex) {
 		
 		Session session = sessionFactory.getCurrentSession();
 		FRoom room = session.getReference(FRoom.class, room_id);
 		FChannel channel =  session.getReference(FChannel.class, new FChannelId(channelName, room));
 		FStage fstage = session.getReference(FStage.class, new FStageId(stage, room));
-		FChannelFStage channel_state =  session.get(FChannelFStage.class, new FChannelFStageId(channel, fstage));
 		
-		if (((channel_state.getCanXRayWrite() | channel_state.getCanWrite() | channel_state.getCanAnonymousWrite()) & (1L << pindex)) == 0)
+		FChannelFCharacterFStage writer = session.get(FChannelFCharacterFStage.class, new FChannelFCharacterFStageId(room, channelName, stage, controlled_pindex));
+		
+		if (writer.getTongueControlledBy() != pindex)
 			return null;
 		
     	FUser user = session.getReference(FUser.class, username);
-    	
+    	FChannelFStage channel_state =  session.get(FChannelFStage.class, new FChannelFStageId(room, channelName, stage));
     	FMessage fmessage = new FMessage();
     
     	fmessage.setText(text);
@@ -139,13 +143,13 @@ public class MessageRepository {
     	fmessage.setXRayReadMask(channel_state.getCanXRayRead());
     	fmessage.setStage(fstage);
     	fmessage.setUser(user);
-    	fmessage.setPindex(pindex);
+    	fmessage.setPindex(controlled_pindex);
     	fmessage.setDate(OffsetDateTime.now());
     	
-    	if ((channel_state.getCanAnonymousWrite() & (1L << pindex)) != 0)
+    	if (writer.isCanAnonymousWrite() && !writer.isCanWrite() && !writer.isCanXRayWrite())
     		fmessage.setAnonymousMessage(true);
     	
-    	if ((channel_state.getCanXRayWrite() & (1L << pindex)) != 0)
+    	if (writer.isCanXRayWrite())
     		fmessage.setXRayMessage(true);
     	
     	session.persist(fmessage);
@@ -158,18 +162,18 @@ public class MessageRepository {
 		Session session = sessionFactory.getCurrentSession();
 		FRoom room = session.getReference(FRoom.class, room_id); 
 		FPoll poll = session.get(FPoll.class, new FPollId(poll_name, room));
-		FStage fstage = session.getReference(FStage.class, new FStageId(stage, room));
-		FChannelFStage channel_state = session.getReference(FChannelFStage.class, new FChannelFStageId(poll.getChannel(), fstage));
-		
+		//FStage fstage = session.getReference(FStage.class, new FStageId(stage, room));
+
 		if (poll.getChannel() == null) 
 			return null;
 		
 		FChannel system_channel = session.getReference(FChannel.class, new FChannelId(system_channel_name, poll.getRoom()));
+		FChannelFStage channel_state =  session.get(FChannelFStage.class, new FChannelFStageId(room, poll.getChannel().getName(), stage));
 		
 		FMessage fmessage = new FMessage();
     	fmessage.setText(text);
     	fmessage.setChannel(system_channel);
-    	fmessage.setXRayReadMask(channel_state.getCanRead() | channel_state.getCanAnonymousRead() | channel_state.getCanXRayRead());
+    	fmessage.setXRayReadMask(channel_state.getCanRead() | channel_state.getCanXRayRead());
     	fmessage.setStage(session.getReference(FStage.class, new FStageId(stage, room)));
     	fmessage.setUser(null);
     	fmessage.setPindex((short) -1);
@@ -182,7 +186,7 @@ public class MessageRepository {
 	@Transactional(isolation = Isolation.READ_COMMITTED, readOnly = true)
 	public DMessages getMessages(long room_id, String username, short pindex) {
     	Session session = sessionFactory.getCurrentSession();
-    	//FRoom room =  (FRoom) session.getReference(FRoom.class, room_id);
+    	//FRoom room =  session.getReference(FRoom.class, room_id);
     	FUser user = session.get(FUser.class, username);
     	
     	if (user.getCharacter().getPindex() != pindex)
@@ -219,8 +223,6 @@ public class MessageRepository {
     			
         		if ((fmessage.getXRayReadMask() & (1L << pindex)) != 0 || (can_read != 0 && fmessage.isXRayMessage())) {
         			acess = ReadAcess.XRayRead;
-        		} else if (fmessage.getPindex() == pindex) {
-        			acess = ReadAcess.Read;
         		} else if ((fmessage.getAnonymousReadMask() & (1L << pindex)) != 0 || (can_read != 0 && fmessage.isAnonymousMessage())) {
         			acess = ReadAcess.AnonymousRead;
         		} else if ((fmessage.getReadMask() & (1L << pindex)) != 0) {
@@ -269,8 +271,6 @@ public class MessageRepository {
     			
         		if ((fmessage.getXRayReadMask() & (1L << pindex)) != 0 || (can_read != 0 && fmessage.isXRayMessage())) {
         			acess = ReadAcess.XRayRead;
-        		} else if (fmessage.getPindex() == pindex) {
-        			acess = ReadAcess.Read;
         		} else if ((fmessage.getAnonymousReadMask() & (1L << pindex)) != 0 || (can_read != 0 && fmessage.isAnonymousMessage())) {
         			acess = ReadAcess.AnonymousRead;
         		} else if ((fmessage.getReadMask() & (1L << pindex)) != 0) {
@@ -352,8 +352,6 @@ public class MessageRepository {
 			
     		if ((fmessage.getXRayReadMask() & (1L << player_pindex)) != 0 || (can_read != 0 && fmessage.isXRayMessage())) {
     			acess = ReadAcess.XRayRead;
-    		} else if (fmessage.getPindex() == player_pindex) {
-    			acess = ReadAcess.Read;
     		} else if ((fmessage.getAnonymousReadMask() & (1L << player_pindex)) != 0 || (can_read != 0 && fmessage.isAnonymousMessage())) {
     			acess = ReadAcess.AnonymousRead;
     		} else if ((fmessage.getReadMask() & (1L << player_pindex)) != 0) {

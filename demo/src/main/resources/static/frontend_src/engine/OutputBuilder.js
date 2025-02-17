@@ -21,6 +21,18 @@ class OutputBuilder {
 			}
 			this.controlledByMap.set(ability.id, arr);
 		}
+		
+		this.earsControlledByMap = new Map();
+		this.tongueControlledByMap = new Map();
+		for (const channel of this.config.channels) {
+			let arr1 = [], arr2 = [];
+			for (let i = 0; i < this.count; i++) {
+				arr1.push(i);
+				arr2.push(i);
+			}
+			this.earsControlledByMap.set(channel.id, arr1);
+			this.tongueControlledByMap.set(channel.id, arr1);
+		}
 	}
 	
 	toCandidateList(user_mask, ability) {
@@ -41,6 +53,7 @@ class OutputBuilder {
 		
 		return candidate_list;
 	}
+
 	
 	initChannels() {
 		let channels = [];
@@ -51,26 +64,39 @@ class OutputBuilder {
 		return channels;
 	}
 	
-	handleChannels(output) {
+	handleChannels() {
 		let channelStates = [];
-		this.config.channels.forEach((channel) => {
+		
+		for (const channel of this.config.channels) {
 			
 			let read_mask = this.getMaskFromSelector(channel.canRead);
 			let write_mask = this.getMaskFromSelector(channel.canWrite);
 			let anonymous_read_mask = this.getMaskFromSelector(channel.canAnonymousRead);
 			let anonymous_write_mask = this.getMaskFromSelector(channel.canAnonymousWrite);
 			
-			//console.log(channel.id + " " + write_mask + " " + anonymous_write_mask);
+			let reader_list = [];
 			
-			channelStates.push({id: channel.id, 
-								canRead: read_mask, 
-								canXRayRead: 0,
-								canAnonymousRead: anonymous_read_mask,
-								canWrite: write_mask,
-								canXRayWrite: 0,
-								canAnonymousWrite: anonymous_write_mask,
-								color: channel.color});
-		});
+			
+			for (var i = 0; i < this.count; i++) {
+				
+				reader_list.push({
+					id: i, 
+					tongueControlledBy: this.tongueControlledByMap.get(channel.id)[i],
+					earsControlledBy: this.earsControlledByMap.get(channel.id)[i],
+					canRead: (read_mask & (1 << i)) != 0, 
+					canXRayRead: false,
+					canAnonymousRead: (anonymous_read_mask & (1 << i)) != 0,
+					canWrite: (write_mask & (1 << i)) != 0,
+					canXRayWrite: false,
+					canAnonymousWrite: (anonymous_write_mask & (1 << i)) != 0,
+					color: channel.color
+				});
+			}
+			
+			channelStates.push({id: channel.id, readers: reader_list})
+			
+			//console.log(channel.id + " " + write_mask + " " + anonymous_write_mask);
+		}
 		
 		return channelStates;
 	}
@@ -106,6 +132,36 @@ class OutputBuilder {
 		});
 		
 		return pollStates;
+	}
+	
+	setTongueControlledBy(target, user, channel_id) {
+		if (!channel_id) {
+			for (const channel of this.config.channels) {
+				this.tongueControlledByMap.get(channel.id)[target] = user;
+			}
+		} else {
+			let channel = this.config.channels.find((item) => item.id === channel_id);
+			
+			if (!channel)
+				return;
+			
+			this.tongueControlledByMap.get(channel.id)[target] = user;	
+		}
+	}
+	
+	setEarsControlledBy(target, user, channel_id) {
+		if (!channel_id) {
+			for (const channel of this.config.channels) {
+				this.earsControlledByMap.get(channel.id)[target] = user;
+			}
+		} else {
+			let channel = this.config.channels.find((item) => item.id === channel_id);
+			
+			if (!channel)
+				return;
+			
+			this.earsControlledByMap.get(channel.id)[target] = user;	
+		}
 	}
 	
 	setControlledBy(target, user, ability_id) {

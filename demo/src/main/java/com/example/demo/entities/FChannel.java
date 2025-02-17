@@ -20,9 +20,6 @@ public class FChannel {
 	@Id
 	private String name;
 	
-	@OneToOne(optional=true, fetch=FetchType.LAZY)
-	private FChannelFStage currentState;
-	
 	private String color;
 
 	@Override
@@ -42,16 +39,6 @@ public class FChannel {
 		return Objects.equals(name, other.name) && Objects.equals(room, other.room);
 	}
 	
-	
-
-	public FChannelFStage getCurrentState() {
-		return currentState;
-	}
-
-	public void setCurrentState(FChannelFStage currentState) {
-		this.currentState = currentState;
-	}
-
 	public String getName() {
 		return name;
 	}

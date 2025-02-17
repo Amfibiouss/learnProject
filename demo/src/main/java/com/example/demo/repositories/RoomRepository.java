@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.demo.dto.DRoom;
 import com.example.demo.dto.channel.DInputChannel;
 import com.example.demo.dto.channel.DInputChannelState;
+import com.example.demo.dto.channel.DInputReader;
 import com.example.demo.dto.channel.DOutputChannel;
 import com.example.demo.dto.message.DOutputMessage;
 import com.example.demo.dto.poll.DCandidate;
@@ -27,8 +28,8 @@ import com.example.demo.dto.poll.DInputPollState;
 import com.example.demo.dto.poll.DOutputPoll;
 import com.example.demo.dto.state.DInputState;
 import com.example.demo.dto.state.DOutputState;
-import com.example.demo.dto.state.DOutputStaticState;
 import com.example.demo.entities.FChannel;
+import com.example.demo.entities.FChannelFCharacterFStage;
 import com.example.demo.entities.FChannelFStage;
 import com.example.demo.entities.FChannelFStageId;
 import com.example.demo.entities.FChannelId;
@@ -37,12 +38,10 @@ import com.example.demo.entities.FCharacterFStage;
 import com.example.demo.entities.FParticipationToken;
 import com.example.demo.entities.FPoll;
 import com.example.demo.entities.FPollFCharacterFStage;
-import com.example.demo.entities.FPollFCharacterFStageId;
 import com.example.demo.entities.FPollId;
 import com.example.demo.entities.FRoom;
 import com.example.demo.entities.FStage;
 import com.example.demo.entities.FUser;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Component
@@ -64,6 +63,9 @@ public class RoomRepository {
     
     @Value("${app.room.max_polls}")
     private long max_polls;
+    
+    @Value("${app.room.first_stage_name}")
+    private String first_stage_name;
     
     @Value("${app.room.system_channel_name}")
     private String system_channel_name;
@@ -109,7 +111,7 @@ public class RoomRepository {
     	session.persist(room);
     	
 		FStage fstage = new FStage();
-		fstage.setName("Начало");
+		fstage.setName(first_stage_name);
 		fstage.setDuration(-1);
 		fstage.setDate(OffsetDateTime.now());
 		fstage.setRoom(room);
@@ -120,41 +122,32 @@ public class RoomRepository {
 		lobby_channel.setName(lobby_channel_name);
 		lobby_channel.setRoom(room);
 		lobby_channel.setColor(lobby_channel_color);
-		FChannelFStage lobby_channel_state = new FChannelFStage();
-		lobby_channel_state.setChannel(lobby_channel);
-		lobby_channel_state.setStage(fstage);
-		lobby_channel_state.setCanXRayRead((1L << 32) - 1);
-		lobby_channel_state.setCanWrite((1L << 32) - 1);
+		session.persist(lobby_channel);
 
 		FChannel system_channel = new FChannel();
 		system_channel.setName(system_channel_name);
 		system_channel.setRoom(room);
 		system_channel.setColor(system_channel_color);
-		FChannelFStage system_channel_state = new FChannelFStage();
-		system_channel_state.setChannel(system_channel);
-		system_channel_state.setStage(fstage);
-		system_channel_state.setCanXRayRead((1L << 32) - 1);
-		system_channel_state.setCanWrite(0);
-    	
-    	session.persist(lobby_channel);
-    	session.persist(system_channel);
-    	session.persist(lobby_channel_state);
-    	session.persist(system_channel_state);
-    	lobby_channel.setCurrentState(lobby_channel_state);
-    	system_channel.setCurrentState(system_channel_state);
-    	
-    	DOutputStaticState static_state = getStaticState(List.of(lobby_channel, system_channel), fstage, (short) 0);
-    	
+		session.persist(system_channel);
+
+    	FChannelFStage system_channel_stage = new FChannelFStage();
+    	system_channel_stage.setRoom(room);
+    	system_channel_stage.setStageId(first_stage_name);
+    	system_channel_stage.setChannelId(system_channel_name);
+    	system_channel_stage.setCanXRayRead((1L << 32) - 1);
+    	session.persist(system_channel_stage);
+		
+    	FChannelFStage lobby_channel_stage = new FChannelFStage();
+    	lobby_channel_stage.setRoom(room);
+    	lobby_channel_stage.setStageId(first_stage_name);
+    	lobby_channel_stage.setChannelId(lobby_channel_name);
+    	lobby_channel_stage.setCanXRayRead((1L << 32) - 1);
+    	session.persist(lobby_channel_stage);
+
     	for (short pindex = 0; pindex < max_population; pindex++) {
         	FCharacter character = new FCharacter();
         	character.setPindex(pindex);
         	character.setRoom(room);
-        
-    		try {
-				character.setState(objectMapper.writeValueAsString(static_state));
-			} catch (JsonProcessingException e) {
-				throw new RuntimeException();
-			}
         	session.persist(character);
         	
         	FParticipationToken token = new FParticipationToken();
@@ -172,6 +165,16 @@ public class RoomRepository {
         	}
         	
         	session.persist(token);
+        	
+        	FChannelFCharacterFStage reader = new FChannelFCharacterFStage();
+        	reader.setRoom(room);
+        	reader.setChannelId(lobby_channel_name);
+        	reader.setStageId(first_stage_name);
+        	reader.setPindex(pindex);
+        	reader.setCanXRayWrite(true);
+        	reader.setTongueControlledBy(pindex);
+        	reader.setEarsControlledBy(pindex);
+        	session.persist(reader);
         	
 			FCharacterFStage character_stage = new FCharacterFStage();
 			character_stage.setCharacter(character);
@@ -245,42 +248,55 @@ public class RoomRepository {
 			
     	List<FChannel> fchannels = session.createSelectionQuery("from FChannel c where c.room = :room", FChannel.class)
 				.setParameter("room", room).getResultList();
-		
-		for (FChannel fchannel : fchannels) {
-			FChannelFStage fchannel_state = new FChannelFStage();
-			fchannel_state.setChannel(fchannel);
-			fchannel_state.setStage(fstage);
-			session.persist(fchannel_state);
-			FChannelFStage old_state = fchannel.getCurrentState();
-			fchannel.setCurrentState(fchannel_state);
-			
-			if (old_state == null)
-				continue;
-			
-			fchannel_state.setCanWrite(old_state.getCanWrite());
-			fchannel_state.setCanAnonymousWrite(old_state.getCanAnonymousWrite());
-			fchannel_state.setCanXRayWrite(old_state.getCanXRayWrite());
-			fchannel_state.setCanRead(old_state.getCanRead());
-			fchannel_state.setCanAnonymousRead(old_state.getCanAnonymousRead());
-			fchannel_state.setCanXRayRead(old_state.getCanXRayRead());
-			
-		} 
+    	
+    	FChannelFStage system_channel_stage = new FChannelFStage();
+    	system_channel_stage.setRoom(room);
+    	system_channel_stage.setStageId(fstage.getName());
+    	system_channel_stage.setChannelId(system_channel_name);
+    	system_channel_stage.setCanXRayRead((1L << 32) - 1);
+    	session.persist(system_channel_stage);
     	
 		for (DInputChannelState dchannel : state.getChannelStates()) {
 			FChannel fchannel = session.get(FChannel.class, new FChannelId(dchannel.getId(), room));
-			FChannelFStage fchannel_state = fchannel.getCurrentState();
-			fchannel_state.setCanWrite(dchannel.getCanWrite());
-			fchannel_state.setCanAnonymousWrite(dchannel.getCanAnonymousWrite());
-			fchannel_state.setCanXRayWrite(dchannel.getCanXRayWrite());
-			fchannel_state.setCanRead(dchannel.getCanRead());
-			fchannel_state.setCanAnonymousRead(dchannel.getCanAnonymousRead());
-			fchannel_state.setCanXRayRead(dchannel.getCanXRayRead());
-		}
-		
-		if (init) {
-			FChannel lobby_channel = session.getReference(FChannel.class, new FChannelId(lobby_channel_name, room));
-			FChannelFStage state_channel = session.getReference(FChannelFStage.class, new FChannelFStageId(lobby_channel, fstage));
-			state_channel.setCanWrite(0);
+			List <DInputReader> readers = dchannel.getReaders();
+			
+			long anonymousReadMask = 0;
+			long readMask = 0;
+			long XRayReadMask = 0;		
+			
+			for (short pindex = 0; pindex < room.getMax_population(); pindex++) {
+				FChannelFCharacterFStage reader = new FChannelFCharacterFStage();
+				DInputReader dreader = readers.get(pindex);
+				reader.setRoom(room);
+				reader.setChannelId(fchannel.getName());
+				reader.setStageId(fstage.getName());
+				reader.setPindex(pindex);
+				reader.setEarsControlledBy(dreader.getEarsControlledBy());
+				reader.setTongueControlledBy(dreader.getTongueControlledBy());
+				reader.setCanWrite(dreader.isCanWrite());
+				reader.setCanAnonymousWrite(dreader.isCanAnonymousWrite());
+				reader.setCanXRayWrite(dreader.isCanXRayWrite());
+				
+				if (dreader.isCanAnonymousRead())
+					anonymousReadMask |= 1L << dreader.getEarsControlledBy();
+				
+				if (dreader.isCanRead())
+					readMask |= 1L << dreader.getEarsControlledBy();
+				
+				if (dreader.isCanXRayRead())
+					XRayReadMask |= 1L << dreader.getEarsControlledBy();
+				
+				session.persist(reader);
+			}
+			
+			FChannelFStage channel_stage = new FChannelFStage();
+			channel_stage.setRoom(room);
+			channel_stage.setChannelId(fchannel.getName());
+			channel_stage.setStageId(fstage.getName());
+			channel_stage.setCanAnonymousRead(anonymousReadMask);
+			channel_stage.setCanRead(readMask);
+			channel_stage.setCanXRayRead(XRayReadMask);
+			session.persist(channel_stage);
 		}
 		
     	List<FPoll> fpolls = session.createSelectionQuery("from FPoll p where p.room = :room", FPoll.class)
@@ -314,71 +330,7 @@ public class RoomRepository {
     	List <DOutputState> output_states = new ArrayList<>(room.getMax_population());
     	
     	for (FCharacter character : characters) {
-    		DOutputStaticState static_state = getStaticState(fchannels, fstage, character.getPindex());
-
-    		try {
-				character.setState(objectMapper.writeValueAsString(static_state));
-			} catch (JsonProcessingException e) {
-				throw new RuntimeException();
-			}
-    		   		
-    		DOutputState new_state = new DOutputState();
-        	new_state.setStatus(room.isClosed()? "closed" : room.getStatus());
-    		new_state.setVersion(room.getVersion());
-    		new_state.setPindex(character.getPindex());   
-    		new_state.setDuration(fstage.getDuration());
-    		new_state.setStaticState(character.getState());
-    		
-        	for (FPoll fpoll : fpolls) {			
-        		List<FPollFCharacterFStage> voters = session.createSelectionQuery(
-      				  "from FPollFCharacterFStage pcs "
-      				+ "where pcs.room = :room and pcs.pollId = :poll_id "
-      				+ "and pcs.stageId = :stage_id order by pcs.pindex", FPollFCharacterFStage.class)
-      				.setParameter("room", room)
-      				.setParameter("poll_id", fpoll.getName())
-      				.setParameter("stage_id", fstage.getName())
-      				.getResultList();
-      		
-		  		List<FPollFCharacterFStage> controlled_voters = voters.stream()
-		  				.filter(item -> (item.isCanVote() && item.getControlledBy() == character.getPindex()))
-		  				.toList();
-		
-		  		for (FPollFCharacterFStage voter: controlled_voters) {
-		      		DOutputPoll dpoll = new DOutputPoll();
-		      		dpoll.setName(fpoll.getName());
-		      		dpoll.setCandidates(new ArrayList<>());
-		      		dpoll.setName(fpoll.getName());
-		      		dpoll.setDescription(fpoll.getDescription());
-		      		dpoll.setShowVotes(fpoll.isShowVotes());
-		      		dpoll.setMax_selection(fpoll.getMaxSelection());
-		      		dpoll.setMin_selection(fpoll.getMinSelection());
-		      		dpoll.setControlledPindex(voter.getPindex());
-		  		
-		    		for (FPollFCharacterFStage candidate: voters) {
-		    			
-		    			DCandidate dcandidate = new DCandidate();
-		    			dcandidate.setId(candidate.getPindex());
-		    			dcandidate.setVotes(Long.bitCount(candidate.getInVotesMask()));
-		    			dcandidate.setName(candidate.getName());
-		    			
-		    			if ((voter.getCandidates() & (1 << dcandidate.getId())) != 0) {
-		    				dcandidate.setBlocked(false);
-		    			} else
-		    				dcandidate.setBlocked(true);
-		    			
-		    			if ((voter.getOutVotesMask() & (1 << dcandidate.getId())) != 0)
-		    				dcandidate.setSelected(true);
-		    			else 
-		    				dcandidate.setSelected(false);
-		    			
-		    			dpoll.getCandidates().add(dcandidate);
-		    		}
-		    		
-		    		new_state.getPolls().add(dpoll);
-		  		}
-        	}
-    		
-    		output_states.add(new_state);
+    		output_states.add(getCurrentState(session, fchannels, fpolls, room, character.getPindex()));
     		
 			FCharacterFStage character_stage = new FCharacterFStage();
 			character_stage.setCharacter(character);
@@ -392,25 +344,6 @@ public class RoomRepository {
 		return Map.entry(system_messages, output_states);
 	}
 	
-	private DOutputStaticState getStaticState(List<FChannel> fchannels, FStage fstage, short pindex) {
-		DOutputStaticState static_state = new DOutputStaticState();
-		static_state.setStage(fstage.getName());
-
-    	for (FChannel fchannel : fchannels) {
-			DOutputChannel dchannel = new DOutputChannel();
-    		dchannel.setName(fchannel.getName());
-    		FChannelFStage channel_state = fchannel.getCurrentState();
-    		long read_mask = channel_state.getCanRead() | channel_state.getCanXRayRead() | channel_state.getCanAnonymousRead();
-    		long write_mask = channel_state.getCanWrite() | channel_state.getCanXRayWrite() | channel_state.getCanAnonymousWrite();
-    		dchannel.setCanRead((read_mask & (1L << pindex)) != 0);
-    		dchannel.setCanWrite((write_mask & (1L << pindex)) != 0);
-    		dchannel.setColor(fchannel.getColor());
-    		static_state.getChannels().add(dchannel);
-    	}
-    	
-    	return static_state;
-	}
-	
 	@Transactional(isolation = Isolation.REPEATABLE_READ, readOnly = true)
 	public DOutputState getState(long room_id, String username) {
 		
@@ -422,12 +355,19 @@ public class RoomRepository {
     	
     	List<FPoll> fpolls = session.createSelectionQuery("from FPoll p where p.room = :room", FPoll.class)
 				.setParameter("room", room).getResultList();
-		
-    	FStage fstage = room.getCurrentStage();
     	
+    	List<FChannel> fchannels = session.createSelectionQuery("from FChannel c where c.room = :room", FChannel.class)
+				.setParameter("room", room).getResultList();
+		
+    	return getCurrentState(session, fchannels, fpolls, room, pindex);
+	}
+	
+	private DOutputState getCurrentState(Session session, List<FChannel> fchannels, List<FPoll> fpolls, FRoom room, short pindex) {
+		FStage fstage = room.getCurrentStage();
+		
     	DOutputState state = new DOutputState();
     	state.setPindex(pindex);   
-    	state.setStaticState(user.getCharacter().getState());
+    	state.setStage(fstage.getName());
     	
     	if (room.isClosed())
     		state.setStatus("closed");
@@ -441,6 +381,36 @@ public class RoomRepository {
 			long duration = fstage.getDuration();
 			OffsetDateTime date = fstage.getDate();
 			state.setDuration(duration - date.until(OffsetDateTime.now(), ChronoUnit.MILLIS));
+		}
+		
+		for (FChannel fchannel : fchannels) {
+    		List<FChannelFCharacterFStage> readers = session.createSelectionQuery(
+  				  "from FChannelFCharacterFStage ccs "
+  				+ "where ccs.room.id = :room_id and ccs.channelId = :channel_id "
+  				+ "and ccs.stageId = :stage_id order by ccs.pindex", FChannelFCharacterFStage.class)
+  				.setParameter("room_id", room.getId())
+  				.setParameter("channel_id", fchannel.getName())
+  				.setParameter("stage_id", fstage.getName())
+  				.getResultList();
+    		
+    		FChannelFStage channel_stage = session.get(FChannelFStage.class, new FChannelFStageId(room, fchannel.getName(), fstage.getName()));
+    		
+    		boolean canRead = false;
+    		
+    		if (channel_stage != null)
+    			canRead = ((channel_stage.getCanAnonymousRead() | channel_stage.getCanRead() | channel_stage.getCanXRayRead()) & (1 << pindex)) != 0;
+    		
+    		List<Short> pindexes = readers.stream()
+    				.filter(item -> item.getTongueControlledBy() == pindex 
+    				&& (item.isCanWrite() || item.isCanAnonymousWrite() ||  item.isCanXRayWrite()))
+    				.map(item -> item.getPindex()).toList();
+    		
+    		DOutputChannel dchannel = new DOutputChannel();
+    		dchannel.setName(fchannel.getName());
+    		dchannel.setColor(fchannel.getColor());
+    		dchannel.setPindexes(pindexes);
+    		dchannel.setCanRead(canRead);	
+    		state.getChannels().add(dchannel);
 		}
     	
     	for (FPoll fpoll : fpolls) {	

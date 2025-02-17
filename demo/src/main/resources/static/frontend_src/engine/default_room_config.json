@@ -352,7 +352,7 @@
 			"reactions": [
 				{
 					"condition": "all()",
-					"removeTargetStatuses": ["Мертвый", "Заблокирован", "Забывчивый", "controlledBy", "Под контролем", "Последнее слово", "Объявление о смерти"],
+					"removeTargetStatuses": ["Мертвый", "Заблокирован", "Забывчивый", "controlledBy", "earsControlledBy", "tongueControlledBy", "Под контролем", "Последнее слово", "Объявление о смерти"],
 					"affect": [
 						{
 							"address": "status(Контролирует/$target.name)",
@@ -700,7 +700,7 @@
 				
 				{
 					"condition": "status(Живой)",
-					"addTargetStatuses": ["controlledBy/$user.name", "Под контролем", "Забывчивый"],
+					"addTargetStatuses": ["controlledBy/$user.name", "earsControlledBy/$user.name", "tongueControlledBy/$user.name", "Под контролем", "Забывчивый"],
 					"addUserStatuses": ["Контролирует/$target.name"],
 					"affect": [
 						{
@@ -906,7 +906,7 @@
 			"reactions": [
 				{
 					"condition": "all()",
-					"removeTargetStatuses": ["controlledBy/$user.name"],
+					"removeTargetStatuses": ["controlledBy/$user.name", "earsControlledBy/$user.name", "tongueControlledBy/$user.name"],
 					"informTarget": "Вы чувствуете, что контроль над телом возвращается..."
 				}
 			]

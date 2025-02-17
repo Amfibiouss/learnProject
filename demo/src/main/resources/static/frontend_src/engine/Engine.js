@@ -150,6 +150,8 @@ class Engine {
 		config.statuses.push({id: "fraction", duration: -1});
 		config.statuses.push({id: "player", duration: -1});
 		config.statuses.push({id: "controlledBy", duration: -1});
+		config.statuses.push({id: "earsControlledBy", duration: -1});
+		config.statuses.push({id: "tongueControlledBy", duration: -1});
 		this.expMap = new Map();
 		this.checker = new ConfigChecker();
 		this.state = {};
@@ -432,26 +434,32 @@ class Engine {
 
 		for (const status of this.state.statuses) {
 			
-			if (status.id.startsWith("controlledBy/")) {
-				
-				//console.log("!!!!" + JSON.stringify(status));
-				
-				let parts = status.id.split("/");
-				
-				if (parts.length < 2)
-					continue;
-				
-				let user = Number(parts[1].substring("Игрок #".length));
-				
-				if (isNaN(user))
-					continue;
-		
-				let pollId = null;
-				
-				if (parts.length > 2)
-					pollId = parts[2];
-				
-				this.outputBuilder.setControlledBy(status.target, user, pollId);
+			if (!status.id.startsWith("controlledBy/") 
+				&& !status.id.startsWith("earsControlledBy/") 
+				&& !status.id.startsWith("tongueControlledBy/"))
+				continue;
+			
+			let parts = status.id.split("/");
+			
+			if (parts.length < 2)
+				continue;
+			
+			let user = Number(parts[1].substring("Игрок #".length));
+			
+			if (isNaN(user))
+				continue;
+	
+			let resourceId = null;
+			
+			if (parts.length > 2)
+				resourceId = parts[2];
+			
+			if (status.id.startsWith("controlledBy/"))
+				this.outputBuilder.setControlledBy(status.target, user, resourceId);
+			else if (status.id.startsWith("earsControlledBy/")) {
+				this.outputBuilder.setEarsControlledBy(status.target, user, resourceId);
+			} else {
+				this.outputBuilder.setTongueControlledBy(status.target, user, resourceId);
 			}
 		}
 	}	

@@ -203,7 +203,7 @@ class Room extends React.Component {
 				<span key={player.username} className = {(player.pindex)? "" : "text-orange-500"}>{(index? ", " : "") + player.username}</span>
 		)}</div>;
 		
-		return <li className={"rounded-2xl p-1 flex flex-col gap-2 " + ((this.props.current)? "dark:bg-gray-700 bg-gray-300" : "dark:bg-gray-800 bg-gray-200")} style={{width: "min(50rem, 90vw)"}}>
+		return <li className={"rounded-2xl px-3 py-1 flex flex-col gap-2 " + ((this.props.current)? "dark:bg-gray-700 bg-gray-300" : "dark:bg-gray-800 bg-gray-200")} style={{width: "min(50rem, 90vw)"}}>
 			{this.state.error? <div className = "text-red-500">{this.state.error}</div> : <></>}
 			<div className="flex gap-2 p-0">
 				<span className="font-semibold text-2xl">{this.props.name}</span>
@@ -212,7 +212,7 @@ class Room extends React.Component {
 			<div className="break-words max-h-[150px]">{this.props.description}</div>
 			<div className="flex justify-end gap-3 text-xl flex-wrap p-0">
 				<span className="grow justify-self-end flex align-items">
-					<a href="#" onClick = {this.getPlayers} className="bg-gray-300 dark:bg-gray-700 rounded-xl p-1 text-lg">
+					<a href="#" onClick = {this.getPlayers} className="bg-gray-300 dark:bg-gray-700 rounded-xl px-2 py-1 text-lg h-fit">
 						Игроки {this.props.population + ' / ' + this.props.max_population}
 					</a>
 				</span>
