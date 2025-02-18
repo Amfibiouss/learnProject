@@ -499,10 +499,6 @@ class TopBar extends React.Component {
 		return <div className="dark:border-white border-black border-b-2 min-h-8 text-center bg-gray-300 dark:bg-gray-800 relative">
 			<button className="absolute bottom-0 left-0 px-2 py-1 flex gap-2" 
 				onClick={()=>{this.props.server.tryExit();}}>
-				<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-7 h-7" viewBox="0 0 16 16">
-				  <path d="M8.5 10c-.276 0-.5-.448-.5-1s.224-1 .5-1 .5.448.5 1-.224 1-.5 1"/>
-				  <path d="M10.828.122A.5.5 0 0 1 11 .5V1h.5A1.5 1.5 0 0 1 13 2.5V15h1.5a.5.5 0 0 1 0 1h-13a.5.5 0 0 1 0-1H3V1.5a.5.5 0 0 1 .43-.495l7-1a.5.5 0 0 1 .398.117M11.5 2H11v13h1V2.5a.5.5 0 0 0-.5-.5M4 1.934V15h6V1.077z"/>
-				</svg>
 				<span className="text-lg">Выйти</span>
 			</button>
 			<div>
@@ -562,7 +558,7 @@ class MainWindow extends React.Component {
 		}
 		
 		let pollWindow = this.props.polls.map((poll) => 
-			<PollWindow key={poll.name + ":" + poll.controlledPindex} 
+			<PollWindow key={poll.name + ":" + poll.controlledPindex + ":" + this.props.stage} 
 					name={poll.name} 
 					pindex={this.props.pindex}
 					controlledPindex={poll.controlledPindex}
@@ -876,37 +872,6 @@ class Player extends React.Component {
 			
 				</div>
 			</div>
-		/*
-		let bg_color = (this.props.online)? "bg-gray-400 dark:bg-gray-600" : (this.props.username)? "bg-gray-300 dark:bg-gray-700" : "bg-gray-200 dark:bg-gray-800"; 
-		
-		return <div className = {bg_color + " flex gap-2 p-2 justify-between mb-1 last:mb-32 rounded-xl"}>
-			<div className="flex gap-2 text-lg">
-				<span>{this.props.pindex}</span>
-				<span>{(this.props.username)? (this.props.username + ((this.props.online)? "" : " (оффлайн)")) : "Пусто"}</span>
-			</div>
-			<div className={"relative group" + ((isHost)? "" : " hidden")}>
-				<button className="flex gap-2">			
-					<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="w-7 h-7" viewBox="0 0 16 16">
-					  <path d="M9.5 2.672a.5.5 0 1 0 1 0V.843a.5.5 0 0 0-1 0zm4.5.035A.5.5 0 0 0 13.293 2L12 3.293a.5.5 0 1 0 .707.707zM7.293 4A.5.5 0 1 0 8 3.293L6.707 2A.5.5 0 0 0 6 2.707zm-.621 2.5a.5.5 0 1 0 0-1H4.843a.5.5 0 1 0 0 1zm8.485 0a.5.5 0 1 0 0-1h-1.829a.5.5 0 0 0 0 1zM13.293 10A.5.5 0 1 0 14 9.293L12.707 8a.5.5 0 1 0-.707.707zM9.5 11.157a.5.5 0 0 0 1 0V9.328a.5.5 0 0 0-1 0zm1.854-5.097a.5.5 0 0 0 0-.706l-.708-.708a.5.5 0 0 0-.707 0L8.646 5.94a.5.5 0 0 0 0 .707l.708.708a.5.5 0 0 0 .707 0l1.293-1.293Zm-3 3a.5.5 0 0 0 0-.706l-.708-.708a.5.5 0 0 0-.707 0L.646 13.94a.5.5 0 0 0 0 .707l.708.708a.5.5 0 0 0 .707 0z"/>
-					</svg>
-					<span className="text-lg">Магия</span>
-				</button>
-				<div className="absolute right-0 hidden group-hover:flex group-hover:flex-col bg-gray-300 dark:bg-gray-700 border-2 dark:border-white border-black z-20">
-					<button className="hover:bg-gray-400 dark:hover:bg-gray-600 whitespace-nowrap p-2" onClick={() => {this.props.server.useMagic("imperius", this.props.pindex);}}>
-						Империус
-					</button>
-					{(this.props.username)? <>
-						<button className="hover:bg-gray-400 dark:hover:bg-gray-600 border-t-2 dark:border-white border-black whitespace-nowrap p-2" onClick={() => {this.props.server.useMagic("avada_kedavra", this.props.username);}}>
-							Авада Кедавра
-						</button>
-						<button className="hover:bg-gray-400 dark:hover:bg-gray-600 border-t-2 dark:border-white border-black whitespace-nowrap p-2" onClick={() => {this.props.server.useMagic("cruciatus", this.props.pindex);}}>
-							Круциатус
-						</button>
-					</> : <></>}
-				</div>
-			</div>
-		</div>
-		*/
 	}
 }
 
