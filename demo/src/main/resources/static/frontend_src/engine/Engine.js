@@ -489,24 +489,24 @@ class Engine {
 		
 		let target = candidate.id;
 		let action_info = this.getAction(action);
-		for (const reaction of action_info.reactions) {
-			let condition = this.getMaskFromSelector(reaction.condition, target, user) & (1 << target);
+		for (const _case of action_info.switch) {
+			let condition = this.getMaskFromSelector(_case.condition, target, user) & (1 << target);
 
 			if (!condition)
 				continue;
 			
 			
-			this.updateStatuses(target, user, reaction.addTargetStatuses, reaction.removeTargetStatuses, false);
-			this.updateStatuses(target, user, reaction.addUserStatuses, reaction.removeUserStatuses, true);
+			this.updateStatuses(target, user, _case.addTargetStatuses, _case.removeTargetStatuses, false);
+			this.updateStatuses(target, user, _case.addUserStatuses, _case.removeUserStatuses, true);
 
 			for (const direct_user of candidate.direct_users)
-				this.updateStatuses(target, direct_user, reaction.addDirectUsersStatuses, reaction.removeDirectUsersStatuses, true);
+				this.updateStatuses(target, direct_user, _case.addDirectUsersStatuses, _case.removeDirectUsersStatuses, true);
 			
 			for (const _user of candidate.users)
-				this.updateStatuses(target, _user, reaction.addUsersStatuses, reaction.removeUsersStatuses, true);
+				this.updateStatuses(target, _user, _case.addUsersStatuses, _case.removeUsersStatuses, true);
 			
-			if (reaction.affect) {
-				for (const group of reaction.affect) {
+			if (_case.affect) {
+				for (const group of _case.affect) {
 					let mask = this.getMaskFromSelector(group.address, target, user);
 					for (let i = 0; i < this.count; i++) {
 						if (mask & (1 << i)) {
@@ -517,31 +517,31 @@ class Engine {
 				}
 			}
 			
-			if (reaction.informTarget)
-				this.outputBuilder.addMessage(target, this.formatText(reaction.informTarget, target, user));	
+			if (_case.informTarget)
+				this.outputBuilder.addMessage(target, this.formatText(_case.informTarget, target, user));	
 			
-			if (reaction.informUser)
-				this.outputBuilder.addMessage(user, this.formatText(reaction.informUser, target, user));	
+			if (_case.informUser)
+				this.outputBuilder.addMessage(user, this.formatText(_case.informUser, target, user));	
 			
-			if (reaction.informDirectUsers) {
+			if (_case.informDirectUsers) {
 				for (const id of candidate.direct_users) 
-					this.outputBuilder.addMessage(id, this.formatText(reaction.informDirectUsers, target, user));	
+					this.outputBuilder.addMessage(id, this.formatText(_case.informDirectUsers, target, user));	
 			} 
 			
-			if (reaction.informUsers) {
+			if (_case.informUsers) {
 				for (const id of candidate.users) 
-					this.outputBuilder.addMessage(id, this.formatText(reaction.informUsers, target, user));	
+					this.outputBuilder.addMessage(id, this.formatText(_case.informUsers, target, user));	
 			}
 			
-			if (reaction.informAll) {
+			if (_case.informAll) {
 				for (let i = 0; i < this.count; i++)
-					this.outputBuilder.addMessage(i, this.formatText(reaction.informAll, target, user));	
+					this.outputBuilder.addMessage(i, this.formatText(_case.informAll, target, user));	
 			}
 			
-			if (reaction.stop === true)
+			if (_case.stop === true)
 				return true;
 			
-			if (!reaction.propagate)
+			if (!_case.propagate)
 				break;	
 		}
 		

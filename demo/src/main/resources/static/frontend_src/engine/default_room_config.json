@@ -336,7 +336,7 @@
 		{
 			"id": "Клоунировать",
 			
-			"reactions": [
+			"switch": [
 				{
 					"condition": "all()",
 					"removeTargetStatuses": ["role", "fraction"],
@@ -349,7 +349,7 @@
 		{
 			"id": "Восстановление",
 			
-			"reactions": [
+			"switch": [
 				{
 					"condition": "all()",
 					"removeTargetStatuses": ["Мертвый", "Заблокирован", "Забывчивый", "controlledBy", "earsControlledBy", "tongueControlledBy", "Под контролем", "Последнее слово", "Объявление о смерти"],
@@ -371,7 +371,7 @@
 		{
 			"id": "Аннигиляция",
 			
-			"reactions": [
+			"switch": [
 				{
 					"condition": "status(Живой)",
 					"removeTargetStatuses": ["Живой"],
@@ -384,7 +384,7 @@
 		{
 			"id": "Казнь",
 			
-			"reactions": [
+			"switch": [
 				{
 					"condition": "status(Живой) and role(Дурак)",
 					"addTargetStatuses": ["Мертвый/Казнен", "Последнее слово"],
@@ -408,7 +408,7 @@
 		
 		{
 			"id": "Атака Дурака",
-			"reactions": [
+			"switch": [
 				{
 					"condition": "status(Живой)",
 					"addTargetStatuses": ["Мертвый/Убит дураком", "Последнее слово", "Объявление о смерти"],
@@ -422,7 +422,7 @@
 		{
 			"id": "Атака Мафии",
 			
-			"reactions": [
+			"switch": [
 				{
 					"condition": "all()",
 					"addUserStatuses": ["След/$target.name"],
@@ -484,7 +484,7 @@
 		{
 			"id": "Охота",
 			
-			"reactions": [
+			"switch": [
 				{
 					"condition": "all()",
 					"addUserStatuses": ["След/$target.name"],
@@ -556,7 +556,7 @@
 		{
 			"id": "Самосуд",
 			
-			"reactions": [
+			"switch": [
 				{
 					"condition": "all()",
 					"addUserStatuses": ["След/$target.name"],
@@ -629,7 +629,7 @@
 		{
 			"id": "Назначение Дона",
 			
-			"reactions": [
+			"switch": [
 				{
 					"condition": "status(Мертвый)",
 					"affect": [
@@ -660,7 +660,7 @@
 		{
 			"id": "Контроль",
 			
-			"reactions": [
+			"switch": [
 				
 				{
 					"condition": "status(Мертвый)",
@@ -720,7 +720,7 @@
 		{
 			"id": "Лечение",
 			
-			"reactions": [
+			"switch": [
 				{
 					"condition": "all()",
 					"addUserStatuses": ["След/$target.name"],
@@ -755,7 +755,7 @@
 		{
 			"id": "Блок",
 			
-			"reactions": [
+			"switch": [
 				{
 					"condition": "all()",
 					"addUserStatuses": ["След/$target.name"],
@@ -820,7 +820,7 @@
 		{
 			"id": "Расследование",
 			
-			"reactions": [
+			"switch": [
 				{
 					"condition": "all()",
 					"addUserStatuses": ["След/$target.name"],
@@ -873,7 +873,7 @@
 		{
 			"id": "Слежка",
 			
-			"reactions": [
+			"switch": [
 				{
 					"condition": "all()",
 					"affect": [
@@ -889,7 +889,7 @@
 		{
 			"id": "Информировать Следопыта",
 			
-			"reactions": [
+			"switch": [
 				{
 					"condition": "all()",
 					"affect": [{
@@ -903,7 +903,7 @@
 		{
 			"id": "Снять контроль",
 			
-			"reactions": [
+			"switch": [
 				{
 					"condition": "all()",
 					"removeTargetStatuses": ["controlledBy/$user.name", "earsControlledBy/$user.name", "tongueControlledBy/$user.name"],
@@ -915,7 +915,7 @@
 		{
 			"id": "Обьявить о смерти",
 			
-			"reactions": [
+			"switch": [
 				{
 					"condition": "all()",
 					

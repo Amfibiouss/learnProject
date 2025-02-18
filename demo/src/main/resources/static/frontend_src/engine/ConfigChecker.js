@@ -120,7 +120,7 @@ class ConfigChecker {
 								type: "string"
 							},
 							{
-								id: "reactions",  type: "array", items: 
+								id: "switch",  type: "array", items: 
 								{
 									type: "object",
 									fields: [
