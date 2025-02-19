@@ -208,6 +208,11 @@ class ConfigChecker {
 				this.error = "У конфигурации нету обязательного поля " + field;
 				return false;	
 			}
+			
+			if (!(config[field] instanceof Array)) {
+				this.error = "поле " + field + " должно быть списком.";
+				return false;	
+			}
 		}
 		
 		config.statuses.push({id: "role", duration: -1});
@@ -216,7 +221,6 @@ class ConfigChecker {
 		config.statuses.push({id: "controlledBy", duration: -1});
 		config.statuses.push({id: "earsControlledBy", duration: -1});
 		config.statuses.push({id: "tongueControlledBy", duration: -1});
-		
 		return this.#check1(rules, config, config);
 	}
 	
@@ -252,19 +256,21 @@ class ConfigChecker {
 			
 			if (res && rules.items.type === "string") {
 				
-				if (typeof(root_config[rules.from]) !== "undefined" && (root_config[rules.from] instanceof Array)) {
-					if (rules.from === "statuses" || rules.from === "fractions" || rules.from === "roles") {
-						res = config.every((item) => root_config[rules.from].some(
+				if (rules.from === "statuses" || rules.from === "fractions" || rules.from === "roles") {
+					if (!config.every((item) => root_config[rules.from].some(
+						(obj) => (obj.id === item || item.startsWith(obj.id + "/"))))) {
+						
+						let unknown_item = config.find((item) => !root_config[rules.from].find(
 							(obj) => (obj.id === item || item.startsWith(obj.id + "/"))));
-					} else {
-						res = config.every((item) => root_config[rules.from].some(
-							(obj) => obj.id === item));
+						this.error = "Поле " + rules.id + " содержит неизвестный элемент " + unknown_item;
+						return false;
 					}
-				}
-				
-				if (!res) {
-					let unknown_item = config.find((item) => !root_config[rules.from].find((obj) => obj.id === item));
-					this.error = "Поле " + rules.id + " содержит не известный элемент " + unknown_item;
+				} else {
+					if (rules.from && !config.every((item) => root_config[rules.from].some((obj) => obj.id === item))) {
+						let unknown_item = config.find((item) => !root_config[rules.from].find((obj) => obj.id === item));
+						this.error = "Поле " + rules.id + " содержит неизвестный элемент " + unknown_item;	
+						return false;
+					}
 				}
 			}
 			
@@ -372,7 +378,7 @@ class ConfigChecker {
 				return false;
 			}
 			
-			if(!this.checkExpression(config, root_config)) {
+			if(!this.computeExpression(config, root_config)) {
 				this.error = "Поле " + rules.id + " содержит некорректное выражение " + config + ".";
 				return false;	
 			}
@@ -433,7 +439,7 @@ class ConfigChecker {
 				
 				let number = Number(expr.substr(i + 1).trim());
 				
-				let subtree = this.checkExpression(expr.substr(0, i), config);
+				let subtree = this.computeExpression(expr.substr(0, i), config);
 				
 				if (subtree === null || isNaN(number))
 					return [0, null];
@@ -444,34 +450,79 @@ class ConfigChecker {
 			}
 		}
 		
-		const keywords = ["fraction", "role", "status", "time"];
-		for (const keyword of keywords) {
+		const one_argument_functions = ["fraction", "role", "status", "time", "cycle"];
+		for (const keyword of one_argument_functions) {
 			if (str.startsWith(keyword)) {
 				let expr = this.getExprInBrackets(str.substring(keyword.length));
 
 				if (expr === null)
 					return [0, null];
 				
-				if (keyword === "time") {
-					if(!config["times"].some((elem) => expr === elem.id))
-						return [0, null];
-				} else {
-					let field = (keyword === "status")? "statuses" : (keyword + "s");
-					
-					if (!config[field].some((elem) => (expr === elem.id || expr.startsWith(elem.id + "/"))))
-						return [0, null];
-				}
-						
 				comp = keyword + "(" + expr + ")";
 				tree = {};
-				tree[keyword] = expr;
+				
+				switch(keyword) {
+					case "time":
+						if(!config["times"].some((elem) => expr === elem.id))
+							return [0, null];
+						tree[keyword] = expr;
+						break;
+						
+					case "cycle":
+						let number = Number(expr.trim());
+						if (isNaN(number))
+							return [0, null];
+						tree[keyword] = number;
+						break;
+						
+					default:
+						if (!config[(keyword != "status")? keyword + "s" : "statuses"]
+								.some((elem) => (expr === elem.id || expr.startsWith(elem.id + "/"))))
+							return [0, null];
+						tree[keyword] = expr;
+						break;
+				}
+
 				break;
 			}
 		}
+		
+		const substitution_string = ["user", "target"];
+		for (const keyword of substitution_string) {
+			if (str.startsWith(keyword)) {
+				
+				const functions = ["status", "role", "fraction"];
+				
+				for (const func of functions) {
+					if (str.startsWith(keyword + "." + func + "(")) {
+						
+						let expr = this.getExprInBrackets(str.substring((keyword + "." + func).length));
+						
+						if (expr === null)
+							return [0, null];
+						
+						if (!config[(func !== "status")? func + "s" : "statuses"]
+							.some((elem) => (expr === elem.id || expr.startsWith(elem.id + "/"))))
+							return [0, null];
+							
+						comp = keyword + "." + func + "(" + expr + ")";
+						tree = {};
+						tree[keyword + "_" + func] = expr;
+						return [comp.length, tree];
+					}
+				}
+			}
+		}
+		
+		if (str.startsWith("all()")) {
+			tree = {type: "all"};
+					
+			comp = "all()";
+		}	
 				
 		if (str.startsWith("(")) {
 			let expr =this.getExprInBrackets(str);
-			tree = this.checkExpression(expr, config);
+			tree = this.computeExpression(expr, config);
 			
 			if (!tree)
 				return [0, null];
@@ -481,7 +532,7 @@ class ConfigChecker {
 				
 		if (str.startsWith("not")) {
 			let expr = this.getExprInBrackets(str.substring("not".length));
-			tree = {type: "not", operand1: this.checkExpression(expr, config)};
+			tree = {type: "not", operand1: this.computeExpression(expr, config)};
 			
 			if (!tree.operand1)
 				return [0, null];
@@ -492,12 +543,6 @@ class ConfigChecker {
 			comp = "not(" + expr + ")";
 		}		
 		
-		if (str.startsWith("all()")) {
-			tree = {type: "all"};
-					
-			comp = "all()";
-		}	
-		
 		if (comp === null) {
 			return [0, null];
 		}
@@ -505,7 +550,7 @@ class ConfigChecker {
 		return [comp.length, tree];
 	}
 	
-	checkExpression(str, config) {
+	computeExpression(str, config) {
 		if (!str)
 			return null;
 		

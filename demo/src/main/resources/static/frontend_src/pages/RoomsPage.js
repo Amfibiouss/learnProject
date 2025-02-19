@@ -242,6 +242,7 @@ class CreateForm extends React.Component {
 		{name: "witch", value: "Ведьма", default: 1},
 		{name: "mafia", value: "Мафия", default: 1},
 		{name: "don", value: "Дон", default: 1},
+		{name: "evil_personality", value: "Злая личность", default: 1}
 	];
 
 	

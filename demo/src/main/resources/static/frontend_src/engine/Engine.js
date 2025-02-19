@@ -3,37 +3,35 @@ import OutputBuilder from "./OutputBuilder.js";
 
 class Engine {
 	
-	calcExpressionByTree = (node) => {
+	calcExpressionByTree = (node, target, user) => {
 		if (!node) 
 			return 0;
 			
 		if (node.type === "all")
-			return this.state.all_mask;
+			return this.all_mask;
 		
 		if (node.type === "and") {
-			return this.calcExpressionByTree(node.operand1) & this.calcExpressionByTree(node.operand2);
+			return this.calcExpressionByTree(node.operand1, target, user) & this.calcExpressionByTree(node.operand2, target, user);
 		}
 		
 		if (node.type === "or") {
-			return this.calcExpressionByTree(node.operand1) | this.calcExpressionByTree(node.operand2);
+			return this.calcExpressionByTree(node.operand1, target, user) | this.calcExpressionByTree(node.operand2, target, user);
 		}
 		
 		if (node.type === "not") {
-			return this.state.all_mask ^ this.calcExpressionByTree(node.operand1);
+			return this.all_mask ^ this.calcExpressionByTree(node.operand1, target, user);
 		}
 		
 		if (node.type === "less") {
-			return (this.bitCount(this.calcExpressionByTree(node.operand1)) < node.operand2)? this.state.all_mask : 0;
+			return (this.bitCount(this.calcExpressionByTree(node.operand1, target, user)) < node.operand2)? this.all_mask : 0;
 		}
 		
 		if (node.type === "greather") {
-			return (this.bitCount(this.calcExpressionByTree(node.operand1)) > node.operand2)? this.state.all_mask : 0;
+			return (this.bitCount(this.calcExpressionByTree(node.operand1, target, user)) > node.operand2)? this.all_mask : 0;
 		}
 		
 		if (node.type === "equal") {
-			//console.log(JSON.stringify(node.operand1) + " " + this.calcExpressionByTree(node.operand1) + " " + node.operand2);
-			
-			return (this.bitCount(this.calcExpressionByTree(node.operand1)) === node.operand2)? this.state.all_mask : 0;
+			return (this.bitCount(this.calcExpressionByTree(node.operand1, target, user)) === node.operand2)? this.all_mask : 0;
 		}
 		
 		if (node.fraction) {
@@ -59,7 +57,30 @@ class Engine {
 		}
 		
 		if (node.time)
-			return (this.state.time === node.time)? this.state.all_mask : 0;
+			return (this.state.time === node.time)? this.all_mask : 0;
+		
+		if (node.cycle)
+			return (this.state.day_counter === node.cycle)? this.all_mask : 0;
+		
+		const substitution_string = ["user", "target"];
+		const functions = ["status", "role", "fraction"];
+		
+		for (const keyword of substitution_string) {
+			for (const func of functions) {
+				let field = keyword + "_" + func;
+				
+				if (typeof(node[field]) !== "undefined") {
+					let status =  ((func === "status")? "" : (func + "/")) + node[field];
+					let mask = 1 << ((keyword === "user")? user : target);
+					
+					if (!this.state.status_mask.has(status))
+						return 0;
+					
+					return (this.state.status_mask.get(status) & mask)? this.all_mask : 0;
+				}
+			}
+		}
+			
 	}
 	
 	getMaskFromSelector = (selector, target, user) => {
@@ -72,14 +93,22 @@ class Engine {
 		let res = this.expMap.get(selector);
 		
 		if (res) {
-			return this.calcExpressionByTree(res);
+			return this.calcExpressionByTree(res, target, user);
 		}
 		else {
-			let tree = this.checker.checkExpression(selector, this.config);
+			let tree = this.checker.computeExpression(selector, this.config);
 			this.expMap.set(selector, tree);
-			let res = this.calcExpressionByTree(tree);
+			let res = this.calcExpressionByTree(tree, target, user);
+			if (selector === "time(Ночь) and (role(Мафия) or role(Дон)) and status(Живой) and not(status(Заблокирован))") {
+				console.log(JSON.stringify(tree));
+			}
+			//console.log(JSON.stringify(tree));
 			return res;
 		}
+	}
+	
+	getTime(id) {
+		return this.config.times.find((time) => time.id === id);
 	}
 	
 	getAbility(id) {
@@ -144,20 +173,19 @@ class Engine {
 		}	
 	}
 	
-	start(config) {
-		this.config = config;
-		config.statuses.push({id: "role", duration: -1});
-		config.statuses.push({id: "fraction", duration: -1});
-		config.statuses.push({id: "player", duration: -1});
-		config.statuses.push({id: "controlledBy", duration: -1});
-		config.statuses.push({id: "earsControlledBy", duration: -1});
-		config.statuses.push({id: "tongueControlledBy", duration: -1});
+	initialize() {
+		this.config.statuses.push({id: "role", duration: -1});
+		this.config.statuses.push({id: "fraction", duration: -1});
+		this.config.statuses.push({id: "player", duration: -1});
+		this.config.statuses.push({id: "controlledBy", duration: -1});
+		this.config.statuses.push({id: "earsControlledBy", duration: -1});
+		this.config.statuses.push({id: "tongueControlledBy", duration: -1});
 		this.expMap = new Map();
 		this.checker = new ConfigChecker();
 		this.state = {};
-		this.count = 0;
 		this.branch = 0;
-		this.config.roles.forEach((role) => {this.count += role.count;});
+		this.count = this.config.roles.reduce((acc, item) => (acc + item.count), 0);
+		//this.config.roles.forEach((role) => {this.count += role.count;});
 		
 		this.state.status_mask = new Map();
 		this.state.statuses = [];
@@ -165,11 +193,7 @@ class Engine {
 		for (let i = 0; i < this.count; i++)
 			this.state.status_count.push(new Map());
 		
-		this.state.time = this.config.times[0].id;
-		this.state.day_counter = 1;
-		this.state.all_mask = (1 << this.count) - 1;
-		
-		this.outputBuilder = new OutputBuilder(this.config, this.getMaskFromSelector, this.formatText);
+		this.all_mask = (1 << this.count) - 1;
 		
 		let permutation = Array(this.count - 1).fill().map((_, index) => index + 1);
 		this.randomShuffle(permutation);
@@ -208,33 +232,87 @@ class Engine {
 					}
 				}
 				
-				this.outputBuilder.addMessage(permutation[index], role.description);
+				this.outputBuilder.addMessage(permutation[index], this.formatText(role.description, permutation[index], null));
 				index++;
 			}
 		}
 		
+		this.state.time = null;//this.config.times[0].id;
+		this.state.day_counter = 0;
+	}
+	
+	firstPartStart(config) {
+		this.config = config;
+		this.outputBuilder = new OutputBuilder(this.config, this.getMaskFromSelector, this.formatText);
+		this.initialize();
+	}
+	
+	secondPartStart(poll_results) {
+		this.update(poll_results);
+
 		let output = this.outputBuilder.build(
 			this.state.time + " #" + this.state.day_counter + " @" + this.branch, 
-			this.config.times[0].duration, 
+			this.getTime(this.state.time).duration, 
 			true);
 			
 		this.state.output = output.initState;
-		
 		return output;
 	}
 	
-	getSelected(user_mask, table,  ability) {
+	start(config) {
+		this.config = config;	
+		this.outputBuilder = new OutputBuilder(this.config, this.getMaskFromSelector, this.formatText);
+		
+		this.initialize();
+		this.update([]);
+		
+		let output = this.outputBuilder.build(
+			this.state.time + " #" + this.state.day_counter + " @" + this.branch, 
+			this.getTime(this.state.time).duration, 
+			true);
+			
+		this.state.output = output.initState;
+		return output;
+	}
+	
+	toFuture(poll_results) {
+		this.state.old_state = structuredClone(this.state);
+		this.outputBuilder = new OutputBuilder(this.config, this.getMaskFromSelector, this.formatText);
+		
+		this.update(poll_results);	
+		
+		let output = this.state.output = this.outputBuilder.build(
+			this.state.time + " #" + this.state.day_counter + " @" + this.branch,
+			this.getTime(this.state.time).duration,  
+			false);
+		
+		this.state.output = output;
+		return output;
+	}
+	
+	toPast() {
+		if (this.state.old_state) {
+			this.state = this.state.old_state;
+			this.branch++;
+			this.state.output.stage = this.state.time + " #" + this.state.day_counter + " @" + this.branch;
+			return this.state.output;
+		}	
+		
+		return null;
+	}
+	
+	getSelected(user_mask, candidate_mask, table,  ability) {
 		let votes = Array(this.count).fill(0);
 		let selected = [];
 		
-		for (var i = 0; i < this.count; i++) {
+		for (let i = 0; i < this.count; i++) {
 			
 			if (!(user_mask & (1 << i))) 
 				continue;	
 			
-			for (var j = 0; j < this.count; j++) {
+			for (let j = 0; j < this.count; j++) {
 				
-				if (table[i] & (1 << j)) {
+				if (table && (table[i] & (1 << j))) {
 					votes[j]++;	
 				}
 			}
@@ -286,14 +364,15 @@ class Engine {
 			
 			selected = [{id: max_index, users: users, direct_users: direct_users}];
 			
-		} else if (ability.rule === "each_voted") {
-			for (let i = 0; i < 30; i++) {
+		} else if (ability.rule === "each_voted" || (ability.rule === "start" && table)) {
+			
+			for (let i = 0; i < this.count; i++) {
 				if (!votes[i]) 
 					continue;
 				
 				let users = [];
 				let direct_users = [];
-				for (let j = 0; j < 30; j++) {
+				for (let j = 0; j < this.count; j++) {
 					if (user_mask & (1 << j)) {
 						users.push(j);
 						
@@ -305,6 +384,26 @@ class Engine {
 				
 				selected.push({id: i, users: users, direct_users: direct_users});
 			}
+		} else if (ability.rule === "start") {
+			
+			for (let i = 0; i < this.count; i++) {
+				
+				let users = [];
+				let direct_users = [];
+				
+				if (!(candidate_mask & (1 << i)))
+					continue;
+				
+				for (let j = 0; j < this.count; j++) {
+					if (user_mask & (1 << j))  {
+						users.push(j);
+						direct_users.push(j);
+					}	
+				}
+				
+				selected.push({id: i, users: users, direct_users: direct_users});
+			}
+			
 		}
 		
 		return selected;
@@ -490,7 +589,7 @@ class Engine {
 		let target = candidate.id;
 		let action_info = this.getAction(action);
 		for (const _case of action_info.switch) {
-			let condition = this.getMaskFromSelector(_case.condition, target, user) & (1 << target);
+			let condition = this.getMaskFromSelector(_case.condition, target, user);
 
 			if (!condition)
 				continue;
@@ -549,9 +648,6 @@ class Engine {
 	}
 	
 	update(poll_results) {
-		this.state.old_state = structuredClone(this.state);
-		//this.state.old_state = JSON.parse(JSON.stringify(this.state));
-		this.outputBuilder = new OutputBuilder(this.config, this.getMaskFromSelector, this.formatText);
 		
 		//Обработка автоматического голосования вместо пользователя (например для Мести Дурака)
 		for(const poll_result of poll_results) {
@@ -562,7 +658,7 @@ class Engine {
 				if (!(user_mask & (1 << i))) 
 					continue;	
 				
-				if (ability.autoVote && poll_result.table[i] === 0) {
+				if (ability.rule !== "each" && ability.autoVote && poll_result.table[i] === 0) {
 					let candidate_mask = this.getMaskFromSelector(this.formatText(ability.candidates, null, i));
 					let random_index = this.getRandomIndexFromMask(candidate_mask);
 
@@ -574,12 +670,20 @@ class Engine {
 		
 		this.updateStatusDuration();
 		
-		for(const poll_result of poll_results) {
-			let ability = this.getAbility(poll_result.id);
+		for (const ability of this.config.abilities) {
 			
-			//let candidate_mask = this.getMaskFromSelector(ability.candidates);
+			if (ability.rule === "start" && this.state.day_counter > 0)
+				continue;
+			
+			if (ability.rule !== "start" && this.state.day_counter === 0)
+				continue;
+			
+			let poll_result = poll_results.find(item => item.id === ability.id);
+			
+			let candidate_mask = this.getMaskFromSelector(ability.candidates);
 			let user_mask = this.getMaskFromSelector(ability.canUse);
-			let selected = this.getSelected(user_mask, poll_result.table, ability);
+			let selected = this.getSelected(user_mask, candidate_mask, (poll_result)? poll_result.table : null, ability);
+			
 			this.randomShuffle(selected);
 			
 			for (const candidate of selected) {
@@ -589,9 +693,15 @@ class Engine {
 				
 				for (const action of ability.actions) {
 					this.randomShuffle(candidate.users);
-					for (const user of candidate.users) {
-						if (this.tryAction(candidate, user, action))
-							break;
+					
+					if (ability.rule.startsWith("most_voted")) {
+						for (const user of candidate.users) {
+							if (this.tryAction(candidate, user, action))
+								break;
+						}
+					} else {
+						for (const user of candidate.direct_users) 
+							this.tryAction(candidate, user, action);
 					}
 				}
 			}
@@ -600,9 +710,9 @@ class Engine {
 		this.updateStatusDuration();
 		this.updateControlledByStatus();
 		
-		var time_index = this.config.times.findIndex((time) => time.id === this.state.time);
+		let time_index = this.config.times.findIndex((time) => time.id === this.state.time);
 
-		if (time_index + 1 === this.config.times.length) {
+		if (time_index === -1 || time_index + 1 === this.config.times.length) {
 			time_index = 0;
 			this.state.day_counter++;
 		}
@@ -635,24 +745,6 @@ class Engine {
 				break;	
 			}
 		}
-		
-		this.state.output = this.outputBuilder.build(
-			this.state.time + " #" + this.state.day_counter + " @" + this.branch,
-			this.config.times[time_index].duration,  
-			false);
-		
-		return this.state.output;
-	}
-	
-	toPast() {
-		if (this.state.old_state) {
-			this.state = this.state.old_state;
-			this.branch++;
-			this.state.output.stage = this.state.time + " #" + this.state.day_counter + " @" + this.branch;
-			return this.state.output;
-		}	
-		
-		return null;
 	}
 }
 

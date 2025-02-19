@@ -23,7 +23,7 @@ test("Проверка ограничения на использование с
 	expect(() => tester.play(tester.initialize())).toThrow(Error);
 });
 
-test("Проверка действенности защиты", () => {
+test("Проверка действенности лечения", () => {
 
 	let tester = new EngineTester();
 	
@@ -38,7 +38,41 @@ test("Проверка действенности защиты", () => {
 	tester.play(tester.initialize());
 });
 
-test("Проверка продолжительности защиты", () => {
+test("Проверка сразу 3 докторов", () => {
+
+	let tester = new EngineTester();
+	
+	let player1 = tester.createPlayer("Игрок 1", "Доктор");
+	let player2 = tester.createPlayer("Игрок 2", "Доктор");
+	let player3 = tester.createPlayer("Игрок 3", "Доктор");
+	let player4 = tester.createPlayer("Игрок 4", "Горожанин");
+	let player5 = tester.createPlayer("Игрок 5", "Горожанин");
+	let player6 = tester.createPlayer("Игрок 6", "Горожанин");
+	let player7 = tester.createPlayer("Игрок 7", "Маньяк");
+	let player8 = tester.createPlayer("Игрок 8", "Маньяк");
+	let player9 = tester.createPlayer("Игрок 9", "Маньяк");
+	let player10 = tester.createPlayer("Игрок 10", "Маньяк");
+	let player11 = tester.createPlayer("Игрок 11", "Любовница");
+	
+	player1.vote("Лечение", player4).next();
+	player2.vote("Лечение", player5).next();
+	player3.vote("Лечение", player6).next();
+	
+	player7.vote("Охота", player4).next();
+	player8.vote("Охота", player5).next();
+	player9.vote("Охота", player6).next();
+	
+	player10.vote("Охота", player2).next();
+	player11.vote("Любовь", player3).next();
+	
+	player4.next().status("Живой");
+	player5.next().status("Мертвый");
+	player6.next().status("Мертвый");
+
+	tester.play(tester.initialize());
+});
+
+test("Проверка продолжительности лечения", () => {
 
 	let tester = new EngineTester();
 	
@@ -75,7 +109,7 @@ test("Проверка блока", () => {
 
 	player1.vote("Любовь", player2).next().no_status("Мертвый")
 		.next().next().lose();
-	player2.vote("Ночное голосование", player1).next().no_vote("Дневное голосование").
+	player2.vote("Ночное голосование", player1).next().cant_vote("Дневное голосование").
 		next().vote("Ночное голосование", player1).next().win();
 
 	tester.play(tester.initialize());
@@ -146,7 +180,7 @@ test("Проверка проигрыша Дурака", () => {
 
 	let init_data = tester.initialize();
 	
-	player1.next().next().no_vote("Месть Дурака", player3).next().lose();
+	player1.next().next().cant_vote("Месть Дурака", player3).next().lose();
 	player3.vote("Ночное голосование", player1).next().next().vote("Ночное голосование", player2).next().win();
 	
 	tester.play(init_data);
@@ -287,7 +321,7 @@ test("Проверка способностей Ведьмы 2", () => {
 		.next().message("Ваш подчиненный " + player2
 			 + " провел расследование в отношении " + player1
 			 + ". Он принадлежит фракции Нейтрал.")
-		.no_vote("Дневное голосование", player1, player2);
+		.cant_vote("Дневное голосование", player1, player2);
 
 	tester.play(init_data);
 });
@@ -307,7 +341,7 @@ test("Проверка способностей Ведьмы на Следопы
 		.next().message(player3 + " посещал ночью " + player1);
 		
 	player3.next().next().vote("Расследование", player1);
-	player2.next().next().no_vote("Слежка", player1);
+	player2.next().next().cant_vote("Слежка", player1);
 	
 	tester.play(init_data);
 });
@@ -361,10 +395,45 @@ test("Проверка способностей вигиланта", () => {
 	player1.vote("Самосуд", player4).next();
 	player3.vote("Лечение", player4).next();
 	
-	player1.next().no_vote("Самосуд", player3).next().next().vote("Самосуд", player3);
+	player1.next().cant_vote("Самосуд", player3).next().next().vote("Самосуд", player3);
 	
-	player1.next().next().next().next().no_vote("Самосуд", player4);
+	player1.next().next().next().next().cant_vote("Самосуд", player4);
 	
 	tester.play(init_data);
 });
 
+test("Проверка способностей злой личности", () => {
+
+	let tester = new EngineTester();
+	
+	let player1 = tester.createPlayer("Игрок 1", "Злая личность");
+	let player2 = tester.createPlayer("Игрок 2", "Мафия");
+	let player3 = tester.createPlayer("Игрок 3", "Доктор");
+	let player4 = tester.createPlayer("Игрок 4", "Горожанин");
+	let player5 = tester.createPlayer("Игрок 5", "Шериф");
+	
+	player1.start_vote("Выбрать носителя для злой личности", player3);// Доктор получает злую вторую личность
+	
+	let init_data = tester.initialize();
+	
+	//Проверка, что главная личность не видит канал Мафии
+	player3.cant_read("Мафия").cant_write("Мафия").cant_vote("Ночное голосование");
+	player1.can_read("Мафия").can_write("Мафия").can_vote("Ночное голосование", player4, player3);
+	
+	//Горожанин и Дон погибают, Побочная личность стоновится новым Дон
+	player1.vote("Ночное голосование", player4, player3).next().next();
+	player3.next().vote("Дневное голосование", player2).next();
+	player5.vote("Расследование", player3).next()
+		.message("Вы провели расследование в отношении " + player3 + ". Он принадлежит фракции Мафия.").next()
+		.vote("Расследование", player3).next()
+		.message("Вы провели расследование в отношении " + player3 + ". Он принадлежит фракции Город.").next()
+	
+		
+	//Шериф погибает и побочная личность побеждает
+	player1.vote("Ночное голосование", player5, player3).next()
+		.message("Вы новый Дон. Руководите мафией. У вас есть защита от проверок Шерифа.")
+		.win();
+	
+	
+	tester.play(init_data);
+});

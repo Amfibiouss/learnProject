@@ -4,9 +4,8 @@ class OutputBuilder {
 		this.getMaskFromSelector = getMaskFromSelector;
 		this.formatText = formatText;
 		this.config = config;
-		this.count = 0;
 		this.finish = false;
-		config.roles.forEach((role) => {this.count += role.count;});
+		this.count = this.config.roles.reduce((acc, item) => (acc + item.count), 0);
 		this.messages = [];
 		
 		for (let i = 0; i < this.count; i++)
@@ -103,7 +102,7 @@ class OutputBuilder {
 	
 	initPolls() {
 		let polls = [];
-		this.config.abilities.forEach((ability) => {
+		this.config.abilities.filter(ability => ability.rule !== "start").forEach((ability) => {
 			
 			polls.push({
 				id: ability.id, 
@@ -120,7 +119,7 @@ class OutputBuilder {
 	
 	handlePolls() {
 		let pollStates = [];
-		this.config.abilities.forEach((ability) => {
+		this.config.abilities.filter(ability => ability.rule !== "start").forEach((ability) => {
 			
 			//let candidate_mask = this.getMaskFromSelector(ability.candidates);
 			let user_mask = this.getMaskFromSelector(ability.canUse);
@@ -165,6 +164,7 @@ class OutputBuilder {
 	}
 	
 	setControlledBy(target, user, ability_id) {
+		
 		if (!ability_id) {
 			for (const ability of this.config.abilities) {
 				this.controlledByMap.get(ability.id)[target] = user;
@@ -188,7 +188,7 @@ class OutputBuilder {
 	}
 	
 	build(stage, duration, init) {
-		
+	
 		for (let i = 0; i < this.count; i++) {
 			//this.messages[i].sort();
 			this.messages[i] = this.messages[i].join("");

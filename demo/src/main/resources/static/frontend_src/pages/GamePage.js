@@ -266,7 +266,7 @@ class GamePage extends React.Component {
 		}
 		
 		this.state.server.getPollResults((poll_results) => {
-			var new_state_room = this.state.engine.update(poll_results);					
+			var new_state_room = this.state.engine.toFuture(poll_results);					
 			this.state.server.update(new_state_room);
 		});
 	}
