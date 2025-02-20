@@ -38,7 +38,7 @@ class OutputBuilder {
 		var candidate_list = [];
 		
 		for (var i = 0; i < this.count; i++) {
-			let candidate_mask = this.getMaskFromSelector(this.formatText(ability.candidates, null, i));
+			let candidate_mask = this.getMaskFromSelector(this.formatText(ability.candidates, null, i), null, i);
 			
 			candidate_list.push({
 				id: i, 

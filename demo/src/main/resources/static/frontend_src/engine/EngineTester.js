@@ -145,7 +145,7 @@ class EngineTester {
 		var data = initial_data.initState;
 		while(this.players.find((player) => player.actions.length)) {
 			
-			console.log(data);
+			//console.log(data);
 			
 			let poll_results = data.pollStates.map((poll) => {return {id: poll.id, table: new Array(30).fill(0)};});
 			

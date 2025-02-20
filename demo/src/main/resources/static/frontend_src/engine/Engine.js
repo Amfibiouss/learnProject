@@ -628,7 +628,12 @@ class Engine {
 					let mask = this.getMaskFromSelector(group.address, target, user);
 					for (let i = 0; i < this.count; i++) {
 						if (mask & (1 << i)) {
-							this.updateStatuses(target, i, group.addStatuses, group.removeStatuses, true);
+							if (i === target) {
+								this.updateStatuses(target, user, group.addStatuses, group.removeStatuses, false);
+							} else {
+								this.updateStatuses(target, i, group.addStatuses, group.removeStatuses, true);
+							}
+							
 							this.outputBuilder.addMessage(i, this.formatText(group.text, target, user));
 						}
 					}

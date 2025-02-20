@@ -206,7 +206,7 @@
 		{
 			"id": "Дневное голосование",
 			"description": "Умрет тот, за кого проголосовало больше. При равном количество голосов никто не умирает.",
-			"candidates": "status(Живой) and not(status(player/$user.name))",
+			"candidates": "status(Живой) and not(user())",
 			"canUse": "time(День) and status(Живой) and not(role(Клоун)) and not(status(Заблокирован))",
 			"channel": "Общий",
 			"rule": "most_voted - draw_random",
@@ -217,7 +217,7 @@
 		{
 			"id": "Контроль",
 			"description": "Выберите человека, которого хотите подчинить и управлять которым будете ночью. Также вы узнаете его роль.",
-			"candidates": "status(Живой) and not(status(player/$user.name))",
+			"candidates": "status(Живой) and not(user())",
 			"canUse":  "time(День) and role(Ведьма) and status(Живой) and not(status(Заблокирован))",
 			"rule": "each_voted",
 			"actions": ["Контроль"]
@@ -246,7 +246,7 @@
 		{
 			"id": "Любовь",
 			"description": "Выберите человека,  которого вы хотите лишить способностей этой ночью и днем.",
-			"candidates": "status(Живой) and not(status(player/$user.name))",
+			"candidates": "status(Живой) and not(user())",
 			"canUse":  "time(Ночь) and role(Любовница) and status(Живой) and not(status(Заблокирован))",
 			"rule": "each_voted",
 			"actions": ["Блок"]
@@ -255,7 +255,7 @@
 		{
 			"id": "Расследование",
 			"description": "Выберите человека, фракцию которого вы хотите узнать ночью.",
-			"candidates": "status(Живой) and not(status(player/$user.name))",
+			"candidates": "status(Живой) and not(user())",
 			"canUse":  "time(Ночь) and role(Шериф) and status(Живой) and not(status(Заблокирован))",
 			"rule": "each_voted",
 			"actions": ["Расследование"]
@@ -273,25 +273,25 @@
 		{
 			"id": "Охота",
 			"description": "Выберите человека, которого хотите ВЖИК ВЖИК.",
-			"candidates": "status(Живой) and not(status(player/$user.name))",
+			"candidates": "status(Живой) and not(user())",
 			"canUse":  "time(Ночь) and role(Маньяк) and status(Живой)",
 			"rule": "each_voted",
-			"actions": ["Охота"]
+			"actions": ["Атака"]
 		},	
 		
 		{
 			"id": "Самосуд",
 			"description": "Выберите человека, который по вашему мнению заслуживает смерти за свои злодеяния. Но если вы убьете невинного, то навсегда откажетесь от оружия. Если ночью убиваете, то в следующую ночь отдыхаете",
-			"candidates": "status(Живой) and not(status(player/$user.name))",
+			"candidates": "status(Живой) and not(user())",
 			"canUse":  "time(Ночь) and role(Вигилант) and status(Живой) and not(status(Заблокирован)) and not(status(Усталость)) and not(status(Угрызения совести))",
 			"rule": "each_voted",
-			"actions": ["Самосуд"]
+			"actions": ["Атака"]
 		},	
 		
 		{
 			"id": "Лечение",
 			"description": "Выберите человека, которого хотите защитить ночью.",
-			"candidates": "status(Живой) and not(status(player/$user.name))",
+			"candidates": "status(Живой) and not(user())",
 			"canUse":  "time(Ночь) and role(Доктор) and status(Живой) and not(status(Заблокирован))",
 			"rule": "each_voted",
 			"actions": ["Лечение"]
@@ -390,7 +390,7 @@
 							"removeStatuses": ["Контролирует/$target.name"]
 						},
 						{
-							"address": "status(player/$target.name) and not(status(Живой)) and not(role(Администратор))",
+							"address": "target() and not(status(Живой)) and not(role(Администратор))",
 							"addStatuses": ["Живой"]
 						}
 					],
@@ -477,7 +477,7 @@
 					
 					"affect": [
 						{
-							"address": "status(player/$target.name) and not(status(Забывчивый))",
+							"address": "target() and not(status(Забывчивый))",
 							"text": "На вас напали, но вы отбили нападение."
 						},
 						
@@ -497,7 +497,7 @@
 					
 					"affect": [
 						{
-							"address": "status(player/$target.name) and not(status(Забывчивый))",
+							"address": "target() and not(status(Забывчивый))",
 							"text": "Вас убили!"
 						},
 												
@@ -513,7 +513,7 @@
 		},
 		
 		{
-			"id": "Охота",
+			"id": "Атака",
 			
 			"switch": [
 				{
@@ -532,7 +532,7 @@
 						},
 						
 						{
-							"address": "status(player/$user.name) and not(status(Забывчивый))",
+							"address": "user() and not(status(Забывчивый))",
 							"text": "Вы хотели напасть на $target.name, но цель уже была мертва."
 						}
 					]
@@ -543,7 +543,7 @@
 					
 					"affect": [
 						{
-							"address": "status(player/$target.name) and not(status(Забывчивый))",
+							"address": "target() and not(status(Забывчивый))",
 							"text": "На вас напали, но вы отбили нападение"
 						},
 					
@@ -553,7 +553,7 @@
 						},
 						
 						{
-							"address": "status(player/$user.name) and not(status(Забывчивый))",
+							"address": "user() and not(status(Забывчивый))",
 							"text": "Вы напали на $target.name, но не смогли его убить."
 						}
 					]
@@ -562,11 +562,26 @@
 				{
 					"condition": "target.status(Живой)",
 					"removeTargetStatuses": ["Живой"],
-					"addTargetStatuses": ["Мертвый/Убит маньяком", "Последнее слово", "Объявление о смерти"],
+					"addTargetStatuses": ["Последнее слово", "Объявление о смерти"],
 					
 					"affect": [
 						{
-							"address": "status(player/$target.name) and not(status(Забывчивый))",
+							"address": "target() and user.role(Вигилант)",
+							"addStatuses": ["Мертвый/Убит вигилантом"]
+						},
+						
+						{
+							"address": "user() and user.role(Вигилант)",
+							"addStatuses": ["Усталость"]
+						},
+						
+						{
+							"address": "target() and user.role(Маньяк)",
+							"addStatuses": ["Мертвый/Убит маньяком"]
+						},
+					
+						{
+							"address": "target() and not(status(Забывчивый))",
 							"text": "Вас убили!"
 						},
 					
@@ -576,88 +591,14 @@
 						},
 						
 						{
-							"address": "status(player/$user.name) and not(status(Забывчивый))",
+							"address": "user() and not(status(Забывчивый))",
 							"text": "Вы успешно напали на $target.name."
 						}
 					]
 				}
 			]
 		},
-		
-		{
-			"id": "Самосуд",
-			
-			"switch": [
-				{
-					"condition": "all()",
-					"addUserStatuses": ["След/$target.name"],
-					"propagate": true
-				},
-				
-				{
-					"condition": "target.status(Мертвый)",
 
-					"affect": [
-						{
-							"address": "status(Контролирует/$user.name) and not(status(Забывчивый))",
-							"text": "Вы хотели напасть на $target.name, контролируя $user.name, но цель уже была мертва."
-						},
-						
-						{
-							"address": "status(player/$user.name) and not(status(Забывчивый))",
-							"text": "Вы хотели напасть на $target.name, но цель уже была мертва."
-						}
-					]
-				},
-				
-				{
-					"condition": "target.status(Живой) and target.role(Маньяк)",
-					
-					"affect": [
-						{
-							"address": "status(player/$target.name) and not(status(Забывчивый))",
-							"text": "На вас напали, но вы отбили нападение"
-						},
-					
-						{
-							"address": "status(Контролирует/$user.name) and not(status(Забывчивый))",
-							"text": "Вы напали на $target.name, контролируя $user.name, но не смогли его убить."
-						},
-						
-						{
-							"address": "status(player/$user.name) and not(status(Забывчивый))",
-							"text": "Вы напали на $target.name, но не смогли его убить."
-						}
-						
-					]
-				},
-				
-				{
-					"condition": "target.status(Живой)",
-					"removeTargetStatuses": ["Живой"],
-					"addTargetStatuses": ["Мертвый/Убит вигилантом", "Последнее слово", "Объявление о смерти"],
-					"addUserStatuses": ["Усталость"],
-					
-					"affect": [
-						{
-							"address": "status(player/$target.name) and not(status(Забывчивый))",
-							"text": "Вас убили!"
-						},
-					
-						{
-							"address": "status(Контролирует/$user.name) and not(status(Забывчивый))",
-							"text": "Вы успешно напали на $target.name, контролируя $user.name."
-						},
-						
-						{
-							"address": "status(player/$user.name) and not(status(Забывчивый))",
-							"text": "Вы успешно напали на $target.name."
-						}
-					]
-				}
-			]
-		},
-		
 		{
 			"id": "Назначение Дона",
 			
@@ -716,7 +657,7 @@
 					"condition": "target.status(Мертвый)",
 					"affect": [
 						{
-							"address": "status(player/$user.name) and not(status(Забывчивый))",
+							"address": "user() and not(status(Забывчивый))",
 							"text": "Вы почти взяли свою цель под контроль, но она умерла."
 						}
 					]
@@ -726,7 +667,7 @@
 					"condition": "target.status(Под контролем)",
 					"affect": [
 						{
-							"address": "status(player/$user.name) and not(status(Забывчивый))",
+							"address": "user() and not(status(Забывчивый))",
 							"text": "Кто-то другой уже взял контроль над этой целью!"
 						}
 					]
@@ -736,7 +677,7 @@
 					"condition": "target.role(Ведьма) or target.status(Главная личность)",
 					"affect": [
 						{
-							"address": "status(player/$user.name) and not(status(Забывчивый))",
+							"address": "user() and not(status(Забывчивый))",
 							"text": "У цели иммунитет к контролю."
 						}
 					]
@@ -754,12 +695,12 @@
 					"addUserStatuses": ["Контролирует/$target.name"],
 					"affect": [
 						{
-							"address": "status(player/$target.name)",
+							"address": "target()",
 							"text": "Вы чувствуете, как вами манипулирует сверьхестественная сила."
 						},
 						
 						{
-							"address": "status(player/$user.name) and not(status(Забывчивый))",
+							"address": "user() and not(status(Забывчивый))",
 							"text": "Вы подчинили $target.name. Его роль - $target.role."
 						}
 					]
@@ -784,7 +725,7 @@
 					
 					"affect": [
 						{
-							"address": "status(player/$target.name) and not(status(Забывчивый))",
+							"address": "target() and not(status(Забывчивый))",
 							"text": "Вас кто-то подлечил ночью."
 						},
 					
@@ -794,7 +735,7 @@
 						},
 						
 						{
-							"address": "status(player/$user.name) and not(status(Забывчивый))",
+							"address": "user() and not(status(Забывчивый))",
 							"text": "Вы вылечили $target.name от ран и спасли его жизнь."
 						}
 					]
@@ -822,7 +763,7 @@
 						},
 						
 						{
-							"address": "status(player/$user.name) and not(status(Забывчивый))",
+							"address": "user() and not(status(Забывчивый))",
 							"text": "Вы хотели очаровать $target.name, но обнаружили цель мертвой."
 						}
 					]
@@ -841,7 +782,7 @@
 						},
 						
 						{
-							"address": "status(player/$user.name)",
+							"address": "user()",
 							"text": "Вы пришли к $target.name и он убил вас!"
 						}
 					]
@@ -859,7 +800,7 @@
 						},
 						
 						{
-							"address": "status(player/$user.name) and not(status(Забывчивый))",
+							"address": "user() and not(status(Забывчивый))",
 							"text": "Вы очаровали $target.name."
 						}
 					]
@@ -882,7 +823,7 @@
 					
 					"affect": [
 						{
-							"address": "status(player/$target.name) and not(target.status(Забывчивый))",
+							"address": "target() and not(target.status(Забывчивый))",
 							"text": "Кто-то пытался раскрыть к какой фракции вы принадлежите и он наивно решил, что вы из фракции Города."
 						},
 					
@@ -892,7 +833,7 @@
 						},
 						
 						{
-							"address": "status(player/$user.name) and not(status(Забывчивый))",
+							"address": "user() and not(status(Забывчивый))",
 							"text": "Вы провели расследование в отношении $target.name. Он принадлежит фракции Город."
 						}
 					]
@@ -907,7 +848,7 @@
 						},
 						
 						{
-							"address": "status(player/$user.name) and not(status(Забывчивый))",
+							"address": "user() and not(status(Забывчивый))",
 							"text": "Вы провели расследование в отношении $target.name. Он принадлежит фракции Мафия."
 						}
 					]
@@ -917,7 +858,7 @@
 					"condition": "all()",
 					"affect": [
 						{
-							"address": "status(player/$target.name) and not(status(Забывчивый))",
+							"address": "target() and not(status(Забывчивый))",
 							"text": "Кто-то раскрыл к какой фракции вы принадлежите."
 						},
 					
@@ -927,7 +868,7 @@
 						},
 						
 						{
-							"address": "status(player/$user.name) and not(status(Забывчивый))",
+							"address": "user() and not(status(Забывчивый))",
 							"text": "Вы провели расследование в отношении $target.name. Он принадлежит фракции $target.fraction."
 						}
 					]
@@ -943,7 +884,7 @@
 					"condition": "all()",
 					"affect": [
 						{
-							"address": "(status(player/$user.name) or status(Контролирует/$user.name)) and not(status(Забывчивый))",
+							"address": "(user() or status(Контролирует/$user.name)) and not(status(Забывчивый))",
 							"addStatuses": ["Метка Следопыта/$target.name"]
 						}
 					]
@@ -986,7 +927,7 @@
 					
 					"affect" : [
 					 	{
-					 		"address": "status(player/$user.name) and role(Вигилант) and equal(status(player/$target.name) and (fraction(Город) or fraction(Нейтрал/Дурак)), 1)",
+					 		"address": "user() and role(Вигилант) and equal(target() and (fraction(Город) or fraction(Нейтрал/Дурак)), 1)",
 					 		"addStatuses": ["Угрызения совести"],
 					 		"text": "Вы убили невинного. Вы больше не притронитесь к оружию."
 					 	}					 	
