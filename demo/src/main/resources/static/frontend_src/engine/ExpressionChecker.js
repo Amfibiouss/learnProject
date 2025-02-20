@@ -360,7 +360,7 @@ class ConfigChecker {
 		return res? res.id : null;
 	}
 	
-	formatText = (text, context) => {
+	formatText(text, context) {
 		
 		if (!text)
 			return null;

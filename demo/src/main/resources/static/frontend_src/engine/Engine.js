@@ -1,5 +1,6 @@
 import ExpressionChecker from "./ExpressionChecker.js";
 import OutputBuilder from "./OutputBuilder.js";
+import StateManager from "./StateManager.js";
 
 class Engine {
 	
@@ -9,58 +10,26 @@ class Engine {
 			status_mask, time, day_counter
 		}
 	*/
-	getMaskFromSelector(selector, target, user, player) {
-		let context = {
-			target: target,
-			user: user, 
-			player: player,
-			status_mask: this.state.status_mask,
-			time: this.state.time,
-			day_counter: this.state.day_counter,
-			branch: this.branch
-		};
+	getMaskFromSelector(selector, user, target, player) {
+	
+		let context = this.stateManager.getContext(); 
+		
+		context.target = target;
+		context.user = user;
+		context.player = player;
 		
 		return this.expressionChecker.getMaskFromSelector(selector, context);
 	}
 	
-	formatText = (text, target, user, player) => {
+	formatText = (text, user, target, player) => {
 		
-		let context = {
-			target: target,
-			user: user, 
-			player: player,
-			status_mask: this.state.status_mask,
-			time: this.state.time,
-			day_counter: this.state.day_counter,
-			branch: this.branch
-		};
+		let context = this.stateManager.getContext(); 
+
+		context.target = target;
+		context.user = user;
+		context.player = player;
 		
 		return this.expressionChecker.formatText(text, context);
-	}
-	
-	getTime(id) {
-		return this.config.times.find((time) => time.id === id);
-	}
-	
-	getAbility(id) {
-		return this.config.abilities.find((ability) => ability.id === id);
-	}
-	
-	getRole(id) {
-		return this.config.roles.find((role) => role.id === id);
-	}
-	
-	getFraction(id) {
-		return this.config.fractions.find((fraction) => fraction.id === id);
-	}
-	
-	getAction(id) {
-		return this.config.actions.find((action) => action.id === id);
-	}
-	
-	getStatus(id) {
-		let parts = id.split("/");
-		return this.config.statuses.find((status) => status.id === parts[0]);
 	}
 	
 	bitCount = (num) => {
@@ -117,14 +86,6 @@ class Engine {
 		this.state = {};
 		this.branch = 0;
 		this.count = this.config.roles.reduce((acc, item) => (acc + item.count), 0);
-		//this.config.roles.forEach((role) => {this.count += role.count;});
-		
-		this.state.status_mask = new Map();
-		this.state.statuses = [];
-		this.state.status_count = [];
-		for (let i = 0; i < this.count; i++)
-			this.state.status_count.push(new Map());
-		
 		this.all_mask = (1 << this.count) - 1;
 		
 		let permutation = Array(this.count - 1).fill().map((_, index) => index + 1);
@@ -134,9 +95,9 @@ class Engine {
 		
 		for (const role of this.config.roles) {
 			for (let i = 0; i < role.count; i++) {
-				this.addStatus("role/" + role.id, -1, permutation[index], permutation[index]);
-				this.addStatus("fraction/" + role.fraction, -1, permutation[index], permutation[index]);
-				this.addStatus("player/Игрок #" + permutation[index], -1, permutation[index], permutation[index]);
+				this.stateManager.addStatus("role/" + role.id, permutation[index], permutation[index]);
+				this.stateManager.addStatus("fraction/" + role.fraction, permutation[index], permutation[index]);
+				this.stateManager.addStatus("player/Игрок #" + permutation[index], permutation[index], permutation[index]);
 				index++;
 			}
 		}
@@ -146,12 +107,12 @@ class Engine {
 			for (let i = 0; i < role.count; i++) {
 				
 				if (role.revealRoles) {
-					let mask = this.getMaskFromSelector(this.formatText(role.revealRoles, permutation[index], null));
+					let mask = this.getMaskFromSelector(role.revealRoles, permutation[index]);
 					let str = "";
 					
 					for (let j = 0; j < this.count; j++) {
 						if (mask & (1 << j)) {
-							str += this.formatText("У $user.name роль $user.role.\n", null, j);
+							str += this.formatText("У $user.name роль $user.role.\n", j);
 						}
 					}
 					
@@ -160,21 +121,21 @@ class Engine {
 				
 				if (role.statuses) {
 					for (const status of role.statuses) {
-						this.addStatus(this.formatText(status, permutation[index], null), this.getStatus(status).duration, permutation[index], permutation[index]);
+						this.stateManager.addStatus(
+							this.formatText(status, permutation[index]), 
+							permutation[index]);
 					}
 				}
 				
-				this.outputBuilder.addMessage(permutation[index], this.formatText(role.description, permutation[index], null));
+				this.outputBuilder.addMessage(permutation[index], this.formatText(role.description, permutation[index]));
 				index++;
 			}
 		}
-		
-		this.state.time = null;//this.config.times[0].id;
-		this.state.day_counter = 0;
 	}
 	
 	firstPartStart(config) {
 		this.config = config;
+		this.stateManager = new StateManager(this.config);
 		this.expressionChecker = new ExpressionChecker(this.config);
 		this.outputBuilder = new OutputBuilder(this.config, this.expressionChecker);
 		this.initialize();
@@ -183,68 +144,40 @@ class Engine {
 	secondPartStart(poll_results) {
 		this.update(poll_results);
 
-		let output = this.outputBuilder.build(
-			{
-				time: this.state.time, 
-				day_counter: this.state.day_counter,
-				status_mask: this.state.status_mask,
-				branch: this.branch
-			}, 
-			true);
+		let output = this.outputBuilder.build(this.stateManager.getContext(), true);
 			
-		this.state.output = output.initState;
+		this.stateManager.setOutput(output.initState);
 		return output;
 	}
 	
 	start(config) {
 		this.config = config;	
+		this.stateManager = new StateManager(this.config);
 		this.expressionChecker = new ExpressionChecker(this.config);
 		this.outputBuilder = new OutputBuilder(this.config, this.expressionChecker);
 		
 		this.initialize();
 		this.update([]);
 		
-		let output = this.outputBuilder.build(
-			{
-				time: this.state.time, 
-				day_counter: this.state.day_counter,
-				status_mask: this.state.status_mask,
-				branch: this.branch
-			}, 
-			true);
+		let output = this.outputBuilder.build(this.stateManager.getContext(), true);
 			
-		this.state.output = output.initState;
+		this.stateManager.setOutput(output.initState);
 		return output;
 	}
 	
 	toFuture(poll_results) {
-		this.state.old_state = structuredClone(this.state);
+		this.stateManager.save();
 		this.outputBuilder = new OutputBuilder(this.config, this.expressionChecker);
 		
 		this.update(poll_results);	
 		
-		let output = this.state.output = this.outputBuilder.build(
-			{
-				time: this.state.time, 
-				day_counter: this.state.day_counter,
-				status_mask: this.state.status_mask,
-				branch: this.branch
-			},  
-			false);
-		
-		this.state.output = output;
+		let output = this.outputBuilder.build(this.stateManager.getContext(), false);
+		this.stateManager.setOutput(output);
 		return output;
 	}
 	
 	toPast() {
-		if (this.state.old_state) {
-			this.state = this.state.old_state;
-			this.branch++;
-			this.state.output.stage = this.state.time + " #" + this.state.day_counter + " @" + this.branch;
-			return this.state.output;
-		}	
-		
-		return null;
+		return this.stateManager.rollback();
 	}
 	
 	getSelected(user_mask, candidate_mask, table,  ability) {
@@ -355,145 +288,23 @@ class Engine {
 		return selected;
 	}
 	
-	addStatus(status, duration, target, user) {
-		this.state.statuses.push({id: status, duration: duration, target: target, user: user});
-		
-		let parts = status.split("/");
-		let path = "";
-		
-		for (const part of parts) {
-			path += part;
-			if (this.state.status_count[target].has(path)) {
-				let count = this.state.status_count[target].get(path);
-				this.state.status_count[target].set(path, count + 1);
-			} else {
-				this.state.status_count[target].set(path, 1);
-				
-				if (this.state.status_mask.has(path)) {
-					this.state.status_mask.set(path, this.state.status_mask.get(path) ^ (1 << target));
-				} else {
-					this.state.status_mask.set(path, 1 << target);
-				}
-			}
-			
-			path += "/";
-		}
-		
-		//console.log("@@@@" + status + " " + target + " " + user);
-	}
-	
-	removeStatus(status, target, user) {
-		status = this.formatText(status, target, user);
-		
-		let index = this.state.statuses.findIndex(item => (item.target === target && (item.id === status || item.id.startsWith(status + "/"))));
-
-		if (index === -1)
-			return;
-
-		status = this.state.statuses[index].id;
-		//console.log("####" + status  + " " + target + " " + user);
-		
-		this.state.statuses.splice(index, 1);
-		
-		let parts = status.split("/");
-		let path = "";
-		
-		for (const part of parts) {
-			path += part;
-			if (this.state.status_count[target].has(path)) {
-				let count = this.state.status_count[target].get(path);
-				this.state.status_count[target].set(path, count - 1);
-				if (count === 1) {
-					this.state.status_count[target].delete(path);
-					this.state.status_mask.set(path, this.state.status_mask.get(path) ^ (1 << target));
-					this.state.status_mask[path] ^= 1 << target;
-				}
-			}
-			path += "/";
-		}
-	}
-	
-	updateStatusDuration() {
-		
-		this.randomShuffle(this.state.statuses);
-		
-		for (const status of this.state.statuses) {
-
-			if (status.duration < 0)
-				continue;
-				
-			status.duration -= 0.5;
-		}
-			
-		while(true) {
-			let index = this.state.statuses.findIndex((item) => item.duration === 0);
-			
-			if (index === -1)
-				break;
-
-			let status = this.state.statuses[index];
-			let action = this.getStatus(status.id).expireAction;
-			
-			if (action)
-				this.tryAction({id: status.target, users: [status.user], direct_users: [status.user]}, status.user, action);
-			
-			this.removeStatus(status.id, status.target, status.user);
-		}
-	}	
-	
-	updateControlledByStatus() {
-		
-		this.randomShuffle(this.state.statuses);
-
-		for (const status of this.state.statuses) {
-			
-			if (!status.id.startsWith("controlledBy/") 
-				&& !status.id.startsWith("earsControlledBy/") 
-				&& !status.id.startsWith("tongueControlledBy/"))
-				continue;
-			
-			let parts = status.id.split("/");
-			
-			if (parts.length < 2)
-				continue;
-			
-			let user = Number(parts[1].substring("Игрок #".length));
-			
-			if (isNaN(user))
-				continue;
-	
-			let resourceId = null;
-			
-			if (parts.length > 2)
-				resourceId = parts[2];
-			
-			if (status.id.startsWith("controlledBy/"))
-				this.outputBuilder.setControlledBy(status.target, user, resourceId);
-			else if (status.id.startsWith("earsControlledBy/")) {
-				this.outputBuilder.setEarsControlledBy(status.target, user, resourceId);
-			} else {
-				this.outputBuilder.setTongueControlledBy(status.target, user, resourceId);
-			}
-		}
-	}	
-
 	updateStatuses(target, user, addStatuses, removeStatuses, reverse) {
 		
 		if (removeStatuses) {
 			for (const status of removeStatuses) {
 				if (reverse)
-					this.removeStatus(this.formatText(status, target, user), user, status);
+					this.stateManager.removeStatus(this.formatText(status, user, target), user, status);
 				else			
-					this.removeStatus(this.formatText(status, target, user), target, user);
+					this.stateManager.removeStatus(this.formatText(status, user, target), target, user);
 			}
 		}
 		
 		if (addStatuses) {
 			for (const status of addStatuses) {
 				if (reverse)
-					this.addStatus(this.formatText(status, target, user), this.getStatus(status).duration, user, target);
+					this.stateManager.addStatus(this.formatText(status, user, target), user, target);
 				else
-					this.addStatus(this.formatText(status, target, user), this.getStatus(status).duration, target, user);
+					this.stateManager.addStatus(this.formatText(status, user, target), target, user);
 			}
 		}
 	}
@@ -501,9 +312,9 @@ class Engine {
 	tryAction(candidate, user, action) {
 		
 		let target = candidate.id;
-		let action_info = this.getAction(action);
+		let action_info = this.config.actions.find((item) => item.id === action);
 		for (const _case of action_info.switch) {
-			let condition = this.getMaskFromSelector(_case.condition, target, user);
+			let condition = this.getMaskFromSelector(_case.condition, user, target);
 
 			if (!condition)
 				continue;
@@ -520,7 +331,7 @@ class Engine {
 			
 			if (_case.affect) {
 				for (const group of _case.affect) {
-					let mask = this.getMaskFromSelector(group.address, target, user);
+					let mask = this.getMaskFromSelector(group.address, user, target);
 					for (let i = 0; i < this.count; i++) {
 						if (mask & (1 << i)) {
 							if (i === target) {
@@ -529,31 +340,31 @@ class Engine {
 								this.updateStatuses(target, i, group.addStatuses, group.removeStatuses, true);
 							}
 							
-							this.outputBuilder.addMessage(i, this.formatText(group.text, target, user));
+							this.outputBuilder.addMessage(i, this.formatText(group.text, user, target, i));
 						}
 					}
 				}
 			}
 			
 			if (_case.informTarget)
-				this.outputBuilder.addMessage(target, this.formatText(_case.informTarget, target, user));	
+				this.outputBuilder.addMessage(target, this.formatText(_case.informTarget, user, target));	
 			
 			if (_case.informUser)
-				this.outputBuilder.addMessage(user, this.formatText(_case.informUser, target, user));	
+				this.outputBuilder.addMessage(user, this.formatText(_case.informUser, user, target));	
 			
 			if (_case.informDirectUsers) {
 				for (const id of candidate.direct_users) 
-					this.outputBuilder.addMessage(id, this.formatText(_case.informDirectUsers, target, user));	
+					this.outputBuilder.addMessage(id, this.formatText(_case.informDirectUsers, user, target));	
 			} 
 			
 			if (_case.informUsers) {
 				for (const id of candidate.users) 
-					this.outputBuilder.addMessage(id, this.formatText(_case.informUsers, target, user));	
+					this.outputBuilder.addMessage(id, this.formatText(_case.informUsers, user, target));	
 			}
 			
 			if (_case.informAll) {
 				for (let i = 0; i < this.count; i++)
-					this.outputBuilder.addMessage(i, this.formatText(_case.informAll, target, user));	
+					this.outputBuilder.addMessage(i, this.formatText(_case.informAll, user, target));	
 			}
 			
 			if (_case.stop === true)
@@ -566,16 +377,27 @@ class Engine {
 		return false;
 	}
 	
+	handleExpireActions() {
+		let statuses = this.stateManager.updateStatusDuration();
+		for (const status of statuses) {
+			let status_config = this.config.statuses.find(item => (item.id === status.id || status.id.startsWith(item.id + "/")));
+			
+			if (status_config && status_config.expireAction) {
+				this.tryAction({id: status.target, users: [status.user], direct_users: [status.user]}, status.user, status_config.expireAction);
+			}
+		}
+	}
+	
 	update(poll_results) {
 		
 		//Обработка автоматического голосования вместо пользователя (например для Мести Дурака)
 		for(const poll_result of poll_results) {
 			for (let i = 0; i < this.count; i++) {
-				let ability = this.getAbility(poll_result.id);
+				let ability = this.config.abilities.find((ability) => ability.id === poll_result.id);
 				
 				let user_mask = 0;
 				for (let j = 0; j < this.count; j++) {
-					if (this.getMaskFromSelector(this.formatText(ability.canUse, null, j), null, j) !== 0) {
+					if (this.getMaskFromSelector(ability.canUse, j) !== 0) {
 						user_mask |= 1 << j;
 					}
 				}
@@ -584,7 +406,7 @@ class Engine {
 					continue;	
 				
 				if (ability.rule !== "each" && ability.autoVote && poll_result.table[i] === 0) {
-					let candidate_mask = this.getMaskFromSelector(this.formatText(ability.candidates, null, i));
+					let candidate_mask = this.getMaskFromSelector(ability.candidates, i);
 					let random_index = this.getRandomIndexFromMask(candidate_mask);
 
 					if (random_index !== null)
@@ -593,23 +415,19 @@ class Engine {
 			}
 		}
 		
-		this.updateStatusDuration();
+		this.handleExpireActions();
 		
 		for (const ability of this.config.abilities) {
-			
-			if (ability.rule === "start" && this.state.day_counter > 0)
-				continue;
-			
-			if (ability.rule !== "start" && this.state.day_counter === 0)
-				continue;
-			
 			let poll_result = poll_results.find(item => item.id === ability.id);
+			
+			if (!poll_result)
+				continue;
 			
 			let candidate_mask = this.getMaskFromSelector(ability.candidates);
 			
 			let user_mask = 0;
 			for (let j = 0; j < this.count; j++) {
-				if (this.getMaskFromSelector(this.formatText(ability.canUse, null, j), null, j) !== 0)
+				if (this.getMaskFromSelector(ability.canUse, j) !== 0)
 					user_mask |= 1 << j;
 			}
 			
@@ -638,20 +456,12 @@ class Engine {
 			}
 		}
 		
-		this.updateStatusDuration();
-		this.updateControlledByStatus();
+		this.handleExpireActions();
 		
-		let time_index = this.config.times.findIndex((time) => time.id === this.state.time);
-
-		if (time_index === -1 || time_index + 1 === this.config.times.length) {
-			time_index = 0;
-			this.state.day_counter++;
-		}
-		else 
-			time_index++;
+		this.stateManager.updateControlledByStatus(this.outputBuilder);
 		
-		this.state.time = this.config.times[time_index].id;
-
+		this.stateManager.nextTime();
+		
 		for (let winCase of this.config.finishConditions) {
 			
 			if(!this.getMaskFromSelector(winCase.condition)) {

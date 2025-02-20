@@ -116,7 +116,8 @@ class EngineTester {
 							.map(ability => ({id: ability.id, table: new Array(30).fill(0)}));
 		
 		for (let i = 0; i < this.players.length; i++) {
-			let player = this.players.find((player) => (player.pindex === -1 && this.engine.state.status_count[i].has("role/" + player.role)));
+			let player = this.players.find(player => 
+				(player.pindex === -1 && (this.engine.stateManager.getContext().status_mask.get("role/" + player.role) & (1 << i))));
 			player.pindex = i;
 		}
 		
@@ -145,7 +146,7 @@ class EngineTester {
 		let data = initial_data.initState;
 		while(this.players.find((player) => player.actions.length)) {
 			
-			//console.log(data);
+			console.log(data);
 			
 			let poll_results = data.pollStates.map((poll) => {return {id: poll.id, table: new Array(30).fill(0)};});
 			
@@ -244,13 +245,13 @@ class EngineTester {
 							break;						
 						
 						case "no_status":
-							if (this.engine.state.status_count[player.pindex].get(action.status_id)) {
+							if (this.engine.stateManager.getContext().status_mask.get(action.status_id) & (1 << player.pindex)) {
 								throw new Error("Ошибка, у игрока " + player.name + " статус " + action.status_id);
 							}
 							break;
 						
 						case "status":
-							if (!this.engine.state.status_count[player.pindex].get(action.status_id)) {
+							if (!(this.engine.stateManager.getContext().status_mask.get(action.status_id) & (1 << player.pindex))) {
 								throw new Error("Ошибка, у игрока  " + player.name + " нету статуса " + action.status_id);
 							}
 							break;
