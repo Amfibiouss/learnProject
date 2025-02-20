@@ -7,80 +7,96 @@ class Engine {
 		if (!node) 
 			return 0;
 			
-		if (node.type === "all")
-			return this.all_mask;
+		let res = 0;
 		
-		if (node.type === "and") {
-			return this.calcExpressionByTree(node.operand1, target, user) & this.calcExpressionByTree(node.operand2, target, user);
-		}
-		
-		if (node.type === "or") {
-			return this.calcExpressionByTree(node.operand1, target, user) | this.calcExpressionByTree(node.operand2, target, user);
-		}
-		
-		if (node.type === "not") {
-			return this.all_mask ^ this.calcExpressionByTree(node.operand1, target, user);
-		}
-		
-		if (node.type === "less") {
-			return (this.bitCount(this.calcExpressionByTree(node.operand1, target, user)) < node.operand2)? this.all_mask : 0;
-		}
-		
-		if (node.type === "greather") {
-			return (this.bitCount(this.calcExpressionByTree(node.operand1, target, user)) > node.operand2)? this.all_mask : 0;
-		}
-		
-		if (node.type === "equal") {
-			return (this.bitCount(this.calcExpressionByTree(node.operand1, target, user)) === node.operand2)? this.all_mask : 0;
-		}
-		
-		if (node.fraction) {
-			if (this.state.status_mask.has("fraction/" + node.fraction))
-				return this.state.status_mask.get("fraction/" + node.fraction);
-			else
-				return 0;
-		}
-		
-		if (node.role) {			
-			if (this.state.status_mask.has("role/" + node.role))
-				return this.state.status_mask.get("role/" + node.role);
-			else
-				return 0;
-		}
-		
-		if (node.status) {	
-			
-			if (this.state.status_mask.has(node.status))
-				return this.state.status_mask.get(node.status);
-			else
-				return 0;
-		}
-		
-		if (node.time)
-			return (this.state.time === node.time)? this.all_mask : 0;
-		
-		if (node.cycle)
-			return (this.state.day_counter === node.cycle)? this.all_mask : 0;
-		
-		const substitution_string = ["user", "target"];
-		const functions = ["status", "role", "fraction"];
-		
-		for (const keyword of substitution_string) {
-			for (const func of functions) {
-				let field = keyword + "_" + func;
+		switch (node.type) {
+			case "all":
+				res = this.all_mask;
+				break;
 				
-				if (typeof(node[field]) !== "undefined") {
-					let status =  ((func === "status")? "" : (func + "/")) + node[field];
-					let mask = 1 << ((keyword === "user")? user : target);
+			case "and":
+				res = this.calcExpressionByTree(node.operand1, target, user);
+				if (res) 
+					res &= this.calcExpressionByTree(node.operand2, target, user);
+				break;
 					
-					if (!this.state.status_mask.has(status))
-						return 0;
-					
-					return (this.state.status_mask.get(status) & mask)? this.all_mask : 0;
-				}
-			}
-		}
+			case "or":
+				res = this.calcExpressionByTree(node.operand1, target, user);
+				if (res !== this.all_mask)
+					res |= this.calcExpressionByTree(node.operand2, target, user);
+				break;
+				
+			case "not":
+				res = this.all_mask ^ this.calcExpressionByTree(node.operand1, target, user);
+				break;
+				
+			case "less":
+				res = (this.bitCount(this.calcExpressionByTree(node.operand1, target, user)) < node.operand2)? this.all_mask : 0;
+				break;
+				
+			case "greather":
+				res = (this.bitCount(this.calcExpressionByTree(node.operand1, target, user)) > node.operand2)? this.all_mask : 0;
+				break;
+				
+			case "equal":
+				res = (this.bitCount(this.calcExpressionByTree(node.operand1, target, user)) === node.operand2)? this.all_mask : 0;
+				break;
+				
+			case "user":
+				res = (typeof(user) === "number")? 1 << user : 0;
+				break;
+				
+			case "target":
+				res = (typeof(target) === "number")? 1 << target : 0;
+				break;
+				
+			case "fraction":
+				res = this.state.status_mask.get("fraction/" + node.operand1);
+				res = (typeof(res) === "number")? res : 0;
+				break;
+				
+			case "role":
+				res = this.state.status_mask.get("role/" + node.operand1);
+				res = (typeof(res) === "number")? res : 0;
+				break;
+				
+			case "status":
+				res = this.state.status_mask.get(node.operand1);
+				res = (typeof(res) === "number")? res : 0;
+				break;
+				
+			case "time":
+				res = (this.state.time === node.operand1)? this.all_mask : 0;
+				break;
 			
+			case "cycle":
+				res = (this.state.day_counter === node.operand1)? this.all_mask : 0;
+				break;
+				
+			case "user_role":
+			case "user_fraction":
+			case "user_status":
+			case "target_role":
+			case "target_fraction":
+			case "target_status":	
+				let parts = node.type.split("_");
+				let keyword = parts[0];
+				let func = parts[1];
+				
+				let status =  ((func === "status")? "" : (func + "/")) + node.operand1;
+				let degree = (keyword === "user")? user : target;
+				
+				if (typeof(degree) !== "number" || !this.state.status_mask.has(status)) {
+					res = 0;
+					break;
+				}
+				
+				res = (this.state.status_mask.get(status) & (1 << degree))? this.all_mask : 0;
+
+				break;
+		}
+		
+		return res;	
 	}
 	
 	getMaskFromSelector = (selector, target, user) => {
@@ -133,11 +149,14 @@ class Engine {
 	}
 	
 	bitCount = (num) => {
-		let count = 0;
 		
-		for (let i = 0; i < 32; i++) {
-			if (num & (1 << i))
-				count++;
+		if (!num)
+			return 0;
+		
+		let count = 0;
+		while(num != 0) {
+			num = (num & (num - 1));
+			count++;
 		}
 		
 		return count;

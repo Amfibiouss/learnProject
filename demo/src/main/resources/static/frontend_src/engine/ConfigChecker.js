@@ -446,7 +446,7 @@ class ConfigChecker {
 					
 				comp = keyword + "(" + expr + ")";
 				tree = {type: keyword, operand1: subtree, operand2: number};
-				break;
+				return [comp.length, tree];
 			}
 		}
 		
@@ -459,31 +459,29 @@ class ConfigChecker {
 					return [0, null];
 				
 				comp = keyword + "(" + expr + ")";
-				tree = {};
+				tree = {type: keyword, operand1: expr};
 				
 				switch(keyword) {
 					case "time":
 						if(!config["times"].some((elem) => expr === elem.id))
 							return [0, null];
-						tree[keyword] = expr;
 						break;
 						
 					case "cycle":
 						let number = Number(expr.trim());
 						if (isNaN(number))
 							return [0, null];
-						tree[keyword] = number;
+						tree.operand1 = number;
 						break;
 						
 					default:
 						if (!config[(keyword != "status")? keyword + "s" : "statuses"]
 								.some((elem) => (expr === elem.id || expr.startsWith(elem.id + "/"))))
 							return [0, null];
-						tree[keyword] = expr;
 						break;
 				}
 
-				break;
+				return [comp.length, tree];
 			}
 		}
 		
@@ -491,9 +489,13 @@ class ConfigChecker {
 		for (const keyword of substitution_string) {
 			if (str.startsWith(keyword)) {
 				
+				if (str.startsWith(keyword + "()"))
+					return [(keyword + "()").length, {type: keyword}];
+				
 				const functions = ["status", "role", "fraction"];
 				
-				for (const func of functions) {
+				for (const func of functions) {		
+					
 					if (str.startsWith(keyword + "." + func + "(")) {
 						
 						let expr = this.getExprInBrackets(str.substring((keyword + "." + func).length));
@@ -506,19 +508,15 @@ class ConfigChecker {
 							return [0, null];
 							
 						comp = keyword + "." + func + "(" + expr + ")";
-						tree = {};
-						tree[keyword + "_" + func] = expr;
+						tree = {type: keyword + "_" + func, operand1: expr};
 						return [comp.length, tree];
 					}
 				}
 			}
 		}
 		
-		if (str.startsWith("all()")) {
-			tree = {type: "all"};
-					
-			comp = "all()";
-		}	
+		if (str.startsWith("all()")) 
+			return ["all()".length, {type: "all"}];
 				
 		if (str.startsWith("(")) {
 			let expr =this.getExprInBrackets(str);
@@ -528,6 +526,7 @@ class ConfigChecker {
 				return [0, null];
 					
 			comp = "(" + expr + ")";
+			return [comp.length, tree];
 		}
 				
 		if (str.startsWith("not")) {
@@ -541,13 +540,10 @@ class ConfigChecker {
 				return [0, null];
 					
 			comp = "not(" + expr + ")";
+			return [comp.length, tree];
 		}		
 		
-		if (comp === null) {
-			return [0, null];
-		}
-		
-		return [comp.length, tree];
+		return [0, null];
 	}
 	
 	computeExpression(str, config) {

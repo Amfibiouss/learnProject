@@ -628,6 +628,7 @@
 							"address": "status(player/$user.name) and not(status(Забывчивый))",
 							"text": "Вы напали на $target.name, но не смогли его убить."
 						}
+						
 					]
 				},
 				
