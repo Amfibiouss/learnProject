@@ -38,7 +38,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 		DPlayer dplayer = daoService.switchOnline(username);
 		Long room_id = daoService.getRoomIdByPlayer(username);
 		
-		if (room_id == null)
+		if (room_id == null || dplayer == null)
 			return;
 		
 		List<String> players = daoService.getPlayerUsernames(room_id);
@@ -53,7 +53,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 		DPlayer dplayer = daoService.switchOnline(session.getPrincipal().getName());
 		Long room_id = daoService.getRoomIdByPlayer(username);
 		
-		if (room_id == null)
+		if (room_id == null || dplayer == null)
 			return;
 		
 		List<String> players = daoService.getPlayerUsernames(room_id);
@@ -61,92 +61,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 	}
 	
     @Override
-    public void handleTextMessage(WebSocketSession session, TextMessage message) {
-        String str = message.getPayload();
-        String username;
-        
-        synchronized(session) {username = session.getPrincipal().getName();}
-        
-        try {
-        	WSMessage wsMessage = objectMapper.readValue(str, WSMessage.class);
-        	
-        	String type = wsMessage.getType();
-        	String content = wsMessage.getData();
-        	
-        	if ("message".equals(type)) {
-        		DInputMessage input_message = objectMapper.readValue(content, DInputMessage.class);
-
-        		if (!daoService.check(input_message.getRoomId(), input_message.getStage(), input_message.getPindex(), username)) 
-        			return;
-
-        		Long message_id = daoService.addMessage(
-        				input_message.getText(),
-        				input_message.getRoomId(),
-        				input_message.getChannelName(), 
-        				input_message.getStage(),
-        				input_message.getPindex(),
-        				username,
-        				input_message.getControlledPindex());
-        		
-        		if (message_id == null)
-        			return;
-        		     		
-        		List<Map.Entry<String, DOutputMessage> > output_messages = daoService.getPlayersForMessage(input_message.getRoomId(), message_id);
-        		
-        		for (Map.Entry<String, DOutputMessage> entry : output_messages) {
-        			send(entry.getValue(), "message", entry.getKey());
-        		}     		
-        	} else if ("vote".equals(type)) {
-        		DVote vote =  objectMapper.readValue(content, DVote.class);
-        		
-        		if (!daoService.check(vote.getRoomId(), vote.getStage(), vote.getPindex(), username)) 
-        			return;
-        		
-        		Map.Entry<List<DCandidateState>, Short> res = daoService.addVote(
-        				vote.getSelected(),
-        				vote.getRoomId(), 
-        				vote.getPollName(),
-        				vote.getStage(),
-        				vote.getPindex(),
-        				vote.getControlledPindex());
-        		
-        		if (res == null)
-        			return;
-        		
-        		List<DCandidateState> dcandidates = res.getKey();
-        		short alias = res.getValue();
-        		
-        		if (daoService.showVotes(vote.getRoomId(), vote.getPollName())) { 
-	    			List<String> players = daoService.getPlayersForPoll(vote.getRoomId(), vote.getPollName(), vote.getStage());
-	    			
-	    			sendAll(players, dcandidates, "poll");
-        		}
-    			
-    			String names_str = "";
-    			for (long index : vote.getSelected()) {
-    				if (!names_str.equals("")) 
-    					names_str += ", ";
-    				names_str += "Игрок #" + index;
-    			}
-    			
-        		Long message_id = daoService.addSystemMessage(
-        				"Игрок #" + alias + " проголосовал за " + names_str + " в \"" + vote.getPollName() + "\""
-        				, vote.getRoomId(), vote.getPollName(), vote.getStage());
-        		
-        		if (message_id == null)
-        			return;
-        		
-        		List<Map.Entry<String, DOutputMessage> > output_messages = daoService.getPlayersForMessage(vote.getRoomId(), message_id);
-        		
-        		for (Map.Entry<String, DOutputMessage> entry : output_messages) {
-        			send(entry.getValue(), "message", entry.getKey());
-        		}
-        	}
-        	
-        } catch(Exception e) {
-        	throw new RuntimeException(e);
-        }
-    }
+    public void handleTextMessage(WebSocketSession session, TextMessage message) {}
     
     private String serializeAndWrap(Object obj, String type) {
 		String data;

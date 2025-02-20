@@ -360,8 +360,9 @@ public class MessageRepository {
     		
     		DOutputMessage output_message = getMessage(fmessage, fmessage.getChannel().getName(), fmessage.getStage().getName(),
     				(fmessage.getUser() != null)? fmessage.getUser().getUsername() : null, fmessage.getPindex(), fmessage.getChannel().getColor(), acess);
-    		
-    		messages.add(Map.entry(player.getUsername(), output_message));
+
+    		if (acess != ReadAcess.NoRead)
+    			messages.add(Map.entry(player.getUsername(), output_message));
     	}
 		
 		return messages;

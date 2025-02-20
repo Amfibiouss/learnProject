@@ -320,31 +320,31 @@
 		{
 			"id": "Общий",
 			"canRead": "all()",
-			"canWrite":  "time(День) and status(Живой)",
+			"canWrite":  "time(День) and user.status(Живой)",
 			"color": "#007700"
 		},
 		
 		{
 			"id": "Мертвые",
-			"canRead":  "status(Мертвый) or role(Медиум)",
-			"canWrite":  "status(Мертвый)",
-			"canAnonymousWrite":  "role(Медиум) and status(Живой)",
+			"canRead":  "(status(Мертвый) and (user() or status(Главная личность/$user.name))) or user.role(Медиум)",
+			"canWrite":  "status(Мертвый) and (user() or status(Главная личность/$user.name))",
+			"canAnonymousWrite":  "user.role(Медиум) and user.status(Живой)",
 			"color": "#880088"
 		},
 		
 		{
 			"id": "Мафия",
-			"canRead": "fraction(Мафия) or status(Главная личность)",
-			"canAnonymousRead":  "role(Радиолюбитель) and status(Живой)",
-			"canWrite":  "(fraction(Мафия) or status(Главная личность)) and status(Живой)",
-			"canAnonymousWrite":  "role(Радиолюбитель) and status(Живой)",
+			"canRead": "user.fraction(Мафия) or user.status(Главная личность)",
+			"canAnonymousRead":  "user.role(Радиолюбитель) and user.status(Живой)",
+			"canWrite":  "(user.fraction(Мафия) or user.status(Главная личность)) and user.status(Живой)",
+			"canAnonymousWrite":  "user.role(Радиолюбитель) and user.status(Живой)",
 			"color": "#aa0000"
 		},
 		
 		{
 			"id": "Последнее слово",
 			"canRead":  "all()",
-			"canWrite":  "status(Последнее слово)",
+			"canWrite":  "user.status(Последнее слово)",
 			"color": "#875f42"
 		}
 	],

@@ -82,7 +82,8 @@ public class PollRepository {
     	List<Short> pindexes = new ArrayList(selected);
     	//pindexes.add(pindex);
     	pindexes.add(controlled_pindex);
-    	pindexes.sort((Short a, Short b) -> (a - b));
+    	pindexes = pindexes.stream().distinct().sorted().toList();
+    	
     	
     	long count = session.createSelectionQuery(
     			  "from FPollFCharacterFStage pcs "
@@ -94,10 +95,6 @@ public class PollRepository {
 			.setParameter("stage_id", stage)
     		.setLockMode(LockModeType.PESSIMISTIC_WRITE)
     		.getResultCount();
-    	
-    	System.out.println("@@@@@@");
-    	System.out.println(pindexes.size());
-    	System.out.println(count);
     	
     	if (count != pindexes.size())
     		return null;

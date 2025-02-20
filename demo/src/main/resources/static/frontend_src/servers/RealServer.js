@@ -26,18 +26,46 @@ class RealServer {
 	}
 	
 	sendMessage(data) {	
+		let csrf_token = document.getElementById("_csrf").value;
+				
+		fetch("/api/room/" + this.room_id + "/send_message", {
+			headers: {
+				"X-CSRF-TOKEN": csrf_token,
+				"Content-Type": "application/json"
+			},
+			method: "post",
+			body: JSON.stringify(data)
+		}).then((response) => {
+			if (response.status != 200) {
+				console.log("Не удалось отправить сообщение!");
+				return;
+			}
+		});
+		/*
 		this.socket.send(JSON.stringify(
 		{
 			type: "message", 
 			data: JSON.stringify(data)
 		}));
+		*/
 	}
 	
 	sendVote(data) {
-		this.socket.send(JSON.stringify({
-			type: "vote", 
-			data: JSON.stringify(data)
-		}));
+		let csrf_token = document.getElementById("_csrf").value;
+				
+		fetch("/api/room/" + this.room_id + "/send_vote", {
+			headers: {
+				"X-CSRF-TOKEN": csrf_token,
+				"Content-Type": "application/json"
+			},
+			method: "post",
+			body: JSON.stringify(data)
+		}).then((response) => {
+			if (response.status != 200) {
+				console.log("Не удалось отправить голос!");
+				return;
+			}
+		});
 	}
 	
 	messageHandler = (event) => {

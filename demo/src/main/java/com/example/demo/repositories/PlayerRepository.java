@@ -99,6 +99,9 @@ public class PlayerRepository {
     	Session session = sessionFactory.getCurrentSession();
     	FUser user =  session.get(FUser.class, username, LockMode.PESSIMISTIC_WRITE);
     	
+    	if (user.getToken() == null)
+    		return null;
+    	
     	user.setOnline(user.getOnline() ^ true);
     	FParticipationToken token = user.getToken();
     	token.setVersion(token.getVersion() + 1);

@@ -13,10 +13,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.demo.DaoService;
-import com.example.demo.GameWebSocketHandler;
 import com.example.demo.RoomService;
+import com.example.demo.dto.message.DInputMessage;
 import com.example.demo.dto.message.DMessages;
 import com.example.demo.dto.poll.DPollResult;
+import com.example.demo.dto.poll.DVote;
 import com.example.demo.dto.state.DInitData;
 import com.example.demo.dto.state.DInputState;
 import com.example.demo.dto.state.DOutputState;
@@ -29,9 +30,6 @@ public class GameController {
 	
 	@Autowired
 	DaoService daoService;
-	
-	@Autowired
-	GameWebSocketHandler wsHandler;
 	
 	@Autowired
 	RoomService roomService;
@@ -49,6 +47,36 @@ public class GameController {
 							@RequestParam short pindex) {
 		
 		return daoService.getMessages(room_id, principal.getName(), pindex);
+	}
+	
+	@PostMapping("send_message")
+	public void sendMessage(Principal principal, 
+							HttpServletResponse response,
+							@RequestBody DInputMessage message) {
+		
+		try {
+			roomService.sendMessage(message, principal.getName());
+		} catch(RuntimeException e) {
+			if (e.getMessage().equals("Ошибка авторизации"))
+				response.setStatus(403);
+			else
+				throw new RuntimeException(e);
+		}
+	}
+	
+	@PostMapping("send_vote")
+	public void sendVote(Principal principal, 
+							HttpServletResponse response,
+							@RequestBody DVote vote) {
+		
+		try {
+			roomService.sendVote(vote, principal.getName());
+		} catch(RuntimeException e) {
+			if (e.getMessage().equals("Ошибка авторизации"))
+				response.setStatus(403);
+			else
+				throw new RuntimeException(e);
+		}
 	}
 	
 	@PostMapping("imperius")

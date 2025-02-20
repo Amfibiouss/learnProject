@@ -67,27 +67,25 @@ class OutputBuilder {
 		let channelStates = [];
 		
 		for (const channel of this.config.channels) {
-			
-			let read_mask = this.getMaskFromSelector(channel.canRead);
-			let write_mask = this.getMaskFromSelector(channel.canWrite);
-			let anonymous_read_mask = this.getMaskFromSelector(channel.canAnonymousRead);
-			let anonymous_write_mask = this.getMaskFromSelector(channel.canAnonymousWrite);
-			
 			let reader_list = [];
-			
 			
 			for (var i = 0; i < this.count; i++) {
 				
+				let can_read = this.getMaskFromSelector(this.formatText(channel.canRead, null, i), null, i) > 0;
+				let can_write = this.getMaskFromSelector(this.formatText(channel.canWrite, null, i), null, i) > 0;
+				let can_anonymous_read =  this.getMaskFromSelector(this.formatText(channel.canAnonymousRead, null, i), null, i) > 0;
+				let can_anonymous_write = this.getMaskFromSelector(this.formatText(channel.canAnonymousWrite, null, i), null, i) > 0;
+					
 				reader_list.push({
 					id: i, 
 					tongueControlledBy: this.tongueControlledByMap.get(channel.id)[i],
 					earsControlledBy: this.earsControlledByMap.get(channel.id)[i],
-					canRead: (read_mask & (1 << i)) != 0, 
+					canRead: can_read, 
 					canXRayRead: false,
-					canAnonymousRead: (anonymous_read_mask & (1 << i)) != 0,
-					canWrite: (write_mask & (1 << i)) != 0,
+					canAnonymousRead: can_anonymous_read,
+					canWrite: can_write,
 					canXRayWrite: false,
-					canAnonymousWrite: (anonymous_write_mask & (1 << i)) != 0,
+					canAnonymousWrite: can_anonymous_write,
 					color: channel.color
 				});
 			}

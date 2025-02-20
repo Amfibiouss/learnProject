@@ -10,9 +10,12 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Component;
 
 import com.example.demo.dto.DRoom;
+import com.example.demo.dto.message.DInputMessage;
 import com.example.demo.dto.message.DOutputMessage;
 import com.example.demo.dto.player.DPlayer;
+import com.example.demo.dto.poll.DCandidateState;
 import com.example.demo.dto.poll.DPollResult;
+import com.example.demo.dto.poll.DVote;
 import com.example.demo.dto.state.DInitData;
 import com.example.demo.dto.state.DInputState;
 import com.example.demo.dto.state.DOutputState;
@@ -195,5 +198,75 @@ public class RoomService {
 		
 		wsHandler.sendAll(players, dplayer, "player");
 		wsHandler.send(dplayer, "imperius", username);
+	}
+
+	public void sendMessage(DInputMessage input_message, String username) {
+
+		if (!roomRepository.check(input_message.getRoomId(), input_message.getStage(), input_message.getPindex(), username)) 
+			throw new RuntimeException("Ошибка авторизации");
+
+		Long message_id = messageRepository.addMessage(
+				input_message.getText(),
+				input_message.getRoomId(),
+				input_message.getChannelName(), 
+				input_message.getStage(),
+				input_message.getPindex(),
+				username,
+				input_message.getControlledPindex());
+		
+		if (message_id == null)
+			throw new RuntimeException("Ошибка авторизации");
+			
+		List<Map.Entry<String, DOutputMessage> > output_messages = messageRepository.getPlayersForMessage(input_message.getRoomId(), message_id);
+		
+		for (Map.Entry<String, DOutputMessage> entry : output_messages) {
+			wsHandler.send(entry.getValue(), "message", entry.getKey());
+		}
+	}
+
+	public void sendVote(DVote vote, String username) {
+		
+		if (!roomRepository.check(vote.getRoomId(), vote.getStage(), vote.getPindex(), username)) 
+			throw new RuntimeException("Ошибка авторизации");
+		
+		Map.Entry<List<DCandidateState>, Short> res = pollRepository.addVote(
+				vote.getSelected(),
+				vote.getRoomId(), 
+				vote.getPollName(),
+				vote.getStage(),
+				vote.getPindex(),
+				vote.getControlledPindex());
+		
+		if (res == null)
+			throw new RuntimeException("Ошибка авторизации");
+		
+		List<DCandidateState> dcandidates = res.getKey();
+		short alias = res.getValue();
+		
+		if (pollRepository.showVotes(vote.getRoomId(), vote.getPollName())) { 
+			List<String> players = pollRepository.getPlayersForPoll(vote.getRoomId(), vote.getPollName(), vote.getStage());
+			
+			wsHandler.sendAll(players, dcandidates, "poll");
+		}
+		
+		String names_str = "";
+		for (long index : vote.getSelected()) {
+			if (!names_str.equals("")) 
+				names_str += ", ";
+			names_str += "Игрок #" + index;
+		}
+		
+		Long message_id = messageRepository.addSystemMessage(
+				"Игрок #" + alias + " проголосовал за " + names_str + " в \"" + vote.getPollName() + "\""
+				, vote.getRoomId(), vote.getPollName(), vote.getStage());
+		
+		if (message_id == null)
+			return;
+		
+		List<Map.Entry<String, DOutputMessage> > output_messages = messageRepository.getPlayersForMessage(vote.getRoomId(), message_id);
+		
+		for (Map.Entry<String, DOutputMessage> entry : output_messages) {
+			wsHandler.send(entry.getValue(), "message", entry.getKey());
+		}
 	}
 }
