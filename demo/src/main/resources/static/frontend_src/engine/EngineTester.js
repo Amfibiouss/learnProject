@@ -142,7 +142,7 @@ class EngineTester {
 			player.actions.reverse();
 		});
 		
-		var data = initial_data.initState;
+		let data = initial_data.initState;
 		while(this.players.find((player) => player.actions.length)) {
 			
 			//console.log(data);
@@ -188,6 +188,8 @@ class EngineTester {
 							let poll_result = poll_results.find((poll_result) => poll_result.id === action.poll_id);
 							poll_state = data.pollStates.find((poll) => poll.id === action.poll_id);
 							poll = initial_data.polls.find((poll) => poll.id === action.poll_id);
+							
+							//console.log(JSON.stringify(data.pollStates));
 							
 							if (action.controlled_player)
 								voter = poll_state.candidates.find((item) => item.id === action.controlled_player.pindex);

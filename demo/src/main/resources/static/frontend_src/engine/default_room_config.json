@@ -179,7 +179,7 @@
 		{
 			"id": "Выбрать носителя для злой личности",
 			"description": "Голосование на выбор носителя второй личности.",
-			"canUse":  "role(Злая личность)",
+			"canUse":  "user.role(Злая личность)",
 			"candidates": "fraction(Город)",
 			"rule": "start",
 			"actions": ["Раздвоить личность"]
@@ -189,7 +189,7 @@
 			"id": "Клоунировать",
 			"description": "Особая магия Администратора. Выберите человека, которого хотите превратить в Клоуна. Отменить заклинание не получится!",
 			"candidates": "all()",
-			"canUse":  "role(Администратор)",
+			"canUse":  "user.role(Администратор)",
 			"rule": "each_voted",
 			"actions": ["Клоунировать"]
 		},
@@ -198,7 +198,7 @@
 			"id": "Аннигиляция",
 			"description": "Особая магия Администратора. Выберите человека, которого хотите испепелить. Рекомендую перед этим превратить его в Клоуна.",
 			"candidates": "all()",
-			"canUse":  "role(Администратор)",
+			"canUse":  "user.role(Администратор)",
 			"rule": "each_voted",
 			"actions": ["Аннигиляция"]
 		},
@@ -207,7 +207,7 @@
 			"id": "Дневное голосование",
 			"description": "Умрет тот, за кого проголосовало больше. При равном количество голосов никто не умирает.",
 			"candidates": "status(Живой) and not(user())",
-			"canUse": "time(День) and status(Живой) and not(role(Клоун)) and not(status(Заблокирован))",
+			"canUse": "time(День) and user.status(Живой) and not(user.role(Клоун)) and not(user.status(Заблокирован))",
 			"channel": "Общий",
 			"rule": "most_voted - draw_random",
 			"showVotes": true,
@@ -218,7 +218,7 @@
 			"id": "Контроль",
 			"description": "Выберите человека, которого хотите подчинить и управлять которым будете ночью. Также вы узнаете его роль.",
 			"candidates": "status(Живой) and not(user())",
-			"canUse":  "time(День) and role(Ведьма) and status(Живой) and not(status(Заблокирован))",
+			"canUse":  "time(День) and user.role(Ведьма) and user.status(Живой) and not(user.status(Заблокирован))",
 			"rule": "each_voted",
 			"actions": ["Контроль"]
 		},
@@ -227,7 +227,7 @@
 			"id": "Месть Дурака",
 			"description": "Выберите человека, которому хотите отомстить.",
 			"candidates": "status(Живой) and status(Метка Дурака/$user.name)",
-			"canUse":  "time(Ночь) and role(Дурак) and status(Мертвый/Казнен) and not(status(Месть окончена))",
+			"canUse":  "time(Ночь) and user.role(Дурак) and user.status(Мертвый/Казнен) and not(user.status(Месть окончена))",
 			"rule": "each_voted",
 			"autoVote": true,
 			"actions": ["Атака Дурака"]
@@ -237,7 +237,7 @@
 			"id": "Выборы Дона",
 			"description": "Выберите человека, которого хотите избрать новым Доном.",
 			"candidates": "status(Живой) and (role(Мафия) or status(Главная личность))",
-			"canUse":  "time(Ночь) and equal((role(Дон) or status(Дон)) and status(Живой), 0) and greather(role(Дон) and status(Мертвый), 0) and (fraction(Мафия) or status(Главная личность)) and status(Живой)",
+			"canUse":  "time(Ночь) and equal((role(Дон) or status(Дон)) and status(Живой), 0) and greather(role(Дон) and status(Мертвый), 0) and (user.fraction(Мафия) or user.status(Главная личность)) and user.status(Живой)",
 			"rule": "most_voted - draw_random",
 			"autoVote": true,
 			"actions": ["Назначение Дона"]
@@ -247,7 +247,7 @@
 			"id": "Любовь",
 			"description": "Выберите человека,  которого вы хотите лишить способностей этой ночью и днем.",
 			"candidates": "status(Живой) and not(user())",
-			"canUse":  "time(Ночь) and role(Любовница) and status(Живой) and not(status(Заблокирован))",
+			"canUse":  "time(Ночь) and user.role(Любовница) and user.status(Живой) and not(user.status(Заблокирован))",
 			"rule": "each_voted",
 			"actions": ["Блок"]
 		},
@@ -256,7 +256,7 @@
 			"id": "Расследование",
 			"description": "Выберите человека, фракцию которого вы хотите узнать ночью.",
 			"candidates": "status(Живой) and not(user())",
-			"canUse":  "time(Ночь) and role(Шериф) and status(Живой) and not(status(Заблокирован))",
+			"canUse":  "time(Ночь) and user.role(Шериф) and user.status(Живой) and not(user.status(Заблокирован))",
 			"rule": "each_voted",
 			"actions": ["Расследование"]
 		},
@@ -265,7 +265,7 @@
 			"id": "Ночное голосование",
 			"description": "Умрет тот, за кого проголосовало больше. При равном количество голосов никто не умирает.",
 			"candidates": "not(fraction(Мафия)) and status(Живой)",
-			"canUse":  "time(Ночь) and (role(Мафия) or role(Дон) or status(Главная личность)) and status(Живой) and not(status(Заблокирован))",
+			"canUse":  "time(Ночь) and (user.role(Мафия) or user.role(Дон) or user.status(Главная личность)) and user.status(Живой) and not(user.status(Заблокирован))",
 			"rule": "most_voted - draw_random",
 			"actions": ["Атака Мафии"]
 		},
@@ -274,7 +274,7 @@
 			"id": "Охота",
 			"description": "Выберите человека, которого хотите ВЖИК ВЖИК.",
 			"candidates": "status(Живой) and not(user())",
-			"canUse":  "time(Ночь) and role(Маньяк) and status(Живой)",
+			"canUse":  "time(Ночь) and user.role(Маньяк) and user.status(Живой)",
 			"rule": "each_voted",
 			"actions": ["Атака"]
 		},	
@@ -283,7 +283,7 @@
 			"id": "Самосуд",
 			"description": "Выберите человека, который по вашему мнению заслуживает смерти за свои злодеяния. Но если вы убьете невинного, то навсегда откажетесь от оружия. Если ночью убиваете, то в следующую ночь отдыхаете",
 			"candidates": "status(Живой) and not(user())",
-			"canUse":  "time(Ночь) and role(Вигилант) and status(Живой) and not(status(Заблокирован)) and not(status(Усталость)) and not(status(Угрызения совести))",
+			"canUse":  "time(Ночь) and user.role(Вигилант) and user.status(Живой) and not(user.status(Заблокирован)) and not(user.status(Усталость)) and not(user.status(Угрызения совести))",
 			"rule": "each_voted",
 			"actions": ["Атака"]
 		},	
@@ -292,7 +292,7 @@
 			"id": "Лечение",
 			"description": "Выберите человека, которого хотите защитить ночью.",
 			"candidates": "status(Живой) and not(user())",
-			"canUse":  "time(Ночь) and role(Доктор) and status(Живой) and not(status(Заблокирован))",
+			"canUse":  "time(Ночь) and user.role(Доктор) and user.status(Живой) and not(user.status(Заблокирован))",
 			"rule": "each_voted",
 			"actions": ["Лечение"]
 		},
@@ -301,7 +301,7 @@
 			"id": "Слежка",
 			"description": "Выберите человека, имена ночных посетителей которого вы хотите узнать",
 			"candidates": "status(Живой)",
-			"canUse":  "time(Ночь) and role(Следопыт) and status(Живой) and not(status(Заблокирован))",
+			"canUse":  "time(Ночь) and user.role(Следопыт) and user.status(Живой) and not(user.status(Заблокирован))",
 			"rule": "each_voted",
 			"actions": ["Слежка"]
 		},

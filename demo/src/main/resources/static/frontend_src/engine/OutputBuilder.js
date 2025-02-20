@@ -1,8 +1,7 @@
 class OutputBuilder {
 	
-	constructor(config, getMaskFromSelector, formatText) {
-		this.getMaskFromSelector = getMaskFromSelector;
-		this.formatText = formatText;
+	constructor(config, expressionChecker) {
+		this.expressionChecker = expressionChecker;
 		this.config = config;
 		this.finish = false;
 		this.count = this.config.roles.reduce((acc, item) => (acc + item.count), 0);
@@ -34,26 +33,6 @@ class OutputBuilder {
 		}
 	}
 	
-	toCandidateList(user_mask, ability) {
-		var candidate_list = [];
-		
-		for (var i = 0; i < this.count; i++) {
-			let candidate_mask = this.getMaskFromSelector(this.formatText(ability.candidates, null, i), null, i);
-			
-			candidate_list.push({
-				id: i, 
-				name: "Игрок #" + i,
-				weight: 1,
-				controlledBy: this.controlledByMap.get(ability.id)[i],
-				canVote: (user_mask & (1 << i)) != 0,
-				candidates: candidate_mask
-			});
-		}
-		
-		return candidate_list;
-	}
-
-	
 	initChannels() {
 		let channels = [];
 		this.config.channels.forEach((channel) => {		
@@ -63,18 +42,19 @@ class OutputBuilder {
 		return channels;
 	}
 	
-	handleChannels() {
+	handleChannels(context) {
 		let channelStates = [];
 		
 		for (const channel of this.config.channels) {
 			let reader_list = [];
 			
-			for (var i = 0; i < this.count; i++) {
+			for (let i = 0; i < this.count; i++) {
+				context.user = i;
 				
-				let can_read = this.getMaskFromSelector(this.formatText(channel.canRead, null, i), null, i) > 0;
-				let can_write = this.getMaskFromSelector(this.formatText(channel.canWrite, null, i), null, i) > 0;
-				let can_anonymous_read =  this.getMaskFromSelector(this.formatText(channel.canAnonymousRead, null, i), null, i) > 0;
-				let can_anonymous_write = this.getMaskFromSelector(this.formatText(channel.canAnonymousWrite, null, i), null, i) > 0;
+				let can_read = this.expressionChecker.getMaskFromSelector(channel.canRead, context) > 0;
+				let can_write = this.expressionChecker.getMaskFromSelector(channel.canWrite, context) > 0;
+				let can_anonymous_read =  this.expressionChecker.getMaskFromSelector(channel.canAnonymousRead, context) > 0;
+				let can_anonymous_write = this.expressionChecker.getMaskFromSelector(channel.canAnonymousWrite, context) > 0;
 					
 				reader_list.push({
 					id: i, 
@@ -115,16 +95,32 @@ class OutputBuilder {
 		return polls;
 	}
 	
-	handlePolls() {
+	handlePolls(context) {
 		let pollStates = [];
+		
 		this.config.abilities.filter(ability => ability.rule !== "start").forEach((ability) => {
 			
-			//let candidate_mask = this.getMaskFromSelector(ability.candidates);
-			let user_mask = this.getMaskFromSelector(ability.canUse);
+			let candidate_list = [];
 			
+			for (let i = 0; i < this.count; i++) {
+				context.user = i;
+				let candidate_mask = this.expressionChecker.getMaskFromSelector(ability.candidates, context);
+				let canUse = this.expressionChecker.getMaskFromSelector(ability.canUse, context) !== 0;
+				
+				
+				candidate_list.push({
+					id: i, 
+					name: "Игрок #" + i,
+					weight: 1,
+					controlledBy: this.controlledByMap.get(ability.id)[i],
+					canVote: canUse,
+					candidates: candidate_mask
+				});
+			}
+
 			pollStates.push({
 				id: ability.id,
-				candidates: this.toCandidateList(user_mask, ability),
+				candidates: candidate_list,
 			});
 		});
 		
@@ -185,20 +181,20 @@ class OutputBuilder {
 		this.finish = true;
 	}
 	
-	build(stage, duration, init) {
-	
+	build(context, init) {
+			
 		for (let i = 0; i < this.count; i++) {
 			//this.messages[i].sort();
 			this.messages[i] = this.messages[i].join("");
 		}
 		
 		let state = {
-			pollStates: (this.finish)? [] : this.handlePolls(),
-			channelStates: this.handleChannels(),
+			pollStates: (this.finish)? [] : this.handlePolls(context),
+			channelStates: this.handleChannels(context),
 			messages: this.messages,
 			finish: this.finish,
-			stage: stage,
-			duration: duration
+			stage: context.time + " #" + context.day_counter + " @" + context.branch,
+			duration: this.config.times.find((time) => time.id === context.time).duration
 		}
 		
 		if (init) {

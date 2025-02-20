@@ -1,126 +1,41 @@
-import ConfigChecker from "./ConfigChecker.js";
+import ExpressionChecker from "./ExpressionChecker.js";
 import OutputBuilder from "./OutputBuilder.js";
 
 class Engine {
 	
-	calcExpressionByTree = (node, target, user) => {
-		if (!node) 
-			return 0;
-			
-		let res = 0;
-		
-		switch (node.type) {
-			case "all":
-				res = this.all_mask;
-				break;
-				
-			case "and":
-				res = this.calcExpressionByTree(node.operand1, target, user);
-				if (res) 
-					res &= this.calcExpressionByTree(node.operand2, target, user);
-				break;
-					
-			case "or":
-				res = this.calcExpressionByTree(node.operand1, target, user);
-				if (res !== this.all_mask)
-					res |= this.calcExpressionByTree(node.operand2, target, user);
-				break;
-				
-			case "not":
-				res = this.all_mask ^ this.calcExpressionByTree(node.operand1, target, user);
-				break;
-				
-			case "less":
-				res = (this.bitCount(this.calcExpressionByTree(node.operand1, target, user)) < node.operand2)? this.all_mask : 0;
-				break;
-				
-			case "greather":
-				res = (this.bitCount(this.calcExpressionByTree(node.operand1, target, user)) > node.operand2)? this.all_mask : 0;
-				break;
-				
-			case "equal":
-				res = (this.bitCount(this.calcExpressionByTree(node.operand1, target, user)) === node.operand2)? this.all_mask : 0;
-				break;
-				
-			case "user":
-				res = (typeof(user) === "number")? 1 << user : 0;
-				break;
-				
-			case "target":
-				res = (typeof(target) === "number")? 1 << target : 0;
-				break;
-				
-			case "fraction":
-				res = this.state.status_mask.get("fraction/" + node.operand1);
-				res = (typeof(res) === "number")? res : 0;
-				break;
-				
-			case "role":
-				res = this.state.status_mask.get("role/" + node.operand1);
-				res = (typeof(res) === "number")? res : 0;
-				break;
-				
-			case "status":
-				res = this.state.status_mask.get(node.operand1);
-				res = (typeof(res) === "number")? res : 0;
-				break;
-				
-			case "time":
-				res = (this.state.time === node.operand1)? this.all_mask : 0;
-				break;
-			
-			case "cycle":
-				res = (this.state.day_counter === node.operand1)? this.all_mask : 0;
-				break;
-				
-			case "user_role":
-			case "user_fraction":
-			case "user_status":
-			case "target_role":
-			case "target_fraction":
-			case "target_status":	
-				let parts = node.type.split("_");
-				let keyword = parts[0];
-				let func = parts[1];
-				
-				let status =  ((func === "status")? "" : (func + "/")) + node.operand1;
-				let degree = (keyword === "user")? user : target;
-				
-				if (typeof(degree) !== "number" || !this.state.status_mask.has(status)) {
-					res = 0;
-					break;
-				}
-				
-				res = (this.state.status_mask.get(status) & (1 << degree))? this.all_mask : 0;
-
-				break;
+	/*
+		context = {
+			target, user, player,
+			status_mask, time, day_counter
 		}
+	*/
+	getMaskFromSelector(selector, target, user, player) {
+		let context = {
+			target: target,
+			user: user, 
+			player: player,
+			status_mask: this.state.status_mask,
+			time: this.state.time,
+			day_counter: this.state.day_counter,
+			branch: this.branch
+		};
 		
-		return res;	
+		return this.expressionChecker.getMaskFromSelector(selector, context);
 	}
 	
-	getMaskFromSelector = (selector, target, user) => {
-		if (!selector) {
-			return 0;
-		}
+	formatText = (text, target, user, player) => {
 		
-		selector = this.formatText(selector, target, user);
+		let context = {
+			target: target,
+			user: user, 
+			player: player,
+			status_mask: this.state.status_mask,
+			time: this.state.time,
+			day_counter: this.state.day_counter,
+			branch: this.branch
+		};
 		
-		let res = this.expMap.get(selector);
-		
-		if (res) {
-			return this.calcExpressionByTree(res, target, user);
-		}
-		else {
-			let tree = this.checker.computeExpression(selector, this.config);
-			this.expMap.set(selector, tree);
-			let res = this.calcExpressionByTree(tree, target, user);
-			if (selector === "time(Ночь) and (role(Мафия) or role(Дон)) and status(Живой) and not(status(Заблокирован))") {
-				console.log(JSON.stringify(tree));
-			}
-			//console.log(JSON.stringify(tree));
-			return res;
-		}
+		return this.expressionChecker.formatText(text, context);
 	}
 	
 	getTime(id) {
@@ -154,7 +69,7 @@ class Engine {
 			return 0;
 		
 		let count = 0;
-		while(num != 0) {
+		while(num !== 0) {
 			num = (num & (num - 1));
 			count++;
 		}
@@ -199,8 +114,6 @@ class Engine {
 		this.config.statuses.push({id: "controlledBy", duration: -1});
 		this.config.statuses.push({id: "earsControlledBy", duration: -1});
 		this.config.statuses.push({id: "tongueControlledBy", duration: -1});
-		this.expMap = new Map();
-		this.checker = new ConfigChecker();
 		this.state = {};
 		this.branch = 0;
 		this.count = this.config.roles.reduce((acc, item) => (acc + item.count), 0);
@@ -238,7 +151,7 @@ class Engine {
 					
 					for (let j = 0; j < this.count; j++) {
 						if (mask & (1 << j)) {
-							str += "У Игрока #" + j + " роль " + this.getRoleByPindex(j) + ".\n";
+							str += this.formatText("У $user.name роль $user.role.\n", null, j);
 						}
 					}
 					
@@ -262,7 +175,8 @@ class Engine {
 	
 	firstPartStart(config) {
 		this.config = config;
-		this.outputBuilder = new OutputBuilder(this.config, this.getMaskFromSelector, this.formatText);
+		this.expressionChecker = new ExpressionChecker(this.config);
+		this.outputBuilder = new OutputBuilder(this.config, this.expressionChecker);
 		this.initialize();
 	}
 	
@@ -270,8 +184,12 @@ class Engine {
 		this.update(poll_results);
 
 		let output = this.outputBuilder.build(
-			this.state.time + " #" + this.state.day_counter + " @" + this.branch, 
-			this.getTime(this.state.time).duration, 
+			{
+				time: this.state.time, 
+				day_counter: this.state.day_counter,
+				status_mask: this.state.status_mask,
+				branch: this.branch
+			}, 
 			true);
 			
 		this.state.output = output.initState;
@@ -280,14 +198,19 @@ class Engine {
 	
 	start(config) {
 		this.config = config;	
-		this.outputBuilder = new OutputBuilder(this.config, this.getMaskFromSelector, this.formatText);
+		this.expressionChecker = new ExpressionChecker(this.config);
+		this.outputBuilder = new OutputBuilder(this.config, this.expressionChecker);
 		
 		this.initialize();
 		this.update([]);
 		
 		let output = this.outputBuilder.build(
-			this.state.time + " #" + this.state.day_counter + " @" + this.branch, 
-			this.getTime(this.state.time).duration, 
+			{
+				time: this.state.time, 
+				day_counter: this.state.day_counter,
+				status_mask: this.state.status_mask,
+				branch: this.branch
+			}, 
 			true);
 			
 		this.state.output = output.initState;
@@ -296,13 +219,17 @@ class Engine {
 	
 	toFuture(poll_results) {
 		this.state.old_state = structuredClone(this.state);
-		this.outputBuilder = new OutputBuilder(this.config, this.getMaskFromSelector, this.formatText);
+		this.outputBuilder = new OutputBuilder(this.config, this.expressionChecker);
 		
 		this.update(poll_results);	
 		
 		let output = this.state.output = this.outputBuilder.build(
-			this.state.time + " #" + this.state.day_counter + " @" + this.branch,
-			this.getTime(this.state.time).duration,  
+			{
+				time: this.state.time, 
+				day_counter: this.state.day_counter,
+				status_mask: this.state.status_mask,
+				branch: this.branch
+			},  
 			false);
 		
 		this.state.output = output;
@@ -426,38 +353,6 @@ class Engine {
 		}
 		
 		return selected;
-	}
-	
-	getRoleByPindex = (pindex) => {
-		let res = this.config.roles.find(role => 
-					this.state.status_mask.get("role/" + role.id) & (1 << pindex));
-		return res? res.id : null;
-	}
-	
-	getFractionByPindex = (pindex) => {
-		let res = this.config.fractions.find(fraction => 
-			this.state.status_mask.get("fraction/" + fraction.id) & (1 << pindex));
-			
-		return res? res.id : null;
-	}
-	
-	formatText = (text, target, user) => {
-		
-		if (!text)
-			return null;
-		
-		if (typeof(target) === "number") {
-			text = text.replaceAll("$target.name", "Игрок #" + target);
-			text = text.replaceAll("$target.fraction", this.getFractionByPindex(target));
-			text = text.replaceAll("$target.role", this.getRoleByPindex(target));
-		}
-		if (typeof(user) === "number") {
-			text = text.replaceAll("$user.name", "Игрок #" + user);
-			text = text.replaceAll("$user.fraction", this.getFractionByPindex(user));
-			text = text.replaceAll("$user.role", this.getRoleByPindex(user));
-		}
-		
-		return text;
 	}
 	
 	addStatus(status, duration, target, user) {
@@ -677,8 +572,14 @@ class Engine {
 		for(const poll_result of poll_results) {
 			for (let i = 0; i < this.count; i++) {
 				let ability = this.getAbility(poll_result.id);
-				let user_mask = this.getMaskFromSelector(ability.canUse);
 				
+				let user_mask = 0;
+				for (let j = 0; j < this.count; j++) {
+					if (this.getMaskFromSelector(this.formatText(ability.canUse, null, j), null, j) !== 0) {
+						user_mask |= 1 << j;
+					}
+				}
+					
 				if (!(user_mask & (1 << i))) 
 					continue;	
 				
@@ -705,7 +606,13 @@ class Engine {
 			let poll_result = poll_results.find(item => item.id === ability.id);
 			
 			let candidate_mask = this.getMaskFromSelector(ability.candidates);
-			let user_mask = this.getMaskFromSelector(ability.canUse);
+			
+			let user_mask = 0;
+			for (let j = 0; j < this.count; j++) {
+				if (this.getMaskFromSelector(this.formatText(ability.canUse, null, j), null, j) !== 0)
+					user_mask |= 1 << j;
+			}
+			
 			let selected = this.getSelected(user_mask, candidate_mask, (poll_result)? poll_result.table : null, ability);
 			
 			this.randomShuffle(selected);
@@ -751,8 +658,8 @@ class Engine {
 				
 				let winners_mask = this.getMaskFromSelector(winCase.winners);
 				
-				//console.log(winCase.winners + " " + this.getMaskFromSelector(winCase.winners)
-				//	 + " " + this.getMaskFromSelector("role(Ведьма) and status(Живой)"));
+				//console.log(winCase.winners + " " + this.getMaskFromSelector(winCase.winners) + " " + this.getMaskFromSelector(winCase.condition));
+
 				
 				for (let i = 0; i < this.count; i++) {
 					if (winners_mask & (1 << i)) {

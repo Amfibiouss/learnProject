@@ -1,8 +1,11 @@
+import ExpressionChecker from "./ExpressionChecker.js";
+
 class ConfigChecker { 
 	
 	checkConfig(config) {
 		
 		this.error = "";
+		this.expressionChecker = new ExpressionChecker(config);
 		
 		const rules = { 
 			type: "object",
@@ -378,7 +381,7 @@ class ConfigChecker {
 				return false;
 			}
 			
-			if(!this.computeExpression(config, root_config)) {
+			if(!this.expressionChecker.computeExpression(config)) {
 				this.error = "Поле " + rules.id + " содержит некорректное выражение " + config + ".";
 				return false;	
 			}
@@ -387,208 +390,6 @@ class ConfigChecker {
 		}
 		
 		return false;
-	}
-	
-	getExprInBrackets(str) {
-		if	(!str.startsWith("("))
-			return null;
-		
-		let balance = 1;
-		
-		for (let i = 1; i < str.length; i++) {
-			if (str.at(i) === "(")
-				balance++;	
-			
-			if (str.at(i) === ")")
-				balance--;	
-			
-			if (balance === 0)
-				return str.substring(1, i);
-		}
-		
-		return null;
-	}
-	
-	getFirstOperation(str) {
-		const operations = ["and", "or", "xor"];
-		let res = operations.find((op) => str.startsWith(op));
-		
-		return (res)? res : null;
-	}
-	
-	getFirstComp(str, config) {
-		let comp = null;
-		let tree = null;
-		
-		const two_argument_functions = ["less", "greather", "equal"];
-		for (const keyword of two_argument_functions) {
-			if (str.startsWith(keyword)) {
-				let expr = this.getExprInBrackets(str.substring(keyword.length));
-	
-				if (expr === null)
-					return [0, null];
-					
-				let i;
-				for (i = expr.length - 1; i >= 0; i--) {
-					if (expr.substr(i, 1) === ",")
-						break;
-				}
-				
-				if (i === -1)
-					return [0, null];
-				
-				let number = Number(expr.substr(i + 1).trim());
-				
-				let subtree = this.computeExpression(expr.substr(0, i), config);
-				
-				if (subtree === null || isNaN(number))
-					return [0, null];
-					
-				comp = keyword + "(" + expr + ")";
-				tree = {type: keyword, operand1: subtree, operand2: number};
-				return [comp.length, tree];
-			}
-		}
-		
-		const one_argument_functions = ["fraction", "role", "status", "time", "cycle"];
-		for (const keyword of one_argument_functions) {
-			if (str.startsWith(keyword)) {
-				let expr = this.getExprInBrackets(str.substring(keyword.length));
-
-				if (expr === null)
-					return [0, null];
-				
-				comp = keyword + "(" + expr + ")";
-				tree = {type: keyword, operand1: expr};
-				
-				switch(keyword) {
-					case "time":
-						if(!config["times"].some((elem) => expr === elem.id))
-							return [0, null];
-						break;
-						
-					case "cycle":
-						let number = Number(expr.trim());
-						if (isNaN(number))
-							return [0, null];
-						tree.operand1 = number;
-						break;
-						
-					default:
-						if (!config[(keyword != "status")? keyword + "s" : "statuses"]
-								.some((elem) => (expr === elem.id || expr.startsWith(elem.id + "/"))))
-							return [0, null];
-						break;
-				}
-
-				return [comp.length, tree];
-			}
-		}
-		
-		const substitution_string = ["user", "target"];
-		for (const keyword of substitution_string) {
-			if (str.startsWith(keyword)) {
-				
-				if (str.startsWith(keyword + "()"))
-					return [(keyword + "()").length, {type: keyword}];
-				
-				const functions = ["status", "role", "fraction"];
-				
-				for (const func of functions) {		
-					
-					if (str.startsWith(keyword + "." + func + "(")) {
-						
-						let expr = this.getExprInBrackets(str.substring((keyword + "." + func).length));
-						
-						if (expr === null)
-							return [0, null];
-						
-						if (!config[(func !== "status")? func + "s" : "statuses"]
-							.some((elem) => (expr === elem.id || expr.startsWith(elem.id + "/"))))
-							return [0, null];
-							
-						comp = keyword + "." + func + "(" + expr + ")";
-						tree = {type: keyword + "_" + func, operand1: expr};
-						return [comp.length, tree];
-					}
-				}
-			}
-		}
-		
-		if (str.startsWith("all()")) 
-			return ["all()".length, {type: "all"}];
-				
-		if (str.startsWith("(")) {
-			let expr =this.getExprInBrackets(str);
-			tree = this.computeExpression(expr, config);
-			
-			if (!tree)
-				return [0, null];
-					
-			comp = "(" + expr + ")";
-			return [comp.length, tree];
-		}
-				
-		if (str.startsWith("not")) {
-			let expr = this.getExprInBrackets(str.substring("not".length));
-			tree = {type: "not", operand1: this.computeExpression(expr, config)};
-			
-			if (!tree.operand1)
-				return [0, null];
-					
-			if (expr === null)
-				return [0, null];
-					
-			comp = "not(" + expr + ")";
-			return [comp.length, tree];
-		}		
-		
-		return [0, null];
-	}
-	
-	computeExpression(str, config) {
-		if (!str)
-			return null;
-		
-		let compList = []
-		let opList = [];
-		
-		while(true) {
-			str = str.trim();
-			const [len, tree] = this.getFirstComp(str, config);
-			
-			if (!tree)
-				return null;
-			
-			compList.push(tree);
-			str = str.substring(len);
-			str = str.trim();
-			let op = this.getFirstOperation(str);	
-			
-			if (!op)
-				break;
-			opList.push(op);
-			str = str.substring(op.length);
-		}
-		
-		if (str !== "")
-			return null;
-
-		while (opList.length > 0) {
-			for (const operation of  ["and", "xor", "or"]) {
-				let index = opList.findIndex((op) => op === operation);
-
-				if (index !== -1) {
-					opList.splice(index, 1);
-					let operand1 = compList.at(index);	
-					let operand2 = compList.at(index + 1);
-					compList.splice(index, 2, {type: operation, operand1: operand1, operand2: operand2});
-					break;
-				}
-			}
-		}
-		
-		return compList.pop();
 	}
 }
 
