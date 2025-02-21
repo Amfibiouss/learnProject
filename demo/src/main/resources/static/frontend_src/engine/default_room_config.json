@@ -180,7 +180,7 @@
 			"id": "Выбрать носителя для злой личности",
 			"description": "Голосование на выбор носителя второй личности.",
 			"canUse":  "user.role(Злая личность)",
-			"candidates": "fraction(Город)",
+			"candidates": "fraction(Город) and not(role(Радиолюбитель))",
 			"rule": "start",
 			"actions": ["Раздвоить личность"]
 		},
@@ -310,7 +310,7 @@
 			"id": "Восстановление",
 			"description": "Особая магия Администратора. Выберите человека, которого хотите исчелить от всех дебаффов (Смерть, Блок, Контроль и т.д)",
 			"candidates": "all()",
-			"canUse":  "role(Администратор)",
+			"canUse":  "user.role(Администратор)",
 			"rule": "each_voted",
 			"actions": ["Восстановление"]
 		}
@@ -321,6 +321,13 @@
 			"id": "Общий",
 			"canRead": "all()",
 			"canWrite":  "time(День) and user.status(Живой)",
+			"color": "#007700"
+		},
+		
+		{
+			"id": "Анонимный",
+			"canAnonymousRead": "all()",
+			"canWrite":  "user.role(Радиолюбитель) and user.status(Живой)",
 			"color": "#007700"
 		},
 		

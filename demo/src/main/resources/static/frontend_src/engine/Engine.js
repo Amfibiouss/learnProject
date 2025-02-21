@@ -177,7 +177,8 @@ class Engine {
 	}
 	
 	toPast() {
-		return this.stateManager.rollback();
+		let output = this.stateManager.rollback();
+		return output? output : this.stateManager.output;
 	}
 	
 	getSelected(user_mask, candidate_mask, table,  ability) {

@@ -136,7 +136,7 @@ class GamePage extends React.Component {
 			this.onChangeState(state);
 						
 			for (const vote of this.pending_votes)
-				this.addVote(vote);
+				this.addVote(vote, true);
 			this.pending_votes = null;
 			
 			this.loadMessages();
@@ -159,11 +159,18 @@ class GamePage extends React.Component {
 		});
 	}
 	
-	addVote = (candidateState) => {
-		if (this.stage != candidateState.stage) {
+	addVote = (candidateState, useVoteStore) => {
+
+		let poll = this.state.polls.find((item) => item.id === candidateState.pollId);
+
+		if (this.stage != candidateState.stage || !poll) {
+			
+			if (!useVoteStore)
+				return;
 			
 			if (this.vote_store.has(candidateState.stage)) {
-				this.vote_store.get(candidateState.stage).push(candidateState);
+				let arr = this.vote_store.get(candidateState.stage);
+				arr.push(candidateState);
 			} else {
 				this.vote_store.set(candidateState.stage, [candidateState]);
 			}
@@ -171,13 +178,9 @@ class GamePage extends React.Component {
 			return;
 		}
 
-		let poll = this.state.polls.find((item) => item.id === candidateState.pollId);
-
-		if (!poll) 
-			return;
-
 		let candidate = poll.candidates.find((item) => item.id === candidateState.candidateId)
 
+		//console.log(candidate.voted + " " + candidateState.votes);
 		if (candidate && candidate.votes < candidateState.votes) {
 			candidate.votes = candidateState.votes;
 			this.setState({polls: this.state.polls});
@@ -191,7 +194,7 @@ class GamePage extends React.Component {
 				this.pending_votes.push(candidateState);
 		} else {
 			for (let candidateState of candidateStates)
-				this.addVote(candidateState);
+				this.addVote(candidateState, true);
 		}
 	}
 	
@@ -428,7 +431,7 @@ class GamePage extends React.Component {
 		
 		if (this.vote_store.has(this.state.stage)) {
 			for (item of this.vote_store.get(this.state.stage))
-				this.addVote(item);
+				this.addVote(item, false);
 		}
 	};
 	
