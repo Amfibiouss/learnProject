@@ -435,7 +435,7 @@ class GamePage extends React.Component {
 		}
 	};
 	
-	onSendVote = (pollName, controlledPindex, selected) => {
+	onSendVote = (pollName, controlledPindex, selected, onSuccess, onError) => {
 		this.state.server.sendVote({
 			selected: selected,
 			roomId: this.room_id,
@@ -443,10 +443,10 @@ class GamePage extends React.Component {
 			stage: this.stage,
 			pindex: this.pindex,
 			controlledPindex: controlledPindex
-		});
+		}, onSuccess, onError);
 	}
 	
-	onSendMessage = (channelName, controlled_pindex, text) => {
+	onSendMessage = (channelName, controlled_pindex, text, onSuccess, onError) => {
 		this.state.server.sendMessage({
 			text: text, 
 			roomId: this.room_id,
@@ -454,7 +454,7 @@ class GamePage extends React.Component {
 			stage: this.stage,
 			controlledPindex: controlled_pindex,
 			pindex: this.pindex,
-		});
+		}, onSuccess, onError);
 	}
 
 	render() {
@@ -637,9 +637,16 @@ class PollWindow extends React.Component {
 	};
 	
 	sendVote = () => {
-		this.props.onSendVote(this.props.name, this.props.controlledPindex, this.state.selected);
+		this.props.onSendVote(this.props.name, this.props.controlledPindex, this.state.selected, 
+			() => {
+				this.setState({voted: true});
+			}, 
+			() => {
+				
+			});
+			
 		//this.props.server.sendVote(this.props.name, this.state.selected);
-		this.setState({voted: true});
+		//this.setState({voted: true});
 	};
 	
 	render() {
@@ -1010,20 +1017,36 @@ class InputForm extends React.Component {
 	constructor(props) {
 	    super(props);
 			
-		this.state = {showFilterMenu: false};		
+		this.state = {showFilterMenu: false, disableSubmitButton: false};		
 	}
 
 	
 	sendMessage = (event) => {
 		event.preventDefault();
+		
+		if (this.state.disableSubmitButton)
+			return;
+		
 		let formData = new FormData(event.target);
 		let channelName = formData.get("select_input_channel").split(":")[0];
 		let pindex = formData.get("select_input_channel").split(":")[1];
-		let text = formData.get("input_text");
-		this.props.onSendMessage(channelName, pindex, text);
+		let text = formData.get("input_text").trim();
+		
+		if (text === "") 
+			return;
+		
+		this.state.disableSubmitButton = true;
+		this.setState({disableSubmitButton: true});
+		
+		this.props.onSendMessage(channelName, pindex, text, () => {
+			document.getElementById("input_text").value = "";
+			this.setState({disableSubmitButton: false});
+		}, () => {
+			this.setState({disableSubmitButton: false});
+		});
 		//this.props.server.sendMessage(text, channelName);
 		this.props.onSend();
-		document.getElementById("input_text").value = "";
+		//document.getElementById("input_text").value = "";
 	}
 
 	render() {
@@ -1061,7 +1084,7 @@ class InputForm extends React.Component {
 							className="bg-gray-300 dark:bg-gray-800 border-2 dark:border-white border-black">
 							{options}
 						</select>
-						<Button  className="text-xl" value="Отправить"></Button>
+						<Button  className="text-xl" value="Отправить" disabled={this.state.disableSubmitButton}></Button>
 					</div>
 				</div>
 				<textarea id="input_text" name="input_text" className="border-2 border-black bg-gray-100 dark:bg-gray-500 w-full p-1"></textarea>

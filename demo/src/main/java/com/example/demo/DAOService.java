@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import com.example.demo.dto.DRoom;
 import com.example.demo.dto.message.DInputMessage;
+import com.example.demo.dto.message.DMessages;
 import com.example.demo.dto.message.DOutputMessage;
 import com.example.demo.dto.player.DPlayer;
 import com.example.demo.dto.poll.DCandidateState;
@@ -24,10 +25,11 @@ import com.example.demo.repositories.MessageRepository;
 import com.example.demo.repositories.PlayerRepository;
 import com.example.demo.repositories.PollRepository;
 import com.example.demo.repositories.RoomRepository;
+import com.example.demo.repositories.UserRepository;
 import com.example.demo.views.UsernamePindex;
 
 @Component
-public class RoomService {
+public class DAOService {
 	
 	@Autowired 
 	RoomRepository roomRepository;
@@ -43,6 +45,9 @@ public class RoomService {
     
     @Autowired
     PollRepository pollRepository;
+    
+    @Autowired
+    UserRepository userRepository;
     
     @Autowired
     ThreadPoolTaskScheduler closeRoomScheduler;
@@ -268,5 +273,25 @@ public class RoomService {
 		for (Map.Entry<String, DOutputMessage> entry : output_messages) {
 			wsHandler.send(entry.getValue(), "message", entry.getKey());
 		}
+	}
+	
+	 public void addUser(String username, String password, String role) {
+    	userRepository.addUser(username, password, role);
+    }
+
+    public String getPassword(String username) {
+    	return userRepository.getPassword(username);
+    }
+    
+	public Long getRoomIdByPlayer(String username) {
+		return roomRepository.getRoomIdByPlayer(username);
+	}
+	
+	public DMessages getMessages(long room_id, String username, short pindex) {
+    	return messageRepository.getMessages(room_id, username, pindex);
+    }
+	
+	public List<DPlayer> getPlayers(long room_id) {
+		return playerRepository.getPlayers(room_id);
 	}
 }

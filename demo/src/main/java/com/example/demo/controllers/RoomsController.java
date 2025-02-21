@@ -10,8 +10,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.demo.DaoService;
-import com.example.demo.RoomService;
+import com.example.demo.WSHandlerDaoService;
+import com.example.demo.DAOService;
 import com.example.demo.dto.DRoom;
 import com.example.demo.dto.player.DPlayer;
 
@@ -22,37 +22,30 @@ import jakarta.servlet.http.HttpServletResponse;
 public class RoomsController {
 	
 	@Autowired
-	RoomService roomService;
+	DAOService dAOService;
 	
-	@Autowired
-	DaoService daoService;
 	
 	@GetMapping("")
 	List<DRoom> getRooms() {
-		return roomService.getRooms();
+		return dAOService.getRooms();
 	}
 	
 	@GetMapping("current")
 	DRoom getCurrentRoom(Principal principal, HttpServletResponse response) {
 		
-		Long room_id = daoService.getRoomIdByPlayer(principal.getName());
+		Long room_id = dAOService.getRoomIdByPlayer(principal.getName());
 		
 		if (room_id == null) {
 			response.setStatus(404);
 			return null;
 		}
 		
-		return roomService.getRoom(room_id);
+		return dAOService.getRoom(room_id);
 	}
 	
 	@GetMapping("players/{room_id}")
 	List<DPlayer> getPlayers(@PathVariable long room_id) {
-		/*
-		try {
-		Thread.sleep(10000);
-		} catch(Exception e) {} 
-		*/
-		return daoService.getPlayers(room_id);
+		return dAOService.getPlayers(room_id);
 	}
 	
 	@PostMapping("create")
@@ -66,13 +59,13 @@ public class RoomsController {
 			short limit) {
 		
 		try {
-			roomService.addRoom(name, description, principal.getName(), mode, config, limit);
+			dAOService.addRoom(name, description, principal.getName(), mode, config, limit);
 		} catch(Exception e) {
 			response.setStatus(503);
 			return -1L;
 		}
 		
-		return roomService.getRoomIdByCreator(principal.getName());
+		return dAOService.getRoomIdByCreator(principal.getName());
 	}
 	
 	@PostMapping("enter/{room_id}")
@@ -81,7 +74,7 @@ public class RoomsController {
 					@PathVariable long room_id) {
 		
 		try {
-			roomService.tryEnter(room_id, principal.getName());
+			dAOService.tryEnter(room_id, principal.getName());
 		} catch(RuntimeException e) {
 			if (e.getMessage().equals("В комнате нет свободных мест"))
 				response.setStatus(403);
@@ -98,7 +91,7 @@ public class RoomsController {
 					HttpServletResponse response,
 					@PathVariable long room_id) {
 		
-		if (!roomService.tryExit(room_id, principal.getName())) {
+		if (!dAOService.tryExit(room_id, principal.getName())) {
 			response.setStatus(403);
 		}
 	}

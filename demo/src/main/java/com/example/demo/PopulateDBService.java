@@ -15,10 +15,7 @@ public class PopulateDBService {
     SessionFactory sessionFactory;
 	
 	@Autowired
-	DaoService daoService;
-	
-	@Autowired
-	RoomService roomService;
+	DAOService dAOService;
 	
 	@Autowired
 	PasswordEncoder encoder;
@@ -29,15 +26,15 @@ public class PopulateDBService {
 				Arrays.asList("Twilight_Sparkle", "Applejack", "Fluttershy", "Rainbow_Dash"));
 		
 		String bad_password = "$2a$04$2ClfiBLxtDw6RvEV/PVCSOagTELgVQL9OtanemfjC9LbPJPMlgVIu";
-		daoService.addUser("Twilight_Sparkle", bad_password, "admin");
-		daoService.addUser("Applejack", bad_password, "user");
-		daoService.addUser("Fluttershy", bad_password, "user");
-		daoService.addUser("Rarity", bad_password, "admin");
-		daoService.addUser("Pinkie_Pie", bad_password, "admin");
-		daoService.addUser("Rainbow_Dash", bad_password, "admin");
+		dAOService.addUser("Twilight_Sparkle", bad_password, "admin");
+		dAOService.addUser("Applejack", bad_password, "user");
+		dAOService.addUser("Fluttershy", bad_password, "user");
+		dAOService.addUser("Rarity", bad_password, "admin");
+		dAOService.addUser("Pinkie_Pie", bad_password, "admin");
+		dAOService.addUser("Rainbow_Dash", bad_password, "admin");
 		
 		for (int i = 0; i < usernames.size(); i++) {
-			roomService.addRoom("Room #" + Long.toString(i), 
+			dAOService.addRoom("Room #" + Long.toString(i), 
 								"This is Room #" + Long.toString(i),
 								usernames.get(i % usernames.size()),
 								"classic", "{}", (short) 12);

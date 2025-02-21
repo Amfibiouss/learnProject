@@ -8,7 +8,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import com.example.demo.DaoService;
+import com.example.demo.DAOService;
 
 @Component
 public class CustomUserDetailsService implements UserDetailsService {
@@ -17,7 +17,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 	PasswordEncoder encoder;
 	
 	@Autowired
-	DaoService daoService;
+	DAOService dAOService;
 
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         try {
@@ -26,7 +26,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 
             return User.builder()
             		.username(username)
-                    .password(daoService.getPassword(username))
+                    .password(dAOService.getPassword(username))
                     .roles("USER", "ADMIN")
                     .build();
         } catch (Exception e) {

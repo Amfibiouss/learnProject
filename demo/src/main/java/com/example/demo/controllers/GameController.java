@@ -12,8 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.demo.DaoService;
-import com.example.demo.RoomService;
+import com.example.demo.DAOService;
 import com.example.demo.dto.message.DInputMessage;
 import com.example.demo.dto.message.DMessages;
 import com.example.demo.dto.poll.DPollResult;
@@ -29,16 +28,13 @@ import jakarta.servlet.http.HttpServletResponse;
 public class GameController {
 	
 	@Autowired
-	DaoService daoService;
-	
-	@Autowired
-	RoomService roomService;
+	DAOService dAOService;
 	
 	@GetMapping("state")
 	public DOutputState getState(Principal principal,
 							@PathVariable long room_id) {
 		
-		return roomService.getState(room_id, principal.getName());
+		return dAOService.getState(room_id, principal.getName());
 	}
 	
 	@GetMapping("messages")
@@ -46,7 +42,7 @@ public class GameController {
 							@PathVariable long room_id,
 							@RequestParam short pindex) {
 		
-		return daoService.getMessages(room_id, principal.getName(), pindex);
+		return dAOService.getMessages(room_id, principal.getName(), pindex);
 	}
 	
 	@PostMapping("send_message")
@@ -55,7 +51,7 @@ public class GameController {
 							@RequestBody DInputMessage message) {
 		
 		try {
-			roomService.sendMessage(message, principal.getName());
+			dAOService.sendMessage(message, principal.getName());
 		} catch(RuntimeException e) {
 			if (e.getMessage().equals("Ошибка авторизации"))
 				response.setStatus(403);
@@ -70,7 +66,8 @@ public class GameController {
 							@RequestBody DVote vote) {
 		
 		try {
-			roomService.sendVote(vote, principal.getName());
+			//throw new RuntimeException("Ошибка авторизации");
+			dAOService.sendVote(vote, principal.getName());
 		} catch(RuntimeException e) {
 			if (e.getMessage().equals("Ошибка авторизации"))
 				response.setStatus(403);
@@ -86,12 +83,12 @@ public class GameController {
 							@RequestParam String target,
 							@RequestParam short pindex) {
 		
-		if (roomService.getRoomIdByCreator(principal.getName()) != room_id) {
+		if (dAOService.getRoomIdByCreator(principal.getName()) != room_id) {
 			response.setStatus(403);
 			return;
 		}
 		
-		roomService.imperius(room_id, target, pindex);
+		dAOService.imperius(room_id, target, pindex);
 	}
 	
 	@PostMapping("avada_kedavra")
@@ -100,12 +97,12 @@ public class GameController {
 							@PathVariable long room_id,
 							@RequestParam String target) {
 		
-		if (roomService.getRoomIdByCreator(principal.getName()) != room_id) {
+		if (dAOService.getRoomIdByCreator(principal.getName()) != room_id) {
 			response.setStatus(403);
 			return;
 		}
 		
-		roomService.tryExit(room_id, target);
+		dAOService.tryExit(room_id, target);
 	}
 	
 	@PostMapping("pause")
@@ -114,12 +111,12 @@ public class GameController {
 							@PathVariable long room_id,
 							@RequestParam long interval) {
 		
-		if (roomService.getRoomIdByCreator(principal.getName()) != room_id) {
+		if (dAOService.getRoomIdByCreator(principal.getName()) != room_id) {
 			response.setStatus(403);
 			return;
 		}
 		
-		roomService.setStatus(room_id, "pause");
+		dAOService.setStatus(room_id, "pause");
 	}
 	
 	@PostMapping("unpause")
@@ -127,12 +124,12 @@ public class GameController {
 							HttpServletResponse response,
 							@PathVariable long room_id) {
 		
-		if (roomService.getRoomIdByCreator(principal.getName()) != room_id) {
+		if (dAOService.getRoomIdByCreator(principal.getName()) != room_id) {
 			response.setStatus(403);
 			return;
 		}
 		
-		roomService.setStatus(room_id, "run");
+		dAOService.setStatus(room_id, "run");
 	}
 	
 	@GetMapping("init")
@@ -140,12 +137,12 @@ public class GameController {
 							HttpServletResponse response,
 							@PathVariable long room_id) {
 		
-		if (roomService.getRoomIdByCreator(principal.getName()) != room_id) {
+		if (dAOService.getRoomIdByCreator(principal.getName()) != room_id) {
 			response.setStatus(403);
 			return "";
 		}
 		
-		return roomService.getRoomConfig(room_id);
+		return dAOService.getRoomConfig(room_id);
 	}
 	
 	@PostMapping("init")
@@ -154,12 +151,12 @@ public class GameController {
 								@PathVariable long room_id,
 								@RequestBody DInitData initData) {
 		
-		if (roomService.getRoomIdByCreator(principal.getName()) != room_id) {
+		if (dAOService.getRoomIdByCreator(principal.getName()) != room_id) {
 			response.setStatus(403);
 			return;
 		}
 		
-		roomService.initRoom(room_id, initData);
+		dAOService.initRoom(room_id, initData);
 		return;
 	}
 	
@@ -168,12 +165,12 @@ public class GameController {
 							HttpServletResponse response,
 							@PathVariable long room_id) {
 		
-		if (roomService.getRoomIdByCreator(principal.getName()) != room_id) {
+		if (dAOService.getRoomIdByCreator(principal.getName()) != room_id) {
 			response.setStatus(403);
 			return null;
 		}
 		
-		return roomService.getPollResults(room_id);
+		return dAOService.getPollResults(room_id);
 	}
 	
 	@PostMapping("update")
@@ -182,12 +179,12 @@ public class GameController {
 								@PathVariable long room_id,
 								@RequestBody DInputState state) {
 		
-		if (roomService.getRoomIdByCreator(principal.getName()) != room_id) {
+		if (dAOService.getRoomIdByCreator(principal.getName()) != room_id) {
 			response.setStatus(403);
 			return;
 		}
 		
-		roomService.updateRoom(room_id, state);
+		dAOService.updateRoom(room_id, state);
 		return;
 	}
 }

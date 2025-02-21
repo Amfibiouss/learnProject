@@ -23,7 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class GameWebSocketHandler extends TextWebSocketHandler {
 	
 	@Autowired
-	DaoService daoService;
+	WSHandlerDaoService wSHandlerDaoService;
 	
 	@Autowired
     ObjectMapper objectMapper;
@@ -35,13 +35,13 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 		String username = session.getPrincipal().getName();
 		
 		sessions.put(username, session);
-		DPlayer dplayer = daoService.switchOnline(username);
-		Long room_id = daoService.getRoomIdByPlayer(username);
+		DPlayer dplayer = wSHandlerDaoService.switchOnline(username);
+		Long room_id = wSHandlerDaoService.getRoomIdByPlayer(username);
 		
 		if (room_id == null || dplayer == null)
 			return;
 		
-		List<String> players = daoService.getPlayerUsernames(room_id);
+		List<String> players = wSHandlerDaoService.getPlayerUsernames(room_id);
 		sendAll(players, dplayer, "player");
 	}
 	
@@ -50,13 +50,13 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 		String username = session.getPrincipal().getName();
 		
 		sessions.remove(session.getPrincipal().getName());
-		DPlayer dplayer = daoService.switchOnline(session.getPrincipal().getName());
-		Long room_id = daoService.getRoomIdByPlayer(username);
+		DPlayer dplayer = wSHandlerDaoService.switchOnline(session.getPrincipal().getName());
+		Long room_id = wSHandlerDaoService.getRoomIdByPlayer(username);
 		
 		if (room_id == null || dplayer == null)
 			return;
 		
-		List<String> players = daoService.getPlayerUsernames(room_id);
+		List<String> players = wSHandlerDaoService.getPlayerUsernames(room_id);
 		sendAll(players, dplayer, "player");
 	}
 	

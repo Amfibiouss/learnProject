@@ -25,7 +25,7 @@ class RealServer {
 		this.stage = null;
 	}
 	
-	sendMessage(data) {	
+	sendMessage(data, onSuccess, onError) {	
 		let csrf_token = document.getElementById("_csrf").value;
 				
 		fetch("/api/room/" + this.room_id + "/send_message", {
@@ -38,7 +38,10 @@ class RealServer {
 		}).then((response) => {
 			if (response.status != 200) {
 				console.log("Не удалось отправить сообщение!");
+				onError();
 				return;
+			} else {
+				onSuccess();
 			}
 		});
 		/*
@@ -50,7 +53,7 @@ class RealServer {
 		*/
 	}
 	
-	sendVote(data) {
+	sendVote(data, onSuccess, onError) {
 		let csrf_token = document.getElementById("_csrf").value;
 				
 		fetch("/api/room/" + this.room_id + "/send_vote", {
@@ -63,7 +66,10 @@ class RealServer {
 		}).then((response) => {
 			if (response.status != 200) {
 				console.log("Не удалось отправить голос!");
+				onError();
 				return;
+			} else {
+				onSuccess();
 			}
 		});
 	}
