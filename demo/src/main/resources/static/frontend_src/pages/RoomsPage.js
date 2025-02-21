@@ -258,13 +258,15 @@ class CreateForm extends React.Component {
 		let config = null;	
 		
 		if (!this.state.showCreateClassic) {
+			
 			try {
-				config = JSON.parse(formData.get(config));
+				config = JSON.parse(formData.get("config"));
 			} catch(err) {
 				this.setState({error: "Введенные данные не являются json обьектом."});
 				return;
 			}
-			let checker = ConfigChecker();
+			let config_room_props = JSON.parse(document.getElementById("config_room_props").value);
+			let checker = new ConfigChecker(config_room_props);
 			
 			if(!checker.checkConfig(config)) {
 				this.setState({error: checker.error});
@@ -362,8 +364,8 @@ class CreateForm extends React.Component {
 				<textarea name="config" rows="10" className="w-full bg-gray-100 dark:bg-gray-500" 
 				style={(!this.state.showCreateClassic)? {} : {display: "none"}} 
 				placeholder="Конфигурация"></textarea>
-				<div className="flex justify-center">
-					<label><Button value="Готово"/></label>
+				<div className="flex flex-col items-center">
+					<div><label><Button value="Готово"/></label></div>
 					<div className="text-red-500">{this.state.error}</div>
 				</div>
 			</form>

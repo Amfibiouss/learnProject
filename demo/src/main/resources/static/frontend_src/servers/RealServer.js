@@ -163,14 +163,14 @@ class RealServer {
 						return;
 					}
 					
-					let checker = new ConfigChecker();
+					let config_room_props = JSON.parse(document.getElementById("config_room_props").value);
+					console.log(config_room_props);
+					let checker = new ConfigChecker(config_room_props);
+					
 					if (!checker.checkConfig(config)) {
 						console.log("Конфигурация не корректна");
 						return;
 					}
-					
-					console.log("####");
-					console.log(config);
 					
 					onComplete(config);		
 				});

@@ -17,7 +17,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 	PasswordEncoder encoder;
 	
 	@Autowired
-	DAOService dAOService;
+	DAOService daoService;
 
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         try {
@@ -26,7 +26,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 
             return User.builder()
             		.username(username)
-                    .password(dAOService.getPassword(username))
+                    .password(daoService.getPassword(username))
                     .roles("USER", "ADMIN")
                     .build();
         } catch (Exception e) {

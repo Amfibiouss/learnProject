@@ -411,7 +411,7 @@ test("Проверка способностей злой личности", () =
 	let player4 = tester.createPlayer("Игрок 4", "Горожанин");
 	let player5 = tester.createPlayer("Игрок 5", "Шериф");
 	
-	player1.start_vote("Выбрать носителя для злой личности", player3);// Доктор получает злую вторую личность
+	player1.start_vote("Раздвоить личности", player3);// Доктор получает злую вторую личность
 	
 	let init_data = tester.initialize();
 	

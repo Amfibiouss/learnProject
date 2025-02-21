@@ -2,6 +2,10 @@ import ExpressionChecker from "./ExpressionChecker.js";
 
 class ConfigChecker { 
 	
+	constructor(props) {
+		this.props = props;
+	}
+	
 	checkConfig(config) {
 		
 		this.error = "";
@@ -18,8 +22,8 @@ class ConfigChecker {
 					{
 						type: "object",
 						fields: [
-							{id: "id",  type: "string"},
-							{id: "duration", type: "number", min: 10000, max: 300000}
+							{id: "id",  type: "string", max_length: this.props.max_time_name_length},
+							{id: "duration", type: "number", min: this.props.min_stage_duration, max: this.props.max_stage_duration}
 						] 
 					}
 				},
@@ -78,8 +82,8 @@ class ConfigChecker {
 						type: "object",
 						fields:
 						[
-							{id: "id",  type: "string"},
-							{id: "description",  type: "string"},
+							{id: "id",  type: "string", max_length: this.props.max_poll_name_length},
+							{id: "description",  type: "string", max_length: this.props.max_poll_description_length},
 							{id: "candidates",  type: "expression", not_required: true},
 							{id: "canUse",  type: "expression", not_required: true},
 							{id: "channel",  type: "string", from: "channels", items: {type: "string"}, not_required: true},
@@ -100,7 +104,7 @@ class ConfigChecker {
 						type: "object",
 						fields:
 						[
-							{id: "id",  type: "string"},
+							{id: "id",  type: "string",  max_length: this.props.max_channel_name_length},
 							{id: "canRead",  type: "expression", not_required: true},
 							{id: "canAnonymousRead",  type: "expression", not_required: true},
 							{id: "canWrite",  type: "expression", not_required: true},
@@ -204,7 +208,7 @@ class ConfigChecker {
 		
 		config = JSON.parse(JSON.stringify(config));
 		
-		let fields = ["statuses", "abilities", "actions", "times", "roles", "fractions"];
+		let fields = ["statuses", "abilities", "channels", "actions", "times", "roles", "fractions"];
 		
 		for (const field of fields) {
 			if (typeof(config[field]) === "undefined") {
@@ -217,6 +221,17 @@ class ConfigChecker {
 				return false;	
 			}
 		}
+		
+		if (config.abilities.length > this.props.max_polls) {
+			this.error = "Слишком много способностей (abilities). Их должно быть максимум " + max_polls;
+			return false;
+		}
+
+		if (config.channels.length > this.props.max_channels) {
+			this.error = "Слишком много каналов (channels). Их должно быть максимум " + max_channels;
+			return false;
+		}
+
 		
 		config.statuses.push({id: "role", duration: -1});
 		config.statuses.push({id: "fraction", duration: -1});
@@ -314,6 +329,11 @@ class ConfigChecker {
 				this.error = "Поле " + rules.id + " должно хранить " + rules.type + ", но хранит " + config + ".";
 				return false;
 			}
+			
+			if (rules.max_length && config.length > rules.max_length) {
+				this.error = "Строка \"" + config + "\" длиной " + config.length + " превысила максимальную длину в " + rules.max_length + " символов.";
+				return false;				
+			} 
 			
 			if (rules.from && typeof(root_config[rules.from]) !== "undefined" && (root_config[rules.from] instanceof Array)) {
 				

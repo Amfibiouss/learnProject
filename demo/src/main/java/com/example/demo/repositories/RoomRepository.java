@@ -58,10 +58,10 @@ public class RoomRepository {
     @Value("${app.room.limit}")
     private long rooms_limit;
     
-    @Value("${app.room.max_channels}")
+    @Value("${app.room.config.max_channels}")
     private long max_channels;
     
-    @Value("${app.room.max_polls}")
+    @Value("${app.room.config.max_polls}")
     private long max_polls;
     
     @Value("${app.room.first_stage_name}")
