@@ -124,10 +124,24 @@ class RoomsPage extends React.Component {
 
 class Room extends React.Component {
 	
+	statuses = [
+		{key: "waiting", value: "ожидание"},
+		{key: "initializing", value: "идет игра"},
+		{key: "run", value: "идет игра"},
+		{key: "processing", value: "идет игра"},
+		{key: "pause", value: "идет игра"},
+		{key: "finished", value: "игра завершена"},
+		{key: "closed", value: "игра закрыта"},
+	]
 	
 	constructor(props) {
 		super(props);
-		this.state = {error: null, show_players: false, players: []};
+		this.state = {
+			error: null, 
+			show_players: false, 
+			players: [],
+			revealDescription: false
+		};
 	}
 	
 	getPlayers = () => {
@@ -207,20 +221,30 @@ class Room extends React.Component {
 				<span key={player.username} className = {(player.pindex)? "" : "text-orange-500"}>{(index? ", " : "") + player.username}</span>
 		)}</div>;
 		
+		let description = <>{this.props.description}</>
+		if (this.props.description.length > 150) {		
+			if (!this.state.revealDescription) {
+				let prefix = this.props.description.substr(0, 140) + ".....";
+				description = <>{prefix}<a href="#" onClick = {() => {this.setState({revealDescription: true});}}> [Раскрыть]</a></>; 
+			} else {
+				description = <>{this.props.description}<a href="#" onClick = {() => {this.setState({revealDescription: false});}}> [Свернуть]</a></>; 
+			}
+		}
+		
 		return <li className={"rounded-2xl px-3 py-1 flex flex-col gap-2 " + ((this.props.current)? "dark:bg-gray-700 bg-gray-300" : "dark:bg-gray-800 bg-gray-200")} style={{width: "min(50rem, 90vw)"}}>
 			{this.state.error? <div className = "text-red-500">{this.state.error}</div> : <></>}
 			<div className="flex gap-2 p-0">
 				<span className="font-semibold text-2xl">{this.props.name}</span>
 				<span className="flex items-center">{' (Создатель ' + this.props.creator + ')'}</span>
 			</div>
-			<div className="break-words max-h-[150px]">{this.props.description}</div>
+			<div className="break-words max-h-[150px]">{description}</div>
 			<div className="flex justify-end gap-3 text-xl flex-wrap p-0">
 				<span className="grow justify-self-end flex align-items">
 					<a href="#" onClick = {this.getPlayers} className="bg-gray-300 dark:bg-gray-700 rounded-xl px-2 py-1 text-lg h-fit">
 						Игроки {this.props.population + ' / ' + this.props.max_population}
 					</a>
 				</span>
-				<span>{this.props.status}</span>
+				<span>{this.statuses.find(item => item.key === this.props.status).value}</span>
 				{(this.props.current)? <Button value={"Выйти"} onClick={this.tryExit}></Button> : <div></div>}
 				<Button value={"Войти"} onClick={this.tryEnter}></Button>
 			</div>

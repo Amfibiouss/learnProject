@@ -210,7 +210,7 @@ public class RoomRepository {
     	room.setClosed(true);
     	room.setConfig(config);
     	room.setVersion(0);
-    	room.setPlayersCount((short) 1);
+    	room.setPlayersCount((short) 0);
     	room.setCreator(creator);
     	session.persist(room);
     	
