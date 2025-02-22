@@ -3,6 +3,7 @@ package com.example.demo.repositories;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.demo.dto.DRoom;
+import com.example.demo.dto.DRooms;
 import com.example.demo.dto.channel.DInputChannel;
 import com.example.demo.dto.channel.DInputChannelState;
 import com.example.demo.dto.channel.DInputReader;
@@ -57,6 +59,9 @@ public class RoomRepository {
 
     @Value("${app.room.limit}")
     private long rooms_limit;
+    
+    @Value("${app.room.max_rooms_on_page}")
+    private int max_rooms_on_page;
     
     @Value("${app.room.config.max_channels}")
     private long max_channels;
@@ -186,6 +191,111 @@ public class RoomRepository {
     	return room.getId();
     }
 	
+    @Transactional(isolation = Isolation.SERIALIZABLE)
+    public void createRoomForTests(String name,
+			String description, 
+			String creator_username, 
+			String mode, 
+			String config,
+			short max_population) {
+    	Session session = sessionFactory.getCurrentSession();
+    	FUser creator = session.get(FUser.class, creator_username, LockMode.PESSIMISTIC_WRITE);
+    	FRoom room = new FRoom();
+    	room.setName(name);
+    	room.setDescription(description);
+    	room.setMode(mode);
+    	room.setCreation_date(OffsetDateTime.now());
+    	room.setMax_population(max_population);
+    	room.setStatus("waiting");
+    	room.setClosed(true);
+    	room.setConfig(config);
+    	room.setVersion(0);
+    	room.setPlayersCount((short) 1);
+    	room.setCreator(creator);
+    	session.persist(room);
+    	
+    	List<String> channels = new ArrayList<>(Arrays.asList("Общий", "Мафия"));
+		for (String channel : channels) {
+			FChannel fchannel = new FChannel();
+			fchannel.setName(channel);
+			fchannel.setRoom(room);
+			fchannel.setColor("#0000aa");
+			session.persist(fchannel);
+		}
+    	
+    	List<String> times = new ArrayList<>(Arrays.asList("Ночь", "День"));
+    	for (int day_counter = 0; day_counter < 10; day_counter++) {
+    		for (String time : times) {
+				FStage fstage = new FStage();
+				fstage.setName(time + " " + day_counter);
+				fstage.setDuration(-1);
+				fstage.setDate(OffsetDateTime.now());
+				fstage.setRoom(room);
+		    	session.persist(fstage);
+		    	room.setCurrentStage(fstage);
+		    	
+		    	for (String channel : channels) {
+		        	FChannelFStage channel_stage = new FChannelFStage();
+		        	channel_stage.setRoom(room);
+		        	channel_stage.setStageId(fstage.getName());
+		        	channel_stage.setChannelId(channel);
+		        	channel_stage.setCanRead((1L << 32) - 1);
+		        	session.persist(channel_stage);
+		    	}
+    		}
+    	}
+ 
+		FChannel lobby_channel = new FChannel();
+		lobby_channel.setName(lobby_channel_name);
+		lobby_channel.setRoom(room);
+		lobby_channel.setColor(lobby_channel_color);
+		session.persist(lobby_channel);
+
+		FChannel system_channel = new FChannel();
+		system_channel.setName(system_channel_name);
+		system_channel.setRoom(room);
+		system_channel.setColor(system_channel_color);
+		session.persist(system_channel);
+
+    	FChannelFStage system_channel_stage = new FChannelFStage();
+    	system_channel_stage.setRoom(room);
+    	system_channel_stage.setStageId(first_stage_name);
+    	system_channel_stage.setChannelId(system_channel_name);
+    	system_channel_stage.setCanXRayRead((1L << 32) - 1);
+    	session.persist(system_channel_stage);
+		
+    	FChannelFStage lobby_channel_stage = new FChannelFStage();
+    	lobby_channel_stage.setRoom(room);
+    	lobby_channel_stage.setStageId(first_stage_name);
+    	lobby_channel_stage.setChannelId(lobby_channel_name);
+    	lobby_channel_stage.setCanXRayRead((1L << 32) - 1);
+    	session.persist(lobby_channel_stage);
+
+    	for (short pindex = 0; pindex < max_population; pindex++) {
+        	FCharacter character = new FCharacter();
+        	character.setPindex(pindex);
+        	character.setRoom(room);
+        	session.persist(character);
+        	
+        	FParticipationToken token = new FParticipationToken();
+        	token.setPindex(pindex);
+        	token.setRoom(room);
+        	token.setVersion(0);
+        	token.setFree(true);
+        	session.persist(token);
+        	
+        	FChannelFCharacterFStage reader = new FChannelFCharacterFStage();
+        	reader.setRoom(room);
+        	reader.setChannelId(lobby_channel_name);
+        	reader.setStageId(first_stage_name);
+        	reader.setPindex(pindex);
+        	reader.setCanXRayWrite(true);
+        	reader.setTongueControlledBy(pindex);
+        	reader.setEarsControlledBy(pindex);
+        	session.persist(reader);
+    	}
+    }
+    
 	@Transactional(isolation = Isolation.READ_COMMITTED)
 	public Map.Entry< List<DOutputMessage>, List<DOutputState> > setState(long room_id, DInputState state, 
 			List<DInputChannel> channels, List<DInputPoll> polls, boolean init) {
@@ -519,31 +629,56 @@ public class RoomRepository {
 	}
     
     @Transactional(isolation = Isolation.READ_COMMITTED, readOnly=true)
-    public List<DRoom> getRooms() {
+    public DRooms getRooms(String status, int start) {
     	Session session = sessionFactory.getCurrentSession();
     	
-    	List<FRoom> items = session.createSelectionQuery("from FRoom", FRoom.class).getResultList();
-    	List<DRoom> rooms = new ArrayList<DRoom>();
+    	List<FRoom> frooms;
+    	long count;
     	
-    	for (FRoom item : items) {
-    		DRoom room = new DRoom();
-    	
-        	room.setPopulation(item.getPlayersCount());
-        	room.setCreator(item.getCreator().getUsername());
+    	if (!status.equals("closed")) {
+    		count = session.createSelectionQuery("from FRoom r where r.status = :status", FRoom.class)
+        			.setParameter("status", status).getResultCount();
     		
-        	room.setId(item.getId());
-        	room.setName(item.getName());
-        	room.setDescription(item.getDescription());
-        	room.setMode(item.getMode());
-        	room.setCreation_date(item.getCreation_date());
-        	room.setStatus(item.getStatus());
-        	room.setMax_population(item.getMax_population());
-        	room.setFavorite(false);
-        	
-        	rooms.add(room);
+    		frooms = session.createSelectionQuery("from FRoom r where r.status = :status order by r.playersCount asc, r.creation_date desc", FRoom.class)
+    			.setParameter("status", status)
+    			.setFirstResult((start - 1) * max_rooms_on_page)
+    			.setMaxResults(max_rooms_on_page)
+    			.getResultList();
+    	}
+    	else {
+    		count = session.createSelectionQuery("from FRoom r where r.closed = true", FRoom.class).getResultCount();
+    		
+    		frooms = session.createSelectionQuery("from FRoom r where r.closed = true order by r.creation_date desc", FRoom.class)
+	       		.setFirstResult((start - 1) * max_rooms_on_page)
+	        	.setMaxResults(max_rooms_on_page)
+	    		.getResultList();
     	}
     	
-    	return rooms;
+    	List<DRoom> rooms = new ArrayList<DRoom>();
+    	
+    	for (FRoom froom : frooms) {
+    		
+    		DRoom droom = new DRoom();
+    	
+        	droom.setPopulation(froom.getPlayersCount());
+        	droom.setCreator(froom.getCreator().getUsername());
+    		
+        	droom.setId(froom.getId());
+        	droom.setName(froom.getName());
+        	droom.setDescription(froom.getDescription());
+        	droom.setMode(froom.getMode());
+        	droom.setCreation_date(froom.getCreation_date());
+        	droom.setStatus(froom.getStatus());
+        	droom.setMax_population(froom.getMax_population());
+        	droom.setFavorite(false);
+        	
+        	rooms.add(droom);
+    	}
+    	
+    	DRooms drooms = new DRooms();
+    	drooms.setRooms(rooms);
+    	drooms.setCount((count + max_rooms_on_page - 1) / max_rooms_on_page);
+    	return drooms;
     }
     
     @Transactional(isolation = Isolation.READ_COMMITTED, readOnly=true)

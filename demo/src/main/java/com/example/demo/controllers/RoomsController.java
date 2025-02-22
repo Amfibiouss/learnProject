@@ -8,11 +8,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.demo.WSHandlerDaoService;
 import com.example.demo.DAOService;
 import com.example.demo.dto.DRoom;
+import com.example.demo.dto.DRooms;
 import com.example.demo.dto.player.DPlayer;
 
 import jakarta.servlet.http.HttpServletResponse;
@@ -26,8 +27,8 @@ public class RoomsController {
 	
 	
 	@GetMapping("")
-	List<DRoom> getRooms() {
-		return dAOService.getRooms();
+	DRooms getRooms(@RequestParam int start) {
+		return dAOService.getRooms("waiting", start);
 	}
 	
 	@GetMapping("current")

@@ -33,8 +33,8 @@ public class PopulateDBService {
 		dAOService.addUser("Pinkie_Pie", bad_password, "admin");
 		dAOService.addUser("Rainbow_Dash", bad_password, "admin");
 		
-		for (int i = 0; i < usernames.size(); i++) {
-			dAOService.addRoom("Room #" + Long.toString(i), 
+		for (int i = 0; i < 200; i++) {
+			dAOService.createRoomForTests("Room #" + Long.toString(i), 
 								"This is Room #" + Long.toString(i),
 								usernames.get(i % usernames.size()),
 								"classic", "{}", (short) 12);

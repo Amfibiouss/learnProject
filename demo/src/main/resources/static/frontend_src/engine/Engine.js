@@ -88,9 +88,16 @@ class Engine {
 		this.count = this.config.roles.reduce((acc, item) => (acc + item.count), 0);
 		this.all_mask = (1 << this.count) - 1;
 		
-		let permutation = Array(this.count - 1).fill().map((_, index) => index + 1);
-		this.randomShuffle(permutation);
-		permutation = [0].concat(permutation);
+		let permutation;
+		if (this.config.roles[0].count > 0) { //Если первая роль выбрана, то нужно обязательно отдать ее создателю игры
+			permutation = Array(this.count - 1).fill().map((_, index) => index + 1);
+			this.randomShuffle(permutation);
+			permutation = [0].concat(permutation);
+		} else {
+			permutation = Array(this.count).fill().map((_, index) => index);
+			this.randomShuffle(permutation);
+		}
+		
 		let index = 0;
 		
 		for (const role of this.config.roles) {

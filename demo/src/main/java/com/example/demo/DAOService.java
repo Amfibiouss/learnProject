@@ -10,6 +10,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Component;
 
 import com.example.demo.dto.DRoom;
+import com.example.demo.dto.DRooms;
 import com.example.demo.dto.message.DInputMessage;
 import com.example.demo.dto.message.DMessages;
 import com.example.demo.dto.message.DOutputMessage;
@@ -157,8 +158,17 @@ public class DAOService {
     	closeRoomScheduler.schedule(() -> {closeRoom(room_id);}, Instant.now().plusSeconds(room_ttl));
 	}
     
-    public List<DRoom> getRooms() {
-    	return roomRepository.getRooms();
+    public void createRoomForTests(String name,
+			String description, 
+			String creator_username, 
+			String mode, 
+			String config,
+			short max_population) {
+    	roomRepository.createRoomForTests(name, description, creator_username, mode, config, max_population);
+	}
+    
+    public DRooms getRooms(String status, int start) {
+    	return roomRepository.getRooms(status, start);
     }
     
     public DRoom getRoom(long room_id) {

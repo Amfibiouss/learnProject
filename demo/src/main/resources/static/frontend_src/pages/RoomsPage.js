@@ -1,6 +1,7 @@
 import React from "react";
 import '../Main.css';
 import Button from "../common_components/Button.js";
+import Pagination from "../common_components/Pagination.js";
 import NumberInput from "../common_components/NumberInput.js";
 import ConfigChecker from "../engine/ConfigChecker.js";
 
@@ -12,47 +13,50 @@ class RoomsPage extends React.Component {
 			showCreateForm: false, 
 			showFilterForm: false, 
 			rooms: [], 
+			count: 0,
 			current_room: null,
 			active_tab: "rooms"
 		};
 		
-		const _this = this;
-		fetch('/api/rooms', {
-			headers: {'Accept': 'application/json'}
-		}).then(
-			function(response) {
-				if (response.status != 200) {
-					console.log("Не удалось загрузить комнаты");
-					return;
-				}
-				response.json().then(
-					(data) => {_this.setState({rooms: data});});
-			}
-		);
+		this.loadRooms(1);
+		
 		fetch('/api/rooms/current', {
 			headers: {'Accept': 'application/json'}
 		}).then(
-			function(response) {
+			(response) => {
 				if (response.status != 200) {
 					console.log("Не удалось загрузить текущую комнату");
 					return;
 				}
 				response.json().then(
-					(data) => {_this.setState({current_room: data});});
+					(data) => {this.setState({current_room: data});});
+			}
+		);
+	}
+	
+	loadRooms = (index) => {
+		fetch('/api/rooms?' + new URLSearchParams({start: index}), {
+			headers: {'Accept': 'application/json'}
+		}).then(
+			(response) => {
+				if (response.status != 200) {
+					console.log("Не удалось загрузить комнаты");
+					return;
+				}
+				response.json().then(
+					(data) => {
+						this.setState({
+							rooms: data.rooms, 
+							count: Math.max(this.state.count, data.count)	
+						});
+					}
+				);
 			}
 		);
 	}
 	
 	render() {
-		/*
-		const rooms = [
-			{id: 1, name:'roomA', description: 'it is first room', population: 11, max_population: 15, favorite: false, creator:'Vasya', status: "Ожидание"},
-			{id: 2, name:'roomB', description: 'it is second room', population: 2, max_population: 10, favorite: true, creator:'Petya', status: "Игра началась"},
-			{id: 3, name:'roomC', description: 'it is a third room', population: 2, max_population: 5, favorite: false, creator:'Sasha', status: "Игра завершена"}
-		];
-		*/
-		
-		const listRooms = this.state.rooms
+		const room_list = this.state.rooms
 		.filter((room) => !this.state.current_room || room.id !== this.state.current_room.id)
 		.map((room) =>
 		  <Room name={room.name} 
@@ -67,54 +71,54 @@ class RoomsPage extends React.Component {
 				</Room>);
 		
 		return <div className="flex-1 flex flex-col">
-					<div className = "flex">
-						<button className = {"grow hover:bg-gray-400 transition-colors duration-300 text-lg "
-							 + ((this.state.active_tab === "rooms")? "bg-gray-400 dark:bg-gray-700" : "bg-gray-300 dark:bg-gray-800")}
-							onClick={()=>{this.setState({active_tab: "rooms"});}}>Комнаты</button>
-							
-						<button className = {"grow hover:bg-gray-400 transition-colors duration-300 text-lg " 
-							+ ((this.state.active_tab === "create")? "bg-gray-400 dark:bg-gray-700" : "bg-gray-300 dark:bg-gray-800")}
-							onClick={()=>{this.setState({active_tab: "create"});}}>Создать игру</button>
-							
-						<button className = {"grow hover:bg-gray-400 transition-colors duration-300 text-lg "
-							 + ((this.state.active_tab === "archive")? "bg-gray-400 dark:bg-gray-700" : "bg-gray-300 dark:bg-gray-800")}
-							onClick={()=>{this.setState({active_tab: "archive"});}}>Архив</button>
-					</div>
-					
-					<div className="flex flex-col items-center" style={(this.state.active_tab !== "rooms")? {display: "none"} : {}}>
-						<div className="flex flex-col gap-2 mt-4 mb-4" style={{width:"min(90vw, 960px)"}}>
-							<div className="flex gap-2">
-								<input type="text" className="grow border-2 border-black bg-gray-100 dark:bg-gray-500"/>
-								<Button value={"Найти"}></Button>
-							</div>
-						</div>
-						<div className="flex flex-col gap-4">
-							{(this.state.current_room)? <Room name={this.state.current_room.name} 
-								creator={this.state.current_room.creator}
-								description={this.state.current_room.description} 
-								status={this.state.current_room.status}
-								population={this.state.current_room.population} 
-								max_population={this.state.current_room.max_population}
-								id={this.state.current_room.id} 
-								exit={() => {this.setState({current_room: null});}} 
-								current={true}>
-							</Room> : <></>}
-							<ul className="flex flex-col gap-1">{listRooms}</ul>
-						</div>
-					</div>
-					<div className="flex flex-col items-center" style={(this.state.active_tab !== "create")? {display: "none"} : {}}>
-						<CreateForm></CreateForm>
-					</div>
-					<div className="flex flex-col items-center" style={(this.state.active_tab !== "archive")? {display: "none"} : {}}>
-						<div className="flex flex-col gap-2 mt-4 mb-4" style={{width:"min(90vw, 960px)"}}>
-							<div className="flex gap-2">
-								<input type="text" className="grow border-2 border-black bg-gray-100 dark:bg-gray-500"/>
-								<Button value={"Найти"}></Button>
-							</div>
-						</div>
-					</div>
-					
+				<div className = "flex">
+					<button className = {"grow transition-colors duration-300 text-lg "
+						 + ((this.state.active_tab === "rooms")? "dark:bg-gray-950" : "bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 hover:bg-gray-400")}
+						onClick={()=>{this.setState({active_tab: "rooms"});}}>Комнаты</button>
+						
+					<button className = {"grow transition-colors duration-300 text-lg " 
+						+ ((this.state.active_tab === "create")? "dark:bg-gray-950" : "bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 hover:bg-gray-400")}
+						onClick={()=>{this.setState({active_tab: "create"});}}>Создать игру</button>
+						
+					<button className = {"grow transition-colors duration-300 text-lg "
+						 + ((this.state.active_tab === "archive")? "dark:bg-gray-950" : "bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 hover:bg-gray-400")}
+						onClick={()=>{this.setState({active_tab: "archive"});}}>Архив</button>
 				</div>
+				
+				<div className="flex flex-col items-center" style={(this.state.active_tab !== "rooms")? {display: "none"} : {}}>
+					<div className="flex flex-col gap-2 mt-4 mb-4" style={{width:"min(90vw, 960px)"}}>
+						<div className="flex gap-2">
+							<input type="text" className="grow border-2 border-black bg-gray-100 dark:bg-gray-500"/>
+							<Button value={"Найти"}></Button>
+						</div>
+					</div>
+					<div className="flex flex-col gap-4">
+						{(this.state.current_room)? <Room name={this.state.current_room.name} 
+							creator={this.state.current_room.creator}
+							description={this.state.current_room.description} 
+							status={this.state.current_room.status}
+							population={this.state.current_room.population} 
+							max_population={this.state.current_room.max_population}
+							id={this.state.current_room.id} 
+							exit={() => {this.setState({current_room: null});}} 
+							current={true}>
+						</Room> : <></>}
+						<ul className="flex flex-col gap-1">{room_list}</ul>
+					</div>
+					<Pagination changePage={this.loadRooms} count={this.state.count}></Pagination>
+				</div>
+				<div className="flex flex-col items-center" style={(this.state.active_tab !== "create")? {display: "none"} : {}}>
+					<CreateForm></CreateForm>
+				</div>
+				<div className="flex flex-col items-center" style={(this.state.active_tab !== "archive")? {display: "none"} : {}}>
+					<div className="flex flex-col gap-2 mt-4 mb-4" style={{width:"min(90vw, 960px)"}}>
+						<div className="flex gap-2">
+							<input type="text" className="grow border-2 border-black bg-gray-100 dark:bg-gray-500"/>
+							<Button value={"Найти"}></Button>
+						</div>
+					</div>
+				</div>
+			</div>
     }
 }
 
@@ -229,26 +233,31 @@ class CreateForm extends React.Component {
 
 	
 	roles = [
-		{name: "citizen", value: "Горожанин", default: 1},
-		{name: "doctor", value: "Доктор", default: 1},
-		{name: "sheriff", value: "Шериф", default: 1},
-		{name: "mistress", value: "Любовница", default: 1},
-		{name: "tracker", value: "Следопыт", default: 1},
-		{name: "medium", value: "Медиум", default: 1},
-		{name: "radio_fan", value: "Радиолюбитель", default: 1},
-		{name: "vigilante", value: "Вигилант", default: 1},
-		{name: "fool", value: "Дурак", default: 1},
-		{name: "maniac", value: "Маньяк", default: 1},
-		{name: "witch", value: "Ведьма", default: 1},
-		{name: "mafia", value: "Мафия", default: 1},
-		{name: "don", value: "Дон", default: 1},
-		{name: "evil_personality", value: "Злая личность", default: 1}
+		{name: "citizen", fraction: "city", value: "Горожанин", default: 1},
+		{name: "doctor", fraction: "city", value: "Доктор", default: 1},
+		{name: "sheriff", fraction: "city", value: "Шериф", default: 1},
+		{name: "mistress", fraction: "city", value: "Любовница", default: 1},
+		{name: "tracker", fraction: "city", value: "Следопыт", default: 1},
+		{name: "medium", fraction: "city", value: "Медиум", default: 1},
+		{name: "radio_fan", fraction: "city", value: "Радиолюбитель", default: 1},
+		{name: "vigilante", fraction: "city", value: "Вигилант", default: 1},
+		{name: "fool", fraction: "neutral", value: "Дурак", default: 1},
+		{name: "maniac", fraction: "neutral", value: "Маньяк", default: 1},
+		{name: "witch", fraction: "neutral", value: "Ведьма", default: 1},
+		{name: "mafia", fraction: "mafia", value: "Мафия", default: 1},
+		{name: "don", fraction: "mafia", value: "Дон", default: 1},
+		{name: "evil_personality", fraction: "mafia", value: "Злая личность", default: 1}
 	];
 
 	
 	constructor(props) {
-		    super(props);
-		    this.state = {showCreateClassic: true, mode: "game", error: ""};
+	    super(props);
+	    this.state = {
+			showCreateClassic: true,
+			mode: "game",
+			adminRole: true, 
+			error: ""
+		};
 	}
 	
 	handleSubmit = (event) => {
@@ -277,7 +286,7 @@ class CreateForm extends React.Component {
 			//config = JSON.parse(JSON.stringify(default_room_config));
 			
 			config.roles.forEach((role, index) => {
-				if (index > 0)
+				if (!this.state.adminRole || index > 0)
 					role.count = 0;
 			});
 			
@@ -323,43 +332,55 @@ class CreateForm extends React.Component {
 	
 	render() {
 		
-		let role_list = this.roles.map(
-			(role) => <NumberInput key={role.name} name={role.name} text={role.value} value={role.default}></NumberInput>
-		);
-		
+		let good_role_list = this.roles
+				.filter((role) => role.fraction === "city")
+				.map((role) => <NumberInput key={role.name} name={role.name} text={role.value} value={role.default}></NumberInput>);
+				
+		let bad_role_list = this.roles
+				.filter((role) => role.fraction !== "city")
+				.map((role) => <NumberInput key={role.name} name={role.name} text={role.value} value={role.default}></NumberInput>);
+				
+				
 		return 	<div className="flex flex-col justify-center bg-gray-200 dark:bg-gray-800 rounded-xl mt-4" style={{width:"min(100%, 40rem)"}}>
 			<div className="flex">
-				<button className={"grow hover:bg-gray-400 dark:hover:bg-gray-600 transition-colors duration-300 "
-					 + ((this.state.showCreateClassic)? "bg-gray-400 dark:bg-gray-600" : "bg-gray-300 dark:bg-gray-700")} 
+				<button className={"grow transition-colors duration-300 "
+					 + ((this.state.showCreateClassic)? "bg-gray-200 dark:bg-gray-800" : "bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600")} 
 						onClick={() => {this.setState({showCreateClassic: true});}} 
 						type="button">Классика</button>
-				<button className={"grow hover:bg-gray-400 dark:hover:bg-gray-600 transition-colors duration-300 "
-					+ ((this.state.showCreateClassic)? "bg-gray-300 dark:bg-gray-700" : "bg-gray-400 dark:bg-gray-600")} 
+				<button className={"grow transition-colors duration-300 "
+					+ ((this.state.showCreateClassic)? "bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600" : "bg-gray-200 dark:bg-gray-800")} 
 						onClick={() => {this.setState({showCreateClassic: false});}} 
 						type="button">Моды</button>
 			</div>
 			<form className="flex flex-col flex-wrap gap-4 p-4" onSubmit={this.handleSubmit}>
 				<input type="text" name="name" className="w-full border-2 border-black bg-gray-100 dark:bg-gray-500" placeholder="Название"/>
 				<textarea name="description"  className="w-full bg-gray-100 dark:bg-gray-500" rows="4" placeholder="Описание"></textarea>
-				<fieldset>
-					<legend>Режим:</legend>
-					<div className="flex">
-						<button type="button" className={"grow p-2 hover:bg-gray-400 dark:hover:bg-gray-600 transition-colors duration-300 " + 
-							((this.state.mode === "game")? "bg-gray-400 dark:bg-gray-600" : "bg-gray-300 dark:bg-gray-700")} 
-							onClick={()=>{this.setState({mode:"game"});}}>Игра</button>
-							
-						<button type="button" className={"grow p-2 hover:bg-gray-400 dark:hover:bg-gray-600 transition-colors duration-300 " + 
-							((this.state.mode === "dev")? "bg-gray-400 dark:bg-gray-600" : "bg-gray-300 dark:bg-gray-700")} 
-							onClick={()=>{this.setState({mode:"dev"});}}>Разработка</button>
+				<div className={"grid grid-cols-[auto_4rem_1fr] gap-x-4 overflow-hidden " + (this.state.showCreateClassic? "grid-rows-[auto_auto] gap-y-4" : "grid-rows-[auto_0px]")}>
+					<span>Игра</span>
+					<button type="button" className = {"flex w-16 h-8 rounded-2xl bg-gray-300 dark:bg-gray-700 "
+							+ ((this.state.mode === "dev")? "flex-row-reverse" : "flex-row")}
+						onClick={()=>{this.setState({mode: (this.state.mode === "game")? "dev" : "game"});}}>
+					
+						<div type="button" className="w-8 h-8 rounded-2xl bg-gray-400 dark:bg-gray-600"></div> 
+					</button>
+					<span>Песочница</span>
+					
+					<span>Админ роль</span>
+					<button type="button" className = {"flex w-16 h-8 rounded-2xl bg-gray-300 dark:bg-gray-700 "
+							+ (this.state.adminRole? "flex-row" : "flex-row-reverse")}
+						onClick={()=>{this.setState({adminRole: !this.state.adminRole});}}>
+					
+						<div type="button" className="w-8 h-8 rounded-2xl bg-gray-400 dark:bg-gray-600"></div> 
+					</button>
+					<span>Равноправие</span>
+				</div>
+				<div className="flex flex-wrap justify-between" style={(this.state.showCreateClassic)? {} : {display: "none"}}>
+					<div className="flex flex-col gap-1">
+						{good_role_list}
 					</div>
-				</fieldset>
-				<div style={(this.state.showCreateClassic)? {} : {display: "none"}}>
-					<fieldset>
-						<legend>Число ролей:</legend>
-						<div className="flex flex-col gap-1">
-							{role_list}
-						</div>
-					</fieldset>
+					<div className="flex flex-col gap-1">
+						{bad_role_list}
+					</div>
 				</div>
 				<textarea name="config" rows="10" className="w-full bg-gray-100 dark:bg-gray-500" 
 				style={(!this.state.showCreateClassic)? {} : {display: "none"}} 
