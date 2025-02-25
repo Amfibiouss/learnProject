@@ -26,20 +26,22 @@ class PseudoServer {
 		this.channels = new Map();
 		this.messages = [];
 		
+		this.init_room_props = JSON.parse(document.getElementById("init_room_props").value);
+		
 		this.status = "waiting";
 		this.duration = -1;
 		this.date = new Date();
 		this.pindex = 0;
 		this.version = 1;
 		this.player_version = 1;
-		this.currentStage = "Начало";
+		this.currentStage = this.init_room_props.first_stage_name;
 		
-		this.channels.set("Лобби", {
-			id: "Лобби",
+		this.channels.set(this.init_room_props.lobby_channel_name, {
+			id: this.init_room_props.lobby_channel_name,
 			canXRayRead: (1 << this.playerCount) - 1,
 			canRead: 0,
 			canAnonymousRead: 0,
-			color: "#ffa500",
+			color: this.init_room_props.lobby_channel_color,
 			players: Array(this.playerCount).fill().map((_, index) => (
 				{
 					id: index,
@@ -51,12 +53,12 @@ class PseudoServer {
 			))
 		});
 		
-		this.channels.set("Система", {
-			id: "Система",
+		this.channels.set(this.init_room_props.system_channel_name, {
+			id: this.init_room_props.system_channel_name,
 			canXRayRead: (1 << this.playerCount) - 1,
 			canRead: 0,
 			canAnonymousRead: 0,
-			color: "#0000ff",
+			color: this.init_room_props.system_channel_color,
 			players: Array(this.playerCount).fill().map((_, index) => (
 				{
 					id: index,
@@ -94,7 +96,7 @@ class PseudoServer {
 		if (poll.channel) {
 			let new_message = {
 				id: this.messages.length,
-				channel: this.channels.get("Система"),
+				channel: this.channels.get(this.init_room_props.system_channel_name),
 				username: this.username,
 				stage: data.stage,
 				pindex: -1,
@@ -139,10 +141,10 @@ class PseudoServer {
 			date: message.date	
 		};
 		
-		if (message.channel.id === "Система") {
+		if (message.channel.id === this.init_room_props.system_channel_name) {
 			
 			if ((message.canRead | message.canAnonymousRead | message.canXRayRead) & (1 << pindex)) {
-				output_message.username = "Система";
+				output_message.username = this.init_room_props.system_channel_name;
 				output_message.imageText = "";
 				return output_message;	
 			}
@@ -270,33 +272,6 @@ class PseudoServer {
 		}
 		
 		return output_polls;
-		/*
-		private long id;
-
-		private String name;
-
-		private boolean blocked;
-
-		private long votes;
-
-		private boolean selected;
-		 */
-		
-		/*
-		private String name;
-
-		private List<DCandidate> candidates;
-
-		private String description;
-
-		private long min_selection;
-
-		private long max_selection;
-
-		private boolean showVotes;
-
-		private short controlledPindex;
-		*/
 	}
 	
 	#getChannels() {
@@ -442,7 +417,7 @@ class PseudoServer {
 			
 			let new_message = {				
 				id: this.messages.length,
-				channel: this.channels.get("Система"),
+				channel: this.channels.get(this.init_room_props.system_channel_name),
 				username: null,
 				stage: this.currentStage,
 				pindex: -1,
@@ -478,8 +453,8 @@ class PseudoServer {
 			this.channels.set(channel.id, new_channel);
 		}
 		
-		this.channels.get("Лобби").canXRayRead = 0;
-		this.channels.get("Лобби").players.forEach(player => {player.canWrite = false});
+		this.channels.get(this.init_room_props.lobby_channel_name).canXRayRead = 0;
+		this.channels.get(this.init_room_props.lobby_channel_name).players.forEach(player => {player.canWrite = false});
 		
 		for (const poll of data.polls) {
 			let new_poll = {

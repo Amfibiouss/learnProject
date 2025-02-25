@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.demo.configs.RoomInitProperties;
 import com.example.demo.dto.message.DMessages;
 import com.example.demo.dto.message.DOutputMessage;
 import com.example.demo.dto.message.DStage;
@@ -43,18 +44,8 @@ public class MessageRepository {
     @Autowired
     ObjectMapper objectMapper;
     
-    @Value("${app.room.system_channel_name}")
-    private String system_channel_name;
-    
-    @Value("${app.room.system_channel_color}")
-    private String system_channel_color;
-    
-    @Value("${app.room.lobby_channel_name}")
-    private String lobby_channel_name;
-    
-    @Value("${app.room.lobby_channel_color}")
-    private String lobby_channel_color;
-    
+    @Autowired
+    RoomInitProperties initProperties;
     
     private DOutputMessage getSystemMessage(FMessage fmessage, String username, String stageName) {
 		DOutputMessage dmessage = new DOutputMessage();
@@ -62,8 +53,8 @@ public class MessageRepository {
 		dmessage.setImageText("");
 		dmessage.setUsername(username);
 		dmessage.setText(fmessage.getText());
-		dmessage.setChannel_name(system_channel_name);
-		dmessage.setChannel_color(system_channel_color);
+		dmessage.setChannel_name(initProperties.getSystem_channel_name());
+		dmessage.setChannel_color(initProperties.getSystem_channel_color());
 		dmessage.setStage(stageName);
 		dmessage.setDate(fmessage.getDate());
 		
@@ -82,7 +73,7 @@ public class MessageRepository {
     	if (acess == ReadAcess.NoRead)
     		return null;
     	
-    	if (channelName.equals(system_channel_name))
+    	if (channelName.equals(initProperties.getSystem_channel_name()))
     		return getSystemMessage(fmessage, username, stageName);
     	
     	DOutputMessage dmessage = new DOutputMessage();
@@ -167,7 +158,7 @@ public class MessageRepository {
 		if (poll.getChannel() == null) 
 			return null;
 		
-		FChannel system_channel = session.getReference(FChannel.class, new FChannelId(system_channel_name, poll.getRoom()));
+		FChannel system_channel = session.getReference(FChannel.class, new FChannelId(initProperties.getSystem_channel_name(), poll.getRoom()));
 		FChannelFStage channel_state =  session.get(FChannelFStage.class, new FChannelFStageId(room, poll.getChannel().getName(), stage));
 		
 		FMessage fmessage = new FMessage();
@@ -305,7 +296,7 @@ public class MessageRepository {
 		Session session = sessionFactory.getCurrentSession();
 		FRoom room =  session.get(FRoom.class, room_id);
 		
-		FChannel system_channel = session.getReference(FChannel.class, new FChannelId(system_channel_name, room));
+		FChannel system_channel = session.getReference(FChannel.class, new FChannelId(initProperties.getSystem_channel_name(), room));
 		List<DOutputMessage> output_messages = new ArrayList<>(messages.size());
 		OffsetDateTime now = OffsetDateTime.now();
 		

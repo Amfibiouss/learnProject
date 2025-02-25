@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import com.example.demo.DAOService;
 import com.example.demo.configs.RoomConfigProperties;
+import com.example.demo.configs.RoomInfoProperties;
+import com.example.demo.configs.RoomInitProperties;
 import com.example.demo.dto.DRoom;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -23,6 +25,12 @@ public class MainPageController {
 
 	@Autowired
 	RoomConfigProperties roomConfigProperties;
+	
+	@Autowired
+	RoomInitProperties roomInitProperties;
+	
+	@Autowired
+	RoomInfoProperties roomInfoProperties;
 	
 	@Autowired
 	ObjectMapper objectMapper;
@@ -43,7 +51,7 @@ public class MainPageController {
 	}
 	
 	@GetMapping("/public/sandbox")
-	public String getGamePage(
+	public String getSandbox(
 			Model model, 
 			Principal principal,
 			@RequestParam String mode, 
@@ -56,6 +64,7 @@ public class MainPageController {
 		model.addAttribute("players_limit", limit);
 		
 		model.addAttribute("config_room_props", roomConfigProperties.toString());
+		model.addAttribute("init_room_props", roomInitProperties.toString());
 		
 		return "index";
 	}
@@ -65,6 +74,7 @@ public class MainPageController {
 		model.addAttribute("username", (principal == null)? "" : principal.getName());
 		
 		model.addAttribute("config_room_props", roomConfigProperties.toString());
+		model.addAttribute("room_info_props", roomInfoProperties.toString());
 		
 		return "index";
 	}

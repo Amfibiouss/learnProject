@@ -1,15 +1,18 @@
 package com.example.demo.configs;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 
 @Component
 @ConfigurationProperties(prefix = "app.room.config")
 public class RoomConfigProperties {
+	
+	@Autowired
+	private ObjectMapper objectMapper;
 	
 	private long max_channels;
 	
@@ -91,8 +94,8 @@ public class RoomConfigProperties {
 		this.max_stage_duration = max_stage_duration;
 	}
 
+	@Override
 	public String toString() {
-		ObjectMapper objectMapper = new ObjectMapper();
 		try {
 			return objectMapper.writeValueAsString(this);
 		} catch (JsonProcessingException e) {

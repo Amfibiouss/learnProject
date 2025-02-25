@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.demo.configs.RoomInitProperties;
 import com.example.demo.dto.DRoom;
 import com.example.demo.dto.DRooms;
 import com.example.demo.dto.channel.DInputChannel;
@@ -69,20 +70,8 @@ public class RoomRepository {
     @Value("${app.room.config.max_polls}")
     private long max_polls;
     
-    @Value("${app.room.first_stage_name}")
-    private String first_stage_name;
-    
-    @Value("${app.room.system_channel_name}")
-    private String system_channel_name;
-    
-    @Value("${app.room.system_channel_color}")
-    private String system_channel_color;
-    
-    @Value("${app.room.lobby_channel_name}")
-    private String lobby_channel_name;
-    
-    @Value("${app.room.lobby_channel_color}")
-    private String lobby_channel_color;
+    @Autowired
+    RoomInitProperties initProperties;
     
     @Transactional(isolation = Isolation.SERIALIZABLE)
     public long addRoom(String name,
@@ -116,7 +105,7 @@ public class RoomRepository {
     	session.persist(room);
     	
 		FStage fstage = new FStage();
-		fstage.setName(first_stage_name);
+		fstage.setName(initProperties.getFirst_stage_name());
 		fstage.setDuration(-1);
 		fstage.setDate(OffsetDateTime.now());
 		fstage.setRoom(room);
@@ -124,28 +113,28 @@ public class RoomRepository {
     	room.setCurrentStage(fstage);
     	
 		FChannel lobby_channel = new FChannel();
-		lobby_channel.setName(lobby_channel_name);
+		lobby_channel.setName(initProperties.getLobby_channel_name());
 		lobby_channel.setRoom(room);
-		lobby_channel.setColor(lobby_channel_color);
+		lobby_channel.setColor(initProperties.getLobby_channel_color());
 		session.persist(lobby_channel);
 
 		FChannel system_channel = new FChannel();
-		system_channel.setName(system_channel_name);
+		system_channel.setName(initProperties.getSystem_channel_name());
 		system_channel.setRoom(room);
-		system_channel.setColor(system_channel_color);
+		system_channel.setColor(initProperties.getSystem_channel_color());
 		session.persist(system_channel);
 
     	FChannelFStage system_channel_stage = new FChannelFStage();
     	system_channel_stage.setRoom(room);
-    	system_channel_stage.setStageId(first_stage_name);
-    	system_channel_stage.setChannelId(system_channel_name);
+    	system_channel_stage.setStageId(initProperties.getFirst_stage_name());
+    	system_channel_stage.setChannelId(initProperties.getSystem_channel_name());
     	system_channel_stage.setCanXRayRead((1L << 32) - 1);
     	session.persist(system_channel_stage);
 		
     	FChannelFStage lobby_channel_stage = new FChannelFStage();
     	lobby_channel_stage.setRoom(room);
-    	lobby_channel_stage.setStageId(first_stage_name);
-    	lobby_channel_stage.setChannelId(lobby_channel_name);
+    	lobby_channel_stage.setStageId(initProperties.getFirst_stage_name());
+    	lobby_channel_stage.setChannelId(initProperties.getLobby_channel_name());
     	lobby_channel_stage.setCanXRayRead((1L << 32) - 1);
     	session.persist(lobby_channel_stage);
 
@@ -173,8 +162,8 @@ public class RoomRepository {
         	
         	FChannelFCharacterFStage reader = new FChannelFCharacterFStage();
         	reader.setRoom(room);
-        	reader.setChannelId(lobby_channel_name);
-        	reader.setStageId(first_stage_name);
+        	reader.setChannelId(initProperties.getLobby_channel_name());
+        	reader.setStageId(initProperties.getFirst_stage_name());
         	reader.setPindex(pindex);
         	reader.setCanXRayWrite(true);
         	reader.setTongueControlledBy(pindex);
@@ -246,28 +235,28 @@ public class RoomRepository {
     	}
  
 		FChannel lobby_channel = new FChannel();
-		lobby_channel.setName(lobby_channel_name);
+		lobby_channel.setName(initProperties.getLobby_channel_name());
 		lobby_channel.setRoom(room);
-		lobby_channel.setColor(lobby_channel_color);
+		lobby_channel.setColor(initProperties.getLobby_channel_color());
 		session.persist(lobby_channel);
 
 		FChannel system_channel = new FChannel();
-		system_channel.setName(system_channel_name);
+		system_channel.setName(initProperties.getSystem_channel_name());
 		system_channel.setRoom(room);
-		system_channel.setColor(system_channel_color);
+		system_channel.setColor(initProperties.getSystem_channel_color());
 		session.persist(system_channel);
 
     	FChannelFStage system_channel_stage = new FChannelFStage();
     	system_channel_stage.setRoom(room);
-    	system_channel_stage.setStageId(first_stage_name);
-    	system_channel_stage.setChannelId(system_channel_name);
+    	system_channel_stage.setStageId(initProperties.getFirst_stage_name());
+    	system_channel_stage.setChannelId(initProperties.getSystem_channel_name());
     	system_channel_stage.setCanXRayRead((1L << 32) - 1);
     	session.persist(system_channel_stage);
 		
     	FChannelFStage lobby_channel_stage = new FChannelFStage();
     	lobby_channel_stage.setRoom(room);
-    	lobby_channel_stage.setStageId(first_stage_name);
-    	lobby_channel_stage.setChannelId(lobby_channel_name);
+    	lobby_channel_stage.setStageId(initProperties.getFirst_stage_name());
+    	lobby_channel_stage.setChannelId(initProperties.getLobby_channel_name());
     	lobby_channel_stage.setCanXRayRead((1L << 32) - 1);
     	session.persist(lobby_channel_stage);
 
@@ -286,8 +275,8 @@ public class RoomRepository {
         	
         	FChannelFCharacterFStage reader = new FChannelFCharacterFStage();
         	reader.setRoom(room);
-        	reader.setChannelId(lobby_channel_name);
-        	reader.setStageId(first_stage_name);
+        	reader.setChannelId(initProperties.getLobby_channel_name());
+        	reader.setStageId(initProperties.getFirst_stage_name());
         	reader.setPindex(pindex);
         	reader.setCanXRayWrite(true);
         	reader.setTongueControlledBy(pindex);
@@ -361,7 +350,7 @@ public class RoomRepository {
     	FChannelFStage system_channel_stage = new FChannelFStage();
     	system_channel_stage.setRoom(room);
     	system_channel_stage.setStageId(fstage.getName());
-    	system_channel_stage.setChannelId(system_channel_name);
+    	system_channel_stage.setChannelId(initProperties.getSystem_channel_name());
     	system_channel_stage.setCanXRayRead((1L << 32) - 1);
     	session.persist(system_channel_stage);
     	

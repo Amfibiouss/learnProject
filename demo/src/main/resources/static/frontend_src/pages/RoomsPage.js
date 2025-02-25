@@ -325,6 +325,30 @@ class CreateForm extends React.Component {
 		
 		let count = 0;
 		config.roles.forEach((role) => {count += role.count;});
+		
+		let room_info_props = JSON.parse(document.getElementById("room_info_props").value);
+		
+		if (count < room_info_props.min_population) {
+			this.setState({error: "Слишком мало мест. Нужно минимум " + room_info_props.min_population});
+			return;
+		}
+		
+		if (count > room_info_props.max_population) {
+			this.setState({error: "Слишком много мест. Нужно не больше " + room_info_props.max_population});
+			return;
+		}
+		
+		if (formData.get("name").length > room_info_props.max_name_length) {
+			this.setState({error: "Слишком длинное название. Нужно не длинее " + room_info_props.max_name_length + " символов."});
+			return;
+		}
+		
+		if (formData.get("description").length > room_info_props.max_description_length) {
+			this.setState({error: "Слишком длинное описание. Нужно не длинее " + room_info_props.max_description_length + " символов."});
+			return;
+		}
+			
+		
 		formData.set("limit", count);
 		formData.set("mode", this.state.mode);
 		
