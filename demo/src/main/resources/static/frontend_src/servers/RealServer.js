@@ -20,9 +20,6 @@ class RealServer {
 		this.socket.onmessage = this.messageHandler;
 		this.socket.onopen = loadInitialInfo;
 		this.room_id = room_id;
-		
-		this.pindex = null;
-		this.stage = null;
 	}
 	
 	sendMessage(data, onSuccess, onError) {	
@@ -84,7 +81,7 @@ class RealServer {
 				
 			case "status":
 				let obj = JSON.parse(msg.data);
-				this.onChangeStatus(obj.status, obj.duration);
+				this.onChangeStatus(obj.status, obj.duration, obj.version);
 				break;
 				
 			case "state":
@@ -164,7 +161,6 @@ class RealServer {
 					}
 					
 					let config_room_props = JSON.parse(document.getElementById("config_room_props").value);
-					console.log(config_room_props);
 					let checker = new ConfigChecker(config_room_props);
 					
 					if (!checker.checkConfig(config)) {
@@ -221,10 +217,10 @@ class RealServer {
 		);
 	}
 	
-	pause(interval) {
+	pause() {
 		let csrf_token = document.getElementById("_csrf").value;
 		
-		fetch("/api/room/" + this.room_id + "/pause?" + new URLSearchParams({interval : interval}),
+		fetch("/api/room/" + this.room_id + "/pause",
 			{
 				method: "post",
 				headers: {"X-CSRF-TOKEN": csrf_token}

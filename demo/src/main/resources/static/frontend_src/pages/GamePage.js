@@ -18,7 +18,14 @@ class GamePage extends React.Component {
 		let server;
 		
 		if (mode === "dev")
-			server = new PseudoServer(this.onReceiveMessage, this.onChangeStatus, room_id);
+			server = new PseudoServer(this.onReceiveMessage, 
+									this.onChangeStatus, 
+									this.onChangeState,
+									this.onChangePlayer,
+									this.onChangePoll,
+									this.loadStateAndMessages, 
+									this.loadInitialInfo,
+									room_id);
 		else 
 			server = new RealServer(this.onReceiveMessage, 
 									this.onChangeStatus, 
@@ -111,7 +118,7 @@ class GamePage extends React.Component {
 		
 		if (player) {
 			
-			console.log(JSON.stringify(player) + " " + this.player_version);
+			//console.log(JSON.stringify(player) + " " + this.player_version);
 			
 			if (this.player_version >= player.version)
 				return;
@@ -347,12 +354,12 @@ class GamePage extends React.Component {
 		this.startCountdown(this.countdown);
 	}
 	
-	onChangeStatus = (status, duration) => {
+	onChangeStatus = (status, duration, version) => {
 		
-		if (this.state_version >= status.version) 
+		if (this.state_version >= version) 
 			return;
 			
-		this.state_version = status.version;
+		this.state_version = version;
 		
 		this.setState({status: status});
 		
@@ -366,6 +373,7 @@ class GamePage extends React.Component {
 			this.startCountdown(duration);
 			return;
 		}		
+		
 		var timer = document.getElementById("timer");
 		
 		if (timer && status === "pause") {

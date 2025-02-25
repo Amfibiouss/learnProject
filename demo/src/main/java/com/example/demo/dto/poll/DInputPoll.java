@@ -5,8 +5,6 @@ public class DInputPoll {
 	
 	private String description;
 	
-	private boolean self_use;
-	
 	private long min_selection;
 	
 	private long max_selection;
@@ -29,14 +27,6 @@ public class DInputPoll {
 
 	public void setDescription(String description) {
 		this.description = description;
-	}
-
-	public boolean isSelf_use() {
-		return self_use;
-	}
-
-	public void setSelf_use(boolean self_use) {
-		this.self_use = self_use;
 	}
 
 	public long getMin_selection() {

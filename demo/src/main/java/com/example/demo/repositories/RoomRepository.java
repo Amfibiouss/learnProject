@@ -326,7 +326,6 @@ public class RoomRepository {
 				fpoll.setName(dpoll.getId());
 				fpoll.setDescription(dpoll.getDescription());
 				fpoll.setRoom(room);
-				fpoll.setSelfUse(dpoll.isSelf_use());
 				fpoll.setShowVotes(dpoll.isShowVotes());
 				fpoll.setMaxSelection(dpoll.getMax_selection());
 				fpoll.setMinSelection(dpoll.getMin_selection());

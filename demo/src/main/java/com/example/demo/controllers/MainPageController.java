@@ -7,11 +7,11 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import com.example.demo.DAOService;
 import com.example.demo.configs.RoomConfigProperties;
 import com.example.demo.dto.DRoom;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 
@@ -36,6 +36,24 @@ public class MainPageController {
 		model.addAttribute("isHost", room.getCreator().equals(principal.getName()));
 		model.addAttribute("room_id", room_id);
 		model.addAttribute("players_limit", room.getMax_population());
+		
+		model.addAttribute("config_room_props", roomConfigProperties.toString());
+		
+		return "index";
+	}
+	
+	@GetMapping("/public/sandbox")
+	public String getGamePage(
+			Model model, 
+			Principal principal,
+			@RequestParam String mode, 
+			@RequestParam short limit) {
+
+		model.addAttribute("username", (principal == null)? "" : principal.getName());
+		model.addAttribute("mode", mode);
+		model.addAttribute("isHost", true);
+		model.addAttribute("room_id", -1);
+		model.addAttribute("players_limit", limit);
 		
 		model.addAttribute("config_room_props", roomConfigProperties.toString());
 		

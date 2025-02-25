@@ -1,261 +1,587 @@
+import ConfigChecker from "../engine/ConfigChecker.js";
+
 class PseudoServer {
-	constructor(onReceiveMessage, onChangeStatus, room_id) {
+	
+	constructor(onReceiveMessage, 
+				onChangeStatus, 
+				onChangeState, 
+				onChangePlayer,
+				onChangePoll,
+				loadStateAndMessages, 
+				loadInitialInfo,
+				room_id) {
+					
 		this.onReceiveMessage = onReceiveMessage;
+		this.onChangeState = onChangeState;
 		this.onChangeStatus = onChangeStatus;
+		this.onChangePlayer = onChangePlayer;
+		this.onChangePoll = onChangePoll;
+		this.loadStateAndMessages = loadStateAndMessages;
 		this.room_id = room_id;
-		this.pindex = 0;
+		setTimeout(loadInitialInfo, 100)
 		
-		this.cnt_polls = 0;
-		this.cnt_messages = 0;
-		this.cnt_stages = 1;
-		this.channels = [{id: -1, name: "Лобби", canRead: true, canWrite: true}];
-		this.polls = [];
-		this.stages = [{id: 0, name: "Лобби", messages: []}];
+		this.username = document.getElementById("username").value;
+		this.playerCount = Number(document.getElementById("players_limit").value);
+		this.polls = new Map();
+		this.channels = new Map();
+		this.messages = [];
+		
 		this.status = "waiting";
-	}
-	
-	start() {
-		this.status = "initializing";
-		this.onChangeStatus({status: "initializing"});
-	}
-	
-	pause() {
-		this.status = "pause";
-		this.onChangeStatus({status: "pause"});
-	}
-	
-	unpause(timeout) {
-		this.status = "run";
-		this.onChangeStatus({status: "run", duration: timeout});
-	}
-	
-	getPolls() {
-		var user_polls = [];
-		this.polls.forEach((poll) => {
-			if (poll.can_vote & (1 << this.pindex)) {
-				
-				user_polls.push({id: poll.id, 
-							name: poll.name, 
-							description: poll.description,
-							candidates: (poll.self_use)? poll.candidates : 
-								poll.candidates.filter((candidate) => candidate.id !== this.pindex),
-							min_selection: poll.min_selection,
-							max_selection: poll.max_selection
-				});
-			}
+		this.duration = -1;
+		this.date = new Date();
+		this.pindex = 0;
+		this.version = 1;
+		this.player_version = 1;
+		this.currentStage = "Начало";
+		
+		this.channels.set("Лобби", {
+			id: "Лобби",
+			canXRayRead: (1 << this.playerCount) - 1,
+			canRead: 0,
+			canAnonymousRead: 0,
+			color: "#ffa500",
+			players: Array(this.playerCount).fill().map((_, index) => (
+				{
+					id: index,
+					canWrite: true, 
+					canXRayWrite: false, 
+					canAnonymousWrite: false,
+					tongueControlledBy: index
+				}
+			))
 		});
 		
-		return user_polls;
-	}
-	
-	getChannels() {
-		var user_channels = [];
-		this.channels.forEach((channel) => {
-			user_channels.push({id: channel.id, 
-							name: channel.name, 
-							canRead: (channel.canRead & (1 << this.pindex)) !== 0,
-							canWrite: (channel.canWrite & (1 << this.pindex)) !== 0,
-							color: channel.color
-						});
+		this.channels.set("Система", {
+			id: "Система",
+			canXRayRead: (1 << this.playerCount) - 1,
+			canRead: 0,
+			canAnonymousRead: 0,
+			color: "#0000ff",
+			players: Array(this.playerCount).fill().map((_, index) => (
+				{
+					id: index,
+					canWrite: false, 
+					canXRayWrite: false, 
+					canAnonymousWrite: false,
+					tongueControlledBy: index
+				}
+			))
 		});
-
-		return user_channels;
 	}
 	
-	getInfoForUser() {
-		return {status: this.status, 
-			stage: {id: this.cnt_stages, 
-					name: this.stage}, 
-			channels: this.getChannels(), 
-			polls: this.getPolls(),
-			duration: this.duration};	
-	}
-	
-	initPolls(data) {
-		var polls = [];
+	sendVote(data, onSuccess, onError) {
 
-		data.polls.forEach((poll) => {
+		let poll = this.polls.get(data.pollName);
+		let voter = poll.players.find(item => (item.id === data.controlledPindex));
+		
+		if (voter.controlledBy !== data.pindex) {
+			console.log("У Игрока " + data.pindex + " нет разрешения голосовать в опросе " + pollName + " от лица Игрока " + data.controlledPindex);
+			onError();
+		}		
+		
+		let names = "";
+		for (const candidate of data.selected) {
+			let target = poll.players.find(item => (item.id === candidate))
+			target.inVotes |= 1 << voter.id;
+			voter.outVotes |= 1 << target.id;
 			
-			polls.push({id: this.cnt_polls++, 
-						name: poll.id, 
-						description: poll.description,
-						candidates: poll.candidates,
-						can_vote: poll.can_vote,
-						min_selection: poll.min_selection,
-						max_selection: poll.max_selection,
-						self_use: poll.self_use,
-						table: Array(30).fill(0)
-			});
+			if (names !== "")
+				names += ", ";
+				
+			names += "Игрок #" + candidate;
+		}
+		
+		if (poll.channel) {
+			let new_message = {
+				id: this.messages.length,
+				channel: this.channels.get("Система"),
+				username: this.username,
+				stage: data.stage,
+				pindex: -1,
+				canRead: 0,
+				canXRayRead: poll.channel.canRead | poll.channel.canXRayRead,
+				canAnonymousRead: 0,
+				XRayMessage: false,
+				AnonymousMessage: false,
+				date: new Date(),
+				text: "Игрок #" + data.controlledPindex + " проголосовал за " + names + " в \"" + data.pollName + "\"",
+			};
+			
+			this.messages.push(new_message);
+			
+			let output_message = this.#getOutputMessage(new_message, data.pindex);
+					
+			if (output_message)
+				this.onReceiveMessage(output_message);
+		}
+		
+		for (const candidate of data.selected) {
+			let target = poll.players.find(item => (item.id === candidate))
+			this.onChangePoll([{
+				pollName: data.pollName,
+				stage: data.stage,
+				candidateId: candidate,
+				votes: this.#bitCount(target.inVotes)
+			}]);
+		}
+		
+		onSuccess();
+	}
+	
+	#getOutputMessage(message, pindex) {
+		
+		let output_message = {
+			id: message.id,
+			text: message.text,
+			channel_name: message.channel.id,
+			channel_color: message.channel.color,
+			stage: message.stage,
+			date: message.date	
+		};
+		
+		if (message.channel.id === "Система") {
+			
+			if ((message.canRead | message.canAnonymousRead | message.canXRayRead) & (1 << pindex)) {
+				output_message.username = "Система";
+				output_message.imageText = "";
+				return output_message;	
+			}
+			
+			return null;
+		}
+		
+		if ((message.canXRayRead & (1 << pindex)) || (((message.canRead | message.canAnonymousRead) & (1 << pindex)) && message.XRayMessage)) {
+			output_message.username = message.username;
+			output_message.imageText = "";
+			return output_message;
+		} 
+		
+		if ((message.canAnonymousRead & (1 << pindex)) || ((message.canRead & (1 << pindex)) && message.AnonymousMessage)) {
+			output_message.username = "Неизвестный";
+			output_message.imageText = "?";
+			return output_message;
+		}
+		
+		if (message.canRead & (1 << pindex)) {
+			output_message.username = "Игрок #" + message.pindex;
+			output_message.imageText = String(message.pindex);
+			return output_message;
+		}
+		
+		return null;
+	}
+	
+	sendMessage(data, onSuccess, onError) {	
+		
+		let channel = this.channels.get(data.channelName);
+		let channel_player = channel.players[data.controlledPindex];
+		
+		if ((channel_player.canXRayWrite | channel_player.canWrite | channel_player.canAnonymousWrite) === false) {
+			console.log("У Игрока " + data.pindex + " нет разрешения писать в канал " + channelName);
+			onError();
+			return;
+		}
+		
+		if (channel_player.tongueControlledBy !== data.pindex) {
+			console.log("У Игрока " + data.pindex + " нет разрешения писать в канал " + channelName + " от лица Игрока " + data.controlledPindex);
+			onError();
+			return;
+		}
+		
+		let new_message = {
+			id: this.messages.length,
+			channel: channel,
+			username: this.username,
+			stage: data.stage,
+			pindex: data.controlledPindex,
+			canRead: channel.canRead,
+			canXRayRead: channel.canXRayRead,
+			canAnonymousRead: channel.canAnonymousRead,
+			XRayMessage: channel_player.canXRayWrite,
+			AnonymousMessage: channel_player.canAnonymousWrite & !channel_player.canWrite & !channel_player.canXRayWrite,
+			date: new Date(),
+			text: data.text,
+		};
+		
+		this.messages.push(new_message);
+		
+		let output_message = this.#getOutputMessage(new_message, data.pindex);
+		
+		if (output_message)
+			this.onReceiveMessage(output_message);
+		
+		onSuccess();
+	}
+	
+	getMessages(pindex, onComplete) {
+		let messages = this.messages.map(message => this.#getOutputMessage(message, pindex)).filter(message => message !== null)
+		let stages = Object.entries(Object.groupBy(messages, item => item.stage))
+						.map(entry => ({name: entry[0], messages: entry[1], rowMessages: []}));
+		
+		onComplete({
+			pindex: pindex,
+			stages: stages
 		});
+	}
+	
+	#bitCount(num) {
+		
+		if (!num)
+			return 0;
+		
+		let count = 0;
+		while(num !== 0) {
+			num = (num & (num - 1));
+			count++;
+		}
+		
+		return count;
+	}
 
-		this.polls = polls;
+	#getPolls() {
+		let output_polls = [];
+		
+		if (this.status === "finished")
+			return [];
+		
+		for (const poll of this.polls.values()) {
+			for (let i = 0; i < this.playerCount; i++) {	
+				if (poll.players[i].controlledBy === this.pindex && poll.players[i].canVote) {
+					
+					output_polls.push({
+						name: poll.id,
+						candidates: poll.players.map(
+							(player, index) => ({
+								id: index,
+								name: player.name,
+								votes: this.#bitCount(player.inVotes),
+								blocked: (poll.players[i].outVotes !== 0) || ((poll.players[i].candidates & (1 << index)) === 0),
+								selected: (player.inVotes & (1 << i)) !== 0,
+							})
+						),
+						description: poll.description,
+						min_selection: poll.minSelection,
+						max_selection: poll.maxSelection,
+						showVotes: poll.showVotes,
+						controlledPindex: i
+					})
+				}	
+			}
+		}
+		
+		return output_polls;
+		/*
+		private long id;
+
+		private String name;
+
+		private boolean blocked;
+
+		private long votes;
+
+		private boolean selected;
+		 */
+		
+		/*
+		private String name;
+
+		private List<DCandidate> candidates;
+
+		private String description;
+
+		private long min_selection;
+
+		private long max_selection;
+
+		private boolean showVotes;
+
+		private short controlledPindex;
+		*/
+	}
+	
+	#getChannels() {
+		let output_channels = [];
+		
+		for (const channel of this.channels.values()) {
+			let pindexes = [];
+			
+			for (let i = 0; i < this.playerCount; i++) {
+				if (channel.players[i].tongueControlledBy === this.pindex
+					 && (channel.players[i].canWrite | channel.players[i].canXRayWrite | channel.players[i].canAnonymousWrite)) {
+					pindexes.push(i);
+				}	
+			}
+			
+			output_channels.push(
+				{
+					name: channel.id,
+					canRead: (channel.canRead | channel.canXRayRead | channel.canAnonymousRead) & (1 << this.pindex),
+					color: channel.color,
+					pindexes: pindexes
+				}
+			);
+		}
+		
+		return output_channels;
+	}
+		
+	#getState() {
+		return 	{
+			polls: this.#getPolls(),
+			channels: this.#getChannels(),
+			status: this.status,
+			duration: (this.status === "pause" || this.duration === -1)? this.duration : (this.duration - (new Date() - this.date)),
+			pindex: this.pindex,
+			version: this.version,
+			stage: this.currentStage
+		};
+	}
+	
+	getState(onComplete) {
+		
+		onComplete(this.#getState());
+	}
+	
+	start(onComplete) {
+		try{
+			var config = JSON.parse(localStorage.room_config);
+		} catch(err) {
+			console.log("Конфигурация не является обьектом json");
+			return;
+		}
+
+		let config_room_props = JSON.parse(document.getElementById("config_room_props").value);
+		let checker = new ConfigChecker(config_room_props);
+
+		if (!checker.checkConfig(config)) {
+			console.log("Конфигурация не корректна");
+			return;
+		}
+		
+		this.version++;
+
+		this.onChangeStatus("initializing", -1, this.version);
+		
+		onComplete(config);	
+	}
+	
+	getPollResults(onComplete) {
+		
+		let poll_results = [];
+		
+		for (let poll of this.polls.values()) {
+			poll_results.push({
+				id: poll.id,
+				table: poll.players.map(player => player.outVotes)
+			});
+		}
+		
+		this.duration = -1;
+		this.version++;
+		
+		this.onChangeStatus("processing", -1, this.version);
+		
+		onComplete(poll_results);
+	}
+	
+	#setState(data) {
+		this.currentStage = data.stage;
+		this.status = (data.finish)? "finished" : "run";
+		this.duration = data.duration;
+		this.date = new Date();
+		this.version++;
+
+		for (const channel_state of data.channelStates) {
+			let channel = this.channels.get(channel_state.id);
+
+			channel.canRead = channel_state.readers
+				.filter(player => player.canRead)
+				.reduce((accum, player) => (accum | (1 << player.earsControlledBy)), 0);
+				
+			channel.canXRayRead = channel_state.readers
+				.filter(player => player.canXRayRead)
+				.reduce((accum, player) => (accum | (1 << player.earsControlledBy)), 0);
+					
+			channel.canAnonymousRead = channel_state.readers
+				.filter(player => player.canAnonymousRead)
+				.reduce((accum, player) => (accum | (1 << player.earsControlledBy)), 0);
+
+			channel.players = channel_state.readers.map(
+				(player) => ({
+					id: player.id,
+					tongueControlledBy: player.tongueControlledBy,
+					canWrite: player.canWrite,
+					canXRayWrite: player.canXRayWrite,					
+					canAnonymousWrite: player.canAnonymousWrite			
+				})
+			);
+		}
+
+		for (const poll_state of data.pollStates) {
+			let poll = this.polls.get(poll_state.id);
+			
+			poll.players = poll_state.candidates.map(
+				player => ({
+					id: player.id,
+					name: player.name,
+					controlledBy: player.controlledBy,
+					canVote: player.canVote,
+					candidates: player.candidates,
+					inVotes: 0,
+					outVotes: 0
+				})
+			);
+		}
+		
+		//console.log(JSON.stringify(this.channels.get("Мафия")));
+		//console.log(JSON.stringify(this.polls.get("Ночное голосование")));
+
+		for (let i = 0; i < data.messages.length; i++) {
+			if (data.messages[i].trim() === "")
+				continue;
+			
+			let new_message = {				
+				id: this.messages.length,
+				channel: this.channels.get("Система"),
+				username: null,
+				stage: this.currentStage,
+				pindex: -1,
+				canXRayRead: 1 << i,
+				canRead: 0,
+				canAnonymousRead: 0,
+				XRayMessage: false,
+				AnonymousMessage: false,
+				date: new Date(),
+				text: data.messages[i]
+			};
+
+			this.messages.push(new_message);
+			
+			if (i === this.pindex) {
+				let output_message = this.#getOutputMessage(new_message, this.pindex);
+				
+				if (output_message)
+					this.onReceiveMessage(output_message);
+			}
+		}
 	}
 	
 	init(data) {
-	
-		this.initPolls(data);
+		if (this.status !== "waiting")
+			return;
 		
-		var channels = [];
+		for (const channel of data.channels) {
+			let new_channel = {
+				id: channel.id,
+				color: channel.color
+			}
+			this.channels.set(channel.id, new_channel);
+		}
 		
-		data.channels.forEach((channel, index) => {
-			channels.push({id: index, 
-						name: channel.id, 
-						canRead: channel.canRead,
-						canWrite: channel.canWrite,
-						color: channel.color
-			});
-		});
+		this.channels.get("Лобби").canXRayRead = 0;
+		this.channels.get("Лобби").players.forEach(player => {player.canWrite = false});
 		
-		this.channels = channels;
+		for (const poll of data.polls) {
+			let new_poll = {
+				id: poll.id,
+				description: poll.description,
+				minSelection: poll.min_selection,
+				maxSelection: poll.max_selection,
+				channel: this.channels.get(poll.channel),
+				showVotes: poll.showVotes
+			}
+			this.polls.set(poll.id, new_poll);
+		}
 		
-		this.stages.push({id: this.cnt_stages++, name: data.stage, messages: []});
-		this.stage = data.stage;
-		this.duration = data.duration;
-		this.status = "run";
+		this.#setState(data.initState);
 		
-		this.onChangeStatus(this.getInfoForUser());
-		
-		data.messages.forEach((message, pindex) => {
-			if (message != "")
-				this.sendMessageFromSystem(message, pindex); 
-		});
+		this.onChangeState(this.#getState());
 	}
 	
 	update(data) {
-		
-		this.initPolls(data);
-		data.channels.forEach((new_channel) => {	
-			var old_channel = this.channels.find((channel) => channel.name === new_channel.id)		
-			old_channel.canRead = new_channel.canRead;
-			old_channel.canWrite = new_channel.canWrite;
-		});
-			
-		if (data.toPast) {
-			this.stages.pop();
-			this.stages.pop();
-		} 
-			
-		this.stages.push({id: this.cnt_stages++, name: data.stage, messages: []});	
-		this.stage = data.stage;
-		this.duration = data.duration;
-			
-		
-		if (data.win_fractions.length) {
-			this.status = "finished";
-		} else {
-			this.status = "run";
-		}
-		
-		if (data.toPast) {
-			var info = this.getInfoForUser();
-			info.toPast = true;
-			this.onChangeStatus(info);
-		}
-		else {
-			this.onChangeStatus(this.getInfoForUser());	
-		}
-			
-		data.messages.forEach((message, pindex) => {
-			if (message != "")
-				this.sendMessageFromSystem(message, pindex); 
-		});
-	}
-	
-	toPast(data) {
-		data.toPast = true;
-		this.update(data);
-	}
-	
-	getPollResults() {
-		this.status =  "proccesing";
-		this.onChangeStatus({status: "proccesing"});
-		var poll_results = [];
-		
-		this.polls.forEach((poll) => {
-			poll_results.push({id: poll.name, table: poll.table});	
-		});
-		
-		return poll_results;
-	}
-	
-	sendVote(id, selected) {
-		var poll = this.polls.find((poll) => poll.id === id);
-		
-		selected.forEach((option) => {
-			poll.table[this.pindex] |= 1 << option;
-		});
-	}
-	
-	sendMessageFromSystem(text, pindex) {	
-		this.cnt_messages++; 
-		this.stages.at(-1).messages.push({id: this.cnt_messages, 
-								text: text, 
-								username: "Система", 
-								channel_name: "Система",
-								channel_color: "#0000ff",
-								date: new Date(),
-								canRead: 1 << pindex});
+		if (this.status === "finished")
+			return;
 
-		if (this.pindex === pindex) {
-			this.onReceiveMessage({id: this.cnt_messages, 
-							text: text, 
-							username: "Система", 
-							channel_name: "Система",
-							channel_color: "#0000ff",
-							date: new Date()});
+		this.#setState(data);
+		
+		this.onChangeState(this.#getState());
+	}
+		
+	getPlayers(onComplete) {
+		let players = [];
+		
+		for (let i = 0; i < this.playerCount; i++) {
+			if (i === 0) {
+				players.push({
+					username: this.username,
+					token: 0,
+					version: this.player_version,
+					online: true, 
+					pindex: this.pindex
+				});	
+			} else {
+				players.push({
+					username: null,
+					token: i,
+					version: 1,
+					online: null, 
+					pindex: null
+				});					
+			}
 		}
+		onComplete(players);
+	}	
+	
+	pause() {
+		
+		if (this.status !== "run")
+			return;
+		
+		this.status = "pause";
+		this.duration = this.duration - (new Date() - this.date);
+		this.version++;
+		
+		this.onChangeStatus("pause", this.duration, this.version);
 	}
 	
-	sendMessage(message) {	
+	unpause() {
 		
-		this.cnt_messages++; 
-		var channel = this.channels.find((channel) => channel.id === message.channel_id);
+		if (this.status !== "pause")
+			return;
 		
-		this.stages.at(-1).messages.push({id: this.cnt_messages, 
-								text: message.text, 
-								username: this.pindex, 
-								channel_name: channel.name,
-								channel_color: channel.color,
-								date: new Date(),
-								canRead: channel.canRead});
+		this.status = "run";
+		this.date = new Date();
+		this.version++;
 		
-		this.onReceiveMessage({id: this.cnt_messages, 
-							text: message.text, 
-							username: this.pindex, 
-							channel_name: channel.name,
-							channel_color: channel.color,
-							date: new Date()});
+		this.onChangeStatus("run", this.duration, this.version);
 	}
 	
-	useMagic(spell, pindex) {
+	useMagic(spell, _, pindex) {
+		
 		if (spell === "imperius") {
-			console.log("MAGIC " + this.pindex);
 			this.pindex = pindex;
-			this.onChangeStatus({pindex: this.pindex, polls: this.getPolls(), channels: this.getChannels()});
+			this.player_version++;
+			
+			this.onChangePlayer({
+				username: this.username,
+				token: 0,
+				version: this.player_version,
+				online: true, 
+				pindex: this.pindex
+			});	
+			
+			this.loadStateAndMessages({
+				username: this.username,
+				token: 0,
+				version: this.player_version,
+				online: true, 
+				pindex: this.pindex
+			});
 		}
 	}
 	
-	getMessages() {
-		console.log(this.channels);
-		console.log(this.stages);
-							
-		return this.stages.map((stage) => {
-			return {id: stage.id, 
-					name: stage.name, 
-					messages: stage.messages
-							.filter((message) => (message.canRead & (1 << this.pindex)))
-							.map((message) => {
-								return {id: message.id, 
-										text: message.text, 
-										username: message.username, 
-										channel_name: message.channel_name,
-										channel_color: message.channel_color,
-										date: message.date
-									};
-								}
-							)	
-			};
-		});
+	tryExit() {
+		window.location.href = "/public/rooms";
 	}
 }
 

@@ -328,7 +328,15 @@ class CreateForm extends React.Component {
 		formData.set("limit", count);
 		formData.set("mode", this.state.mode);
 		
-		let _this = this;
+		if (this.state.mode === "dev") {
+			formData.delete("name");
+			formData.delete("description");
+			formData.delete("config");
+			localStorage.room_config = JSON.stringify(config);
+			window.location.href = "/public/sandbox?" + new URLSearchParams(formData);	
+			return;
+		}
+		
 		fetch("/api/rooms/create", {
 			headers: {
 				"X-CSRF-TOKEN": csrf_token,
@@ -337,15 +345,15 @@ class CreateForm extends React.Component {
 			method: "post",
 			body: new URLSearchParams(formData)
 		}).then(
-			function(response) {
+			(response) => {
 				
 				if (response.status !== 200) {
-					_this.setState({error: "Количество комнат уже достигло своего лимита."});
+					this.setState({error: "Количество комнат уже достигло своего лимита."});
 					return;
 				}
 				
 				response.text().then(
-					function(room_id) {
+					(room_id) => {
 						window.location.href = "/public/game/" + room_id;	
 					}
 				);

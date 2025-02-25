@@ -13,15 +13,6 @@ class App extends React.Component {
 
 	render() {
 		return <div className="flex flex-col min-h-screen p-0 dark:text-white dark:bg-gray-950">
-			<div className = "bg-gray-100"></div>
-			<div className = "bg-gray-200"></div>
-			<div className = "bg-gray-300"></div>
-			<div className = "bg-gray-400"></div>
-			<div className = "bg-gray-500"></div>
-			<div className = "bg-gray-600"></div>
-			<div className = "bg-gray-700"></div>
-			<div className = "bg-gray-800"></div>
-			<div className = "bg-gray-900"></div>
 			<Header></Header>
 			<BrowserRouter>
 				<Routes>
@@ -29,6 +20,7 @@ class App extends React.Component {
 					<Route path="public/registration" element={<RegistrationPage />} />
 					<Route path="public/rooms" element={<RoomsPage />} />
 					<Route path="public/game/:room_id" element={<GamePage />} />
+					<Route path="public/sandbox" element={<GamePage />} />
 				</Routes>
 			</BrowserRouter>
 			<Footer></Footer>

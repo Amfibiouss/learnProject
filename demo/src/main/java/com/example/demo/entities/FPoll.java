@@ -29,8 +29,6 @@ public class FPoll {
 	
 	private long minSelection;
 	
-	private boolean selfUse;
-	
 	private boolean showVotes;
 	
 	@Override
@@ -90,14 +88,6 @@ public class FPoll {
 
 	public void setDescription(String description) {
 		this.description = description;
-	}
-
-	public boolean isSelfUse() {
-		return selfUse;
-	}
-
-	public void setSelfUse(boolean self_use) {
-		this.selfUse = self_use;
 	}
 
 	public long getMaxSelection() {

@@ -348,7 +348,8 @@ class Engine {
 								this.updateStatuses(target, i, group.addStatuses, group.removeStatuses, true);
 							}
 							
-							this.outputBuilder.addMessage(i, this.formatText(group.text, user, target, i));
+							if (group.text)
+								this.outputBuilder.addMessage(i, this.formatText(group.text, user, target, i));
 						}
 					}
 				}
@@ -428,7 +429,7 @@ class Engine {
 		for (const ability of this.config.abilities) {
 			let poll_result = poll_results.find(item => item.id === ability.id);
 			
-			if (!poll_result)
+			if (!poll_result && ability.rule !== "start")
 				continue;
 			
 			let candidate_mask = this.getMaskFromSelector(ability.candidates);

@@ -108,8 +108,7 @@ public class GameController {
 	@PostMapping("pause")
 	public void pause(Principal principal,
 							HttpServletResponse response,
-							@PathVariable long room_id,
-							@RequestParam long interval) {
+							@PathVariable long room_id) {
 		
 		if (dAOService.getRoomIdByCreator(principal.getName()) != room_id) {
 			response.setStatus(403);
