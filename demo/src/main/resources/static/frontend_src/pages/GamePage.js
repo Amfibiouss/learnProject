@@ -5,6 +5,7 @@ import Button from "../common_components/Button.js";
 import PseudoServer from "../servers/PseudoServer.js";
 import RealServer from "../servers/RealServer.js";
 import Engine from "../engine/Engine.js";
+import ConfigChecker from "../engine/ConfigChecker.js";
 
 
 class GamePage extends React.Component {
@@ -12,7 +13,7 @@ class GamePage extends React.Component {
 	constructor(props) {
 	    super(props);
 		
-		let room_id = document.getElementById("room_id").value;
+		let room_id = Number(document.getElementById("room_id").value);
 		let mode = document.getElementById("mode").value;
 		let isHost = document.getElementById("isHost").value === "true";
 		let server;
@@ -473,9 +474,26 @@ class GamePage extends React.Component {
 					stopTime={this.stopTime}
 					toPast={this.toPast}
 					onStart={() => {
-						this.state.server.start((config) => {
-							var init_data = this.state.engine.start(config);
-							this.state.server.init(init_data);
+						try{
+							var config = JSON.parse(localStorage.room_config);
+						} catch(err) {
+							console.log("Конфигурация не является обьектом json");
+							return;
+						}
+
+						let config_room_props = JSON.parse(document.getElementById("config_room_props").value);
+						let checker = new ConfigChecker(config_room_props);
+
+						if (!checker.checkConfig(config)) {
+							console.log("Конфигурация не корректна");
+							return;
+						}
+						
+						const initData = this.state.engine.firstPartStart(config);
+						
+						this.state.server.init(initData, () => {
+							const init_state = this.state.engine.secondPartStart([]);
+							this.state.server.update(init_state);
 						});
 					}}>
 			</TopBar>
@@ -1037,7 +1055,7 @@ class InputForm extends React.Component {
 		
 		let formData = new FormData(event.target);
 		let channelName = formData.get("select_input_channel").split(":")[0];
-		let pindex = formData.get("select_input_channel").split(":")[1];
+		let pindex = Number(formData.get("select_input_channel").split(":")[1]);
 		let text = formData.get("input_text").trim();
 		
 		if (text === "") 

@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.demo.DAOService;
+import com.example.demo.configs.RoomInfoProperties;
 import com.example.demo.dto.DRoom;
 import com.example.demo.dto.DRooms;
 import com.example.demo.dto.player.DPlayer;
@@ -24,6 +25,9 @@ public class RoomsController {
 	
 	@Autowired
 	DAOService dAOService;
+	
+	@Autowired
+	RoomInfoProperties roomInfoProperties;
 	
 	
 	@GetMapping("")
@@ -56,11 +60,18 @@ public class RoomsController {
 			String name, 
 			String description, 
 			String mode, 
-			String config,
 			short limit) {
 		
+		if (name.length() > roomInfoProperties.getMax_name_length() 
+				|| description.length() > roomInfoProperties.getMax_description_length()
+				|| limit < roomInfoProperties.getMin_population() 
+				|| limit > roomInfoProperties.getMax_population()) {
+			response.setStatus(400);
+			return -1L;
+		}
+		
 		try {
-			dAOService.addRoom(name, description, principal.getName(), mode, config, limit);
+			dAOService.addRoom(name, description, principal.getName(), mode, limit);
 		} catch(Exception e) {
 			response.setStatus(503);
 			return -1L;

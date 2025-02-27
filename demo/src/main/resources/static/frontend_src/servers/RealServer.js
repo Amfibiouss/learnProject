@@ -1,5 +1,3 @@
-import ConfigChecker from "../engine/ConfigChecker.js";
-
 class RealServer {
 	
 	constructor(onReceiveMessage, 
@@ -10,6 +8,8 @@ class RealServer {
 				loadStateAndMessages, 
 				loadInitialInfo,
 				room_id) {
+					
+		this.playerCount = Number(document.getElementById("players_limit").value);
 		this.onReceiveMessage = onReceiveMessage;
 		this.onChangeState = onChangeState;
 		this.onChangeStatus = onChangeStatus;
@@ -140,44 +140,11 @@ class RealServer {
 		);
 	}
 	
-	start(onComplete) {
-		
-		
-		fetch("/api/room/" + this.room_id + "/init")
-		.then((response) => {
-				if (response.status !== 200) {
-					console.log("Не удалось запустить комнату");
-					return;
-				}
-				
-				response.text()
-				.then((data) => {
-					
-					try{
-						var config = JSON.parse(data);
-					} catch(err) {
-						console.log("Конфигурация не является обьектом json");
-						return;
-					}
-					
-					let config_room_props = JSON.parse(document.getElementById("config_room_props").value);
-					let checker = new ConfigChecker(config_room_props);
-					
-					if (!checker.checkConfig(config)) {
-						console.log("Конфигурация не корректна");
-						return;
-					}
-					
-					onComplete(config);		
-				});
-			}
-		);
-	}
 	
-	#sendState(data, operation) {
+	#sendState(data, operation, onComplete) {
 		
 		let url = "/api/room/" + this.room_id + "/";
-		url += operation;
+		url += operation + ((operation === "update")? "?" + new URLSearchParams({playerCount: this.playerCount}) : "");
 		
 		let csrf_token = document.getElementById("_csrf").value;
 				
@@ -193,15 +160,17 @@ class RealServer {
 				console.log("Сервер не принял данные о новом состоянии игры, отправленные движком");
 				return;
 			}
+			
+			onComplete();
 		});
 	}
 	
-	init(data) {
-		this.#sendState(data, "init");
+	init(initData, onComplete) {
+		this.#sendState(initData, "init", onComplete);
 	}
 	
 	update(data) {
-		this.#sendState(data, "update");
+		this.#sendState(data, "update", () => {});
 	}
 	
 	getPollResults(onComplete) {

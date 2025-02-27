@@ -25,10 +25,20 @@ public class RoomConfigProperties {
 	private long max_poll_description_length;
 	
 	private long max_time_name_length;
+	
+	private long max_stage_name_length;
 
 	private long min_stage_duration;
 	
 	private long max_stage_duration;
+
+	public long getMax_stage_name_length() {
+		return max_stage_name_length;
+	}
+
+	public void setMax_stage_name_length(long max_stage_name_length) {
+		this.max_stage_name_length = max_stage_name_length;
+	}
 
 	public long getMax_channels() {
 		return max_channels;

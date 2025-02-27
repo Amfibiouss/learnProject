@@ -37,7 +37,7 @@ public class PopulateDBService {
 			dAOService.createRoomForTests("Room #" + Long.toString(i), 
 								"This is Room #" + Long.toString(i),
 								usernames.get(i % usernames.size()),
-								"classic", "{}", (short) 12);
+								"classic", (short) 12);
 		}
 		
 	}

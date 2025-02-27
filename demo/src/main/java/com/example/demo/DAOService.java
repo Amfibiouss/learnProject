@@ -77,26 +77,14 @@ public class DAOService {
 	}
 	
 	public void initRoom(long room_id, DInitData initData) {
-		Map.Entry<List<DOutputMessage>, List<DOutputState> > results =
-				roomRepository.setState(room_id, initData.getInitState(), initData.getChannels(), initData.getPolls(), true);
+		roomRepository.initializeRoom(room_id, initData);
 		
-		List<DOutputMessage> output_messages = results.getKey();
-		List<DOutputState> output_states = results.getValue();
-		
-		List<UsernamePindex> players = playerRepository.getPlayersAndPindexes(room_id);
-		
-		for (UsernamePindex player : players) {
-			short pindex = player.getPindex();
-			String username = player.getUsername();
-			
-			wsHandler.send(output_messages.get(pindex), "message", username);
-			wsHandler.send(output_states.get(pindex), "state", username);
-		}
+		setStatus(room_id, "processing");
 	}
 	
 	public void updateRoom(long room_id, DInputState state) {
 		Map.Entry<List<DOutputMessage>, List<DOutputState> > results =
-				roomRepository.setState(room_id, state, null, null, false);
+				roomRepository.setState(room_id, state);
 		
 		if (state.isFinish()) {
 			closeRoomScheduler.schedule(() -> {closeRoom(room_id);}, Instant.now().plusSeconds(room_ttl_after_finish));
@@ -120,30 +108,12 @@ public class DAOService {
 	public DOutputState getState(long room_id, String name) {
 		return roomRepository.getState(room_id, name);
 	}
-
-	
-	public String getRoomConfig(long room_id) {
-
-    	String config = roomRepository.getRoomConfig(room_id);
-    	
-		setStatus(room_id, "initializing");
-		
-		try {
-		Thread.sleep(1000);
-		} catch(Exception e) {} 
-		
-		return config;
-	}
 	
 	public List<DPollResult> getPollResults(long room_id) {
 		List<DPollResult> results = pollRepository.getPollResults(room_id);
 		
 		setStatus(room_id, "processing");
-		
-		try {
-		Thread.sleep(1000);
-		} catch(Exception e) {} 
-		
+
 		return results;
 	}
 	
@@ -151,9 +121,8 @@ public class DAOService {
 			String description, 
 			String creator_username, 
 			String mode, 
-			String config,
 			short max_population) {
-    	long room_id = roomRepository.addRoom(name, description, creator_username, mode, config, max_population);
+    	long room_id = roomRepository.addRoom(name, description, creator_username, mode, max_population);
     	
     	closeRoomScheduler.schedule(() -> {closeRoom(room_id);}, Instant.now().plusSeconds(room_ttl));
 	}
@@ -162,9 +131,8 @@ public class DAOService {
 			String description, 
 			String creator_username, 
 			String mode, 
-			String config,
 			short max_population) {
-    	roomRepository.createRoomForTests(name, description, creator_username, mode, config, max_population);
+    	roomRepository.createRoomForTests(name, description, creator_username, mode, max_population);
 	}
     
     public DRooms getRooms(String status, int start) {

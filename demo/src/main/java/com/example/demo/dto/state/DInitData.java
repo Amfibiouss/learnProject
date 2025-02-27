@@ -9,16 +9,6 @@ public class DInitData {
 	private List<DInputPoll> polls;
 	
 	private List<DInputChannel> channels;
-	
-	private DInputState initState;
-
-	public DInputState getInitState() {
-		return initState;
-	}
-
-	public void setInitState(DInputState initState) {
-		this.initState = initState;
-	}
 
 	public List<DInputPoll> getPolls() {
 		return polls;

@@ -352,11 +352,12 @@ class CreateForm extends React.Component {
 		formData.set("limit", count);
 		formData.set("mode", this.state.mode);
 		
+		localStorage.room_config = JSON.stringify(config);
+		
 		if (this.state.mode === "dev") {
 			formData.delete("name");
 			formData.delete("description");
 			formData.delete("config");
-			localStorage.room_config = JSON.stringify(config);
 			window.location.href = "/public/sandbox?" + new URLSearchParams(formData);	
 			return;
 		}

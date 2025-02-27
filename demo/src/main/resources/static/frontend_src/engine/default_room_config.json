@@ -847,7 +847,7 @@
 				},
 				
 				{
-					"condition": "status(Главная личность)",
+					"condition": "target.status(Главная личность)",
 					"affect": [
 						{
 							"address": "status(Побочная личность/$target.name)",

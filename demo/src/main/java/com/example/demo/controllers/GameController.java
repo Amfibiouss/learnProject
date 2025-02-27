@@ -2,6 +2,7 @@ package com.example.demo.controllers;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.demo.DAOService;
+import com.example.demo.ValidateJsonService;
 import com.example.demo.dto.message.DInputMessage;
 import com.example.demo.dto.message.DMessages;
 import com.example.demo.dto.poll.DPollResult;
@@ -28,7 +30,10 @@ import jakarta.servlet.http.HttpServletResponse;
 public class GameController {
 	
 	@Autowired
-	DAOService dAOService;
+	private DAOService dAOService;
+	
+	@Autowired
+	private ValidateJsonService validateJsonService;
 	
 	@GetMapping("state")
 	public DOutputState getState(Principal principal,
@@ -48,7 +53,9 @@ public class GameController {
 	@PostMapping("send_message")
 	public void sendMessage(Principal principal, 
 							HttpServletResponse response,
-							@RequestBody DInputMessage message) {
+							@RequestBody String json) {
+		
+		DInputMessage message = validateJsonService.validateAndParse(json, DInputMessage.class, null);
 		
 		try {
 			dAOService.sendMessage(message, principal.getName());
@@ -63,7 +70,9 @@ public class GameController {
 	@PostMapping("send_vote")
 	public void sendVote(Principal principal, 
 							HttpServletResponse response,
-							@RequestBody DVote vote) {
+							@RequestBody String json) {
+		
+		DVote vote = validateJsonService.validateAndParse(json, DVote.class, null);
 		
 		try {
 			//throw new RuntimeException("Ошибка авторизации");
@@ -131,32 +140,20 @@ public class GameController {
 		dAOService.setStatus(room_id, "run");
 	}
 	
-	@GetMapping("init")
-	public String getConfig(Principal principal,
-							HttpServletResponse response,
-							@PathVariable long room_id) {
-		
-		if (dAOService.getRoomIdByCreator(principal.getName()) != room_id) {
-			response.setStatus(403);
-			return "";
-		}
-		
-		return dAOService.getRoomConfig(room_id);
-	}
-	
 	@PostMapping("init")
-	public void setInitialState(Principal principal, 
-								HttpServletResponse response,
-								@PathVariable long room_id,
-								@RequestBody DInitData initData) {
+	public void setInitData(Principal principal,
+							HttpServletResponse response,
+							@PathVariable long room_id,
+							@RequestBody String json) {
 		
 		if (dAOService.getRoomIdByCreator(principal.getName()) != room_id) {
 			response.setStatus(403);
 			return;
 		}
 		
+		DInitData initData = validateJsonService.validateAndParse(json, DInitData.class, null);
+		
 		dAOService.initRoom(room_id, initData);
-		return;
 	}
 	
 	@GetMapping("update")
@@ -176,12 +173,15 @@ public class GameController {
 	public void setNewState(Principal principal, 
 								HttpServletResponse response,
 								@PathVariable long room_id,
-								@RequestBody DInputState state) {
+								@RequestBody String json,
+								@RequestParam short playerCount) {
 		
 		if (dAOService.getRoomIdByCreator(principal.getName()) != room_id) {
 			response.setStatus(403);
 			return;
 		}
+		
+		DInputState state = validateJsonService.validateAndParse(json, DInputState.class, Map.of("playerCount", playerCount));
 		
 		dAOService.updateRoom(room_id, state);
 		return;

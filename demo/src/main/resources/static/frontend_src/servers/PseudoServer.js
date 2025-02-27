@@ -1,5 +1,3 @@
-import ConfigChecker from "../engine/ConfigChecker.js";
-
 class PseudoServer {
 	
 	constructor(onReceiveMessage, 
@@ -317,27 +315,39 @@ class PseudoServer {
 		onComplete(this.#getState());
 	}
 	
-	start(onComplete) {
-		try{
-			var config = JSON.parse(localStorage.room_config);
-		} catch(err) {
-			console.log("Конфигурация не является обьектом json");
+	init(initData, onComplete) {
+		if (this.status !== "waiting")
 			return;
+
+		for (const channel of initData.channels) {
+			let new_channel = {
+				id: channel.id,
+				color: channel.color
+			}
+			this.channels.set(channel.id, new_channel);
 		}
 
-		let config_room_props = JSON.parse(document.getElementById("config_room_props").value);
-		let checker = new ConfigChecker(config_room_props);
+		this.channels.get(this.init_room_props.lobby_channel_name).canXRayRead = 0;
+		this.channels.get(this.init_room_props.lobby_channel_name).players.forEach(player => {player.canWrite = false});
 
-		if (!checker.checkConfig(config)) {
-			console.log("Конфигурация не корректна");
-			return;
+		for (const poll of initData.polls) {
+			let new_poll = {
+				id: poll.id,
+				description: poll.description,
+				minSelection: poll.min_selection,
+				maxSelection: poll.max_selection,
+				channel: this.channels.get(poll.channel),
+				showVotes: poll.showVotes
+			}
+			this.polls.set(poll.id, new_poll);
 		}
 		
+		this.status = "processing";
 		this.version++;
 
-		this.onChangeStatus("initializing", -1, this.version);
+		this.onChangeStatus("processing", -1, this.version);
 		
-		onComplete(config);	
+		onComplete();	
 	}
 	
 	getPollResults(onComplete) {
@@ -366,6 +376,7 @@ class PseudoServer {
 		this.date = new Date();
 		this.version++;
 
+		
 		for (const channel_state of data.channelStates) {
 			let channel = this.channels.get(channel_state.id);
 
@@ -382,8 +393,8 @@ class PseudoServer {
 				.reduce((accum, player) => (accum | (1 << player.earsControlledBy)), 0);
 
 			channel.players = channel_state.readers.map(
-				(player) => ({
-					id: player.id,
+				(player, index) => ({
+					id: index,
 					tongueControlledBy: player.tongueControlledBy,
 					canWrite: player.canWrite,
 					canXRayWrite: player.canXRayWrite,					
@@ -396,8 +407,8 @@ class PseudoServer {
 			let poll = this.polls.get(poll_state.id);
 			
 			poll.players = poll_state.candidates.map(
-				player => ({
-					id: player.id,
+				(player, index) => ({
+					id: index,
 					name: player.name,
 					controlledBy: player.controlledBy,
 					canVote: player.canVote,
@@ -439,38 +450,6 @@ class PseudoServer {
 					this.onReceiveMessage(output_message);
 			}
 		}
-	}
-	
-	init(data) {
-		if (this.status !== "waiting")
-			return;
-		
-		for (const channel of data.channels) {
-			let new_channel = {
-				id: channel.id,
-				color: channel.color
-			}
-			this.channels.set(channel.id, new_channel);
-		}
-		
-		this.channels.get(this.init_room_props.lobby_channel_name).canXRayRead = 0;
-		this.channels.get(this.init_room_props.lobby_channel_name).players.forEach(player => {player.canWrite = false});
-		
-		for (const poll of data.polls) {
-			let new_poll = {
-				id: poll.id,
-				description: poll.description,
-				minSelection: poll.min_selection,
-				maxSelection: poll.max_selection,
-				channel: this.channels.get(poll.channel),
-				showVotes: poll.showVotes
-			}
-			this.polls.set(poll.id, new_poll);
-		}
-		
-		this.#setState(data.initState);
-		
-		this.onChangeState(this.#getState());
 	}
 	
 	update(data) {

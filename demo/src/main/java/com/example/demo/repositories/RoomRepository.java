@@ -29,6 +29,7 @@ import com.example.demo.dto.poll.DInputCandidate;
 import com.example.demo.dto.poll.DInputPoll;
 import com.example.demo.dto.poll.DInputPollState;
 import com.example.demo.dto.poll.DOutputPoll;
+import com.example.demo.dto.state.DInitData;
 import com.example.demo.dto.state.DInputState;
 import com.example.demo.dto.state.DOutputState;
 import com.example.demo.entities.FChannel;
@@ -78,7 +79,6 @@ public class RoomRepository {
     					String description, 
     					String creator_username, 
     					String mode, 
-    					String config,
     					short max_population) {
     	
     	Session session = sessionFactory.getCurrentSession();
@@ -98,7 +98,6 @@ public class RoomRepository {
     	room.setCreation_date(OffsetDateTime.now());
     	room.setMax_population(max_population);
     	room.setStatus("waiting");
-    	room.setConfig(config);
     	room.setVersion(0);
     	room.setPlayersCount((short) 1);
     	room.setCreator(creator);
@@ -185,7 +184,6 @@ public class RoomRepository {
 			String description, 
 			String creator_username, 
 			String mode, 
-			String config,
 			short max_population) {
     	Session session = sessionFactory.getCurrentSession();
     	FUser creator = session.get(FUser.class, creator_username, LockMode.PESSIMISTIC_WRITE);
@@ -197,7 +195,6 @@ public class RoomRepository {
     	room.setMax_population(max_population);
     	room.setStatus("waiting");
     	room.setClosed(true);
-    	room.setConfig(config);
     	room.setVersion(0);
     	room.setPlayersCount((short) 0);
     	room.setCreator(creator);
@@ -285,49 +282,55 @@ public class RoomRepository {
     	}
     }
     
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public void initializeRoom(long room_id, DInitData initData) {
+    	List<DInputChannel> channels = initData.getChannels();
+    	List<DInputPoll> polls = initData.getPolls();
+    	
+		Session session = sessionFactory.getCurrentSession();
+		FRoom room =  (FRoom) session.get(FRoom.class, room_id, LockMode.PESSIMISTIC_WRITE);
+		
+    	if (channels.size() > max_channels || polls.size() > max_polls)
+			throw new RuntimeException();
+		
+		if (!room.getStatus().equals("waiting"))
+			throw new RuntimeException();
+		
+		room.setVersion(room.getVersion() + 1);
+		
+		for (DInputChannel dchannel : channels) {
+			FChannel fchannel = new FChannel();
+			fchannel.setName(dchannel.getId());
+			fchannel.setRoom(room);
+			fchannel.setColor(dchannel.getColor());
+			session.persist(fchannel);
+		}
+		
+		for (DInputPoll dpoll : polls) {
+			FPoll fpoll = new FPoll();
+			fpoll.setName(dpoll.getId());
+			fpoll.setDescription(dpoll.getDescription());
+			fpoll.setRoom(room);
+			fpoll.setShowVotes(dpoll.isShowVotes());
+			fpoll.setMaxSelection(dpoll.getMax_selection());
+			fpoll.setMinSelection(dpoll.getMin_selection());
+			if (dpoll.getChannel() != null)
+				fpoll.setChannel(session.getReference(FChannel.class, new FChannelId(dpoll.getChannel(), room)));
+			
+			session.persist(fpoll);
+		}
+    }
+    
 	@Transactional(isolation = Isolation.READ_COMMITTED)
-	public Map.Entry< List<DOutputMessage>, List<DOutputState> > setState(long room_id, DInputState state, 
-			List<DInputChannel> channels, List<DInputPoll> polls, boolean init) {
+	public Map.Entry< List<DOutputMessage>, List<DOutputState> > setState(long room_id, DInputState state) {
 		
 		Session session = sessionFactory.getCurrentSession();
 		FRoom room =  (FRoom) session.get(FRoom.class, room_id, LockMode.PESSIMISTIC_WRITE);
 		
 		room.setVersion(room.getVersion() + 1);
 		
-		if (init) {
-			
-			if (channels.size() + 2 > max_channels || polls.size() > max_polls)
-				throw new RuntimeException();
-			
-			if (!room.getStatus().equals("initializing"))
-				throw new RuntimeException();
-			
-			for (DInputChannel dchannel : channels) {
-				FChannel fchannel = new FChannel();
-				fchannel.setName(dchannel.getId());
-				fchannel.setRoom(room);
-				fchannel.setColor(dchannel.getColor());
-				session.persist(fchannel);
-			}
-			
-			for (DInputPoll dpoll : polls) {
-				FPoll fpoll = new FPoll();
-				fpoll.setName(dpoll.getId());
-				fpoll.setDescription(dpoll.getDescription());
-				fpoll.setRoom(room);
-				fpoll.setShowVotes(dpoll.isShowVotes());
-				fpoll.setMaxSelection(dpoll.getMax_selection());
-				fpoll.setMinSelection(dpoll.getMin_selection());
-				if (dpoll.getChannel() != null)
-					fpoll.setChannel(session.getReference(FChannel.class, new FChannelId(dpoll.getChannel(), room)));
-				
-				session.persist(fpoll);
-			}
-			
-		} else {
-			if (!room.getStatus().equals("processing"))
-				throw new RuntimeException();
-		}
+		if (!room.getStatus().equals("processing"))
+			throw new RuntimeException();
 		
 		messageRepository.handleStageMessages(room_id);
 		
@@ -573,13 +576,8 @@ public class RoomRepository {
 		long duration = -1;
 		
 		switch(status) {
-			case "initializing":
-				if (!room.getStatus().equals("waiting"))
-					throw new RuntimeException();
-				break;
-				
 			case "processing":
-				if (!room.getStatus().equals("run"))
+				if (!room.getStatus().equals("run") && !room.getStatus().equals("waiting"))
 					throw new RuntimeException();
 				break;
 				
@@ -607,13 +605,6 @@ public class RoomRepository {
 		room.setVersion(room.getVersion() + 1);
 		
 		return Map.entry(duration, room.getVersion());
-	}
-	
-    @Transactional(isolation = Isolation.READ_COMMITTED, readOnly=true)
-	public String getRoomConfig(long room_id) {
-		Session session = sessionFactory.getCurrentSession();
-    	FRoom room =  (FRoom) session.get(FRoom.class, room_id);
-		return room.getConfig();
 	}
     
     @Transactional(isolation = Isolation.READ_COMMITTED, readOnly=true)

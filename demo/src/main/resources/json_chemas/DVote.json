@@ -1,0 +1,16 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"type": "object",
+	"properties": {
+		"selected": {
+			"type": "array", 
+			"maxLength": [(${poll_props.max_selection})],
+			"items": {"type": "integer"}
+		},
+		"roomId": {"type": "integer"},
+		"pollName": {"type": "string", "maxLength": [(${room_config_props.max_poll_name_length})]},
+		"stage": {"type": "string", "maxLength": [(${room_config_props.max_stage_name_length})]},
+		"pindex": {"type": "integer", "minimum": 0},
+		"controlledPindex": {"type": "integer", "minimum": 0}
+	}
+}

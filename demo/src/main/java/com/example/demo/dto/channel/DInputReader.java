@@ -1,8 +1,6 @@
 package com.example.demo.dto.channel;
 
 public class DInputReader {
-	private short id;
-	
 	private short tongueControlledBy;
 	
 	private short earsControlledBy;
@@ -18,14 +16,6 @@ public class DInputReader {
 	private boolean canAnonymousWrite;
 	
 	private boolean canXRayWrite;
-
-	public short getId() {
-		return id;
-	}
-
-	public void setId(short id) {
-		this.id = id;
-	}
 
 	public short getTongueControlledBy() {
 		return tongueControlledBy;

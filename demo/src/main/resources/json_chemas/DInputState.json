@@ -1,0 +1,87 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"type": "object",
+	"properties": {
+		"channelStates": 
+		{
+			"type": "array",
+			"maxItems": [(${room_config_props.max_channels})],
+			
+			"items": 
+			[{
+				"type": "object",
+				"properties": 
+				{
+					"id": {"type": "string", "maxLength": [(${room_config_props.max_channel_name_length})]},
+					
+					"readers": 
+					{
+						"type": "array",
+						"minItems": [(${playerCount})],
+						"maxItems": [(${playerCount})],
+						"items": [{
+							"type": "object",
+							"properties": {
+								"tongueControlledBy": {"type": "integer", "minimum": 0, "maximum": [(${playerCount - 1})]},
+								"earsControlledBy": {"type": "integer", "minimum": 0, "maximum": [(${playerCount - 1})]},
+								"canRead": {"type": "boolean"},
+								"canAnonymousRead": {"type": "boolean"},
+								"canXRayRead": {"type": "boolean"},
+								"canWrite": {"type": "boolean"},
+								"canAnonymousWrite": {"type": "boolean"},
+								"canXRayWrite": {"type": "boolean"}
+							}
+						}]
+					}
+				}
+			}]
+		},
+		
+		"pollStates": {
+			"type": "array",
+			"maxItems": [(${room_config_props.max_polls})],
+			"items": 
+			[{
+				"type": "object",
+				"properties": 
+				{
+					"id": {"type": "string", "maxLength": [(${room_config_props.max_poll_name_length})]},
+					
+					"candidates": 
+					{
+						"type": "array",
+						"minItems": [(${playerCount})],
+						"maxItems": [(${playerCount})],
+						"items": [{
+							"type": "object",
+							"properties": {
+								"name": {"type": "string", "maxLength": [(${poll_props.max_candidate_name_length})]},
+								"weight": {"type": "integer"},
+								"controlledBy": {"type": "integer", "minimum": 0, "maximum": [(${playerCount - 1})]},
+								"canVote": {"type": "boolean"},
+								"candidates": {"type": "integer"}
+							}
+						}]						
+					}
+				}
+			}]
+		},
+		
+		"messages": {
+			"type": "array",
+			"items": [{"type": "string", "maxLength": [(${message_props.max_system_message_length})]}]
+		},
+		
+		"finish": {"type": "boolean"},
+		"stage": {
+			"type": "string",
+			"maxLength": [(${room_config_props.max_stage_name_length})]
+		},
+		"duration": 
+		{
+			"type": "integer", 
+			"maximum": [(${room_config_props.max_stage_duration})], 
+			"minimum": [(${room_config_props.min_stage_duration})]
+		} 
+	}
+}

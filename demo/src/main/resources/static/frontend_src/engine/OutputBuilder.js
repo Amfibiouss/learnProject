@@ -57,7 +57,6 @@ class OutputBuilder {
 				let can_anonymous_write = this.expressionChecker.getMaskFromSelector(channel.canAnonymousWrite, context) > 0;
 					
 				reader_list.push({
-					id: i, 
 					tongueControlledBy: this.tongueControlledByMap.get(channel.id)[i],
 					earsControlledBy: this.earsControlledByMap.get(channel.id)[i],
 					canRead: can_read, 
@@ -109,7 +108,6 @@ class OutputBuilder {
 				
 				
 				candidate_list.push({
-					id: i, 
 					name: "Игрок #" + i,
 					weight: 1,
 					controlledBy: this.controlledByMap.get(ability.id)[i],
@@ -181,12 +179,17 @@ class OutputBuilder {
 		this.finish = true;
 	}
 	
-	build(context, init) {
+	getInitData() {
+		return {
+			polls: this.initPolls(),
+			channels: this.initChannels()
+		};
+	}
+ 	
+	build(context) {
 			
-		for (let i = 0; i < this.count; i++) {
-			//this.messages[i].sort();
+		for (let i = 0; i < this.count; i++) 
 			this.messages[i] = this.messages[i].join("");
-		}
 		
 		let state = {
 			pollStates: (this.finish)? [] : this.handlePolls(context),
@@ -195,14 +198,6 @@ class OutputBuilder {
 			finish: this.finish,
 			stage: context.time + " #" + context.day_counter + " @" + context.branch,
 			duration: this.config.times.find((time) => time.id === context.time).duration
-		}
-		
-		if (init) {
-			return {
-				polls: this.initPolls(),
-				channels: this.initChannels(),
-				initState: state
-			};
 		}
 		 
 		return state;	

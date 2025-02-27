@@ -1,8 +1,6 @@
 package com.example.demo.dto.poll;
 
 public class DInputCandidate {
-	private short id;
-	
 	private String name;
 	
 	private long weight;
@@ -43,14 +41,6 @@ public class DInputCandidate {
 
 	public void setCandidates(long candidates) {
 		this.candidates = candidates;
-	}
-
-	public short getId() {
-		return id;
-	}
-
-	public void setId(short id) {
-		this.id = id;
 	}
 
 	public String getName() {

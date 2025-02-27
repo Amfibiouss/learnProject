@@ -146,17 +146,17 @@ class Engine {
 		this.expressionChecker = new ExpressionChecker(this.config);
 		this.outputBuilder = new OutputBuilder(this.config, this.expressionChecker);
 		this.initialize();
+		return this.outputBuilder.getInitData();
 	}
 	
 	secondPartStart(poll_results) {
 		this.update(poll_results);
 
-		let output = this.outputBuilder.build(this.stateManager.getContext(), true);
-			
-		this.stateManager.setOutput(output.initState);
+		let output = this.outputBuilder.build(this.stateManager.getContext());
+		this.stateManager.setOutput(output);
 		return output;
 	}
-	
+	/*
 	start(config) {
 		this.config = config;	
 		this.stateManager = new StateManager(this.config);
@@ -171,14 +171,14 @@ class Engine {
 		this.stateManager.setOutput(output.initState);
 		return output;
 	}
-	
+	*/
 	toFuture(poll_results) {
 		this.stateManager.save();
 		this.outputBuilder = new OutputBuilder(this.config, this.expressionChecker);
 		
 		this.update(poll_results);	
 		
-		let output = this.outputBuilder.build(this.stateManager.getContext(), false);
+		let output = this.outputBuilder.build(this.stateManager.getContext());
 		this.stateManager.setOutput(output);
 		return output;
 	}

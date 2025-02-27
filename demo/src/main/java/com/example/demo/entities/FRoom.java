@@ -32,9 +32,6 @@ public class FRoom {
 	
 	private String mode;
 	
-	@Column(columnDefinition = "TEXT")
-	private String config;
-	
 	private Short max_population;
 	
 	private OffsetDateTime creation_date;
@@ -87,14 +84,6 @@ public class FRoom {
 
 	public void setCurrentStage(FStage currentStage) {
 		this.currentStage = currentStage;
-	}
-
-	public String getConfig() {
-		return config;
-	}
-
-	public void setConfig(String config) {
-		this.config = config;
 	}
 
 	public String getStatus() {
