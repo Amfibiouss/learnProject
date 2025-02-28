@@ -71,7 +71,7 @@ class GamePage extends React.Component {
 		
 		this.state.server.getMessages(this.pindex, (messages) => {
 			
-			if (_messages_load_id !==  this.messages_load_id)
+			if (_messages_load_id !== this.messages_load_id)
 				return;
 				
 			if (messages.pindex !== this.pindex) {
@@ -79,11 +79,11 @@ class GamePage extends React.Component {
 				return;
 			}
 			
-			messages.stages.forEach((stage) => {
-				stage.messages = stage.messages.concat(stage.rowMessages);
-			});
+			messages = messages.messages.filter(message => (message !== null));
 			
-			let stages = messages.stages;
+			let stages = Object.entries(Object.groupBy(messages, message => message.stage))
+						 .map(entry => ({name: entry[0], messages: entry[1]}));
+			
 			let cnt = 0;
 		
 			for (const stage of stages) {
@@ -939,18 +939,20 @@ class ChatWindow extends React.Component {
 
 	render() {
 		
+		//console.log(this.props.stages);
+		
 		let chatTab = this.props.stages.filter((stage) => (stage.messages.length > 0))
 					.map((stage) => <Stage key={stage.name} name={stage.name} messages={stage.messages}></Stage>);
 		
 		let current_stage = this.props.stages.find((item) => item.name === this.props.stage);
-		if ((!current_stage || current_stage.messages.length == 0) && this.props.stage) {
+		if ((!current_stage || current_stage.messages.length === 0) && this.props.stage) {
 
 			let stage_name = this.props.stage;
 			let index = stage_name.lastIndexOf("@");
 			if (index !== -1)
 				stage_name = stage_name.substring(0, index);
 			
-			chatTab.push(<div key={this.props.stage} className="text-center text-3xl">{stage_name}</div>);
+			chatTab.push(<div key={stage_name} className="text-center text-3xl">{stage_name}</div>);
 		}
 					
 		return <>

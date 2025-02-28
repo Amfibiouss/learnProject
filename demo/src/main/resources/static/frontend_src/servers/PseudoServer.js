@@ -215,12 +215,10 @@ class PseudoServer {
 	
 	getMessages(pindex, onComplete) {
 		let messages = this.messages.map(message => this.#getOutputMessage(message, pindex)).filter(message => message !== null)
-		let stages = Object.entries(Object.groupBy(messages, item => item.stage))
-						.map(entry => ({name: entry[0], messages: entry[1], rowMessages: []}));
 		
 		onComplete({
 			pindex: pindex,
-			stages: stages
+			messages: messages
 		});
 	}
 	

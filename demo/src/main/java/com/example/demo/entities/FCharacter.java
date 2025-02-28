@@ -1,6 +1,7 @@
 package com.example.demo.entities;
 import java.util.Objects;
 
+import jakarta.persistence.Basic;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -19,6 +20,10 @@ public class FCharacter {
 	@Id
 	private short pindex;
 	
+	@Basic(fetch = FetchType.LAZY)
+	@Column(columnDefinition = "TEXT")
+	private String messages;
+	
 	@Override
 	public int hashCode() {
 		return Objects.hash(room, pindex);
@@ -34,6 +39,14 @@ public class FCharacter {
 			return false;
 		FCharacter other = (FCharacter) obj;
 		return Objects.equals(room, other.room) && Objects.equals(pindex, other.pindex);
+	}
+
+	public String getMessages() {
+		return messages;
+	}
+
+	public void setMessages(String messages) {
+		this.messages = messages;
 	}
 
 	public FRoom getRoom() {

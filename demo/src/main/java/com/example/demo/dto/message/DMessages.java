@@ -1,11 +1,12 @@
 package com.example.demo.dto.message;
 
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonRawValue;
 
 public class DMessages {
 	private long pindex;
-	
-	private List<DStage> stages;
+
+	@JsonRawValue
+	private String messages;
 
 	public long getPindex() {
 		return pindex;
@@ -15,11 +16,11 @@ public class DMessages {
 		this.pindex = pindex;
 	}
 
-	public List<DStage> getStages() {
-		return stages;
+	public String getMessages() {
+		return messages;
 	}
 
-	public void setStages(List<DStage> stages) {
-		this.stages = stages;
+	public void setMessages(String messages) {
+		this.messages = messages;
 	}
 }

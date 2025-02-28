@@ -28,6 +28,8 @@ import com.example.demo.repositories.PollRepository;
 import com.example.demo.repositories.RoomRepository;
 import com.example.demo.repositories.UserRepository;
 import com.example.demo.views.UsernamePindex;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Component
 public class DAOService {
@@ -51,6 +53,9 @@ public class DAOService {
     UserRepository userRepository;
     
     @Autowired
+    ObjectMapper objectMapper;
+    
+    @Autowired
     ThreadPoolTaskScheduler closeRoomScheduler;
 	
 	@Value("${app.room.time_to_life}")
@@ -58,6 +63,18 @@ public class DAOService {
 	
 	@Value("${app.room.time_to_life_after_finish}")
 	private long room_ttl_after_finish;
+	
+	private void sendMessage(DOutputMessage message, String username, short pindex, long room_id) {
+		
+		try {
+			messageRepository.addJsonMessage(room_id, pindex, objectMapper.writeValueAsString(message));
+		} catch (JsonProcessingException e) {
+			//Ну этого точно никогда не произойдет!
+			throw new RuntimeException();
+		}
+		
+		wsHandler.send(message, "message", username);
+	}
 	
 	public void setStatus(long room_id, String status) {
 		Map.Entry<Long, Long> res = roomRepository.setRoomStatus(room_id, status);
@@ -99,7 +116,8 @@ public class DAOService {
 			short pindex = player.getPindex();
 			String username = player.getUsername();
 			
-			wsHandler.send(output_messages.get(pindex), "message", username);
+			sendMessage(output_messages.get(pindex), username, pindex, room_id);
+			//wsHandler.send(output_messages.get(pindex), "message", username);
 			wsHandler.send(output_states.get(pindex), "state", username);
 		}
 	}
@@ -200,10 +218,11 @@ public class DAOService {
 		if (message_id == null)
 			throw new RuntimeException("Ошибка авторизации");
 			
-		List<Map.Entry<String, DOutputMessage> > output_messages = messageRepository.getPlayersForMessage(input_message.getRoomId(), message_id);
+		List<Map.Entry<UsernamePindex, DOutputMessage> > output_messages = messageRepository.getPlayersForMessage(input_message.getRoomId(), message_id);
 		
-		for (Map.Entry<String, DOutputMessage> entry : output_messages) {
-			wsHandler.send(entry.getValue(), "message", entry.getKey());
+		for (Map.Entry<UsernamePindex, DOutputMessage> entry : output_messages) {
+			sendMessage(entry.getValue(), entry.getKey().getUsername(), entry.getKey().getPindex(), input_message.getRoomId());
+			//wsHandler.send(entry.getValue(), "message", entry.getKey());
 		}
 	}
 
@@ -246,10 +265,12 @@ public class DAOService {
 		if (message_id == null)
 			return;
 		
-		List<Map.Entry<String, DOutputMessage> > output_messages = messageRepository.getPlayersForMessage(vote.getRoomId(), message_id);
+		List<Map.Entry<UsernamePindex, DOutputMessage> > output_messages = messageRepository.getPlayersForMessage(vote.getRoomId(), message_id);
 		
-		for (Map.Entry<String, DOutputMessage> entry : output_messages) {
-			wsHandler.send(entry.getValue(), "message", entry.getKey());
+		for (Map.Entry<UsernamePindex, DOutputMessage> entry : output_messages) {
+			
+			sendMessage(entry.getValue(), entry.getKey().getUsername(), entry.getKey().getPindex(), vote.getRoomId());
+			//wsHandler.send(entry.getValue(), "message", entry.getKey());
 		}
 	}
 	

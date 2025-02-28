@@ -8,7 +8,6 @@ import java.util.Map;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
@@ -17,14 +16,12 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.demo.configs.RoomInitProperties;
 import com.example.demo.dto.message.DMessages;
 import com.example.demo.dto.message.DOutputMessage;
-import com.example.demo.dto.message.DStage;
 import com.example.demo.entities.FChannel;
 import com.example.demo.entities.FChannelFCharacterFStage;
 import com.example.demo.entities.FChannelFCharacterFStageId;
 import com.example.demo.entities.FChannelFStage;
 import com.example.demo.entities.FChannelFStageId;
 import com.example.demo.entities.FChannelId;
-import com.example.demo.entities.FCharacterFStage;
 import com.example.demo.entities.FMessage;
 import com.example.demo.entities.FPoll;
 import com.example.demo.entities.FPollId;
@@ -33,7 +30,6 @@ import com.example.demo.entities.FStage;
 import com.example.demo.entities.FStageId;
 import com.example.demo.entities.FUser;
 import com.example.demo.views.UsernamePindex;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Component
@@ -182,112 +178,15 @@ public class MessageRepository {
     	
     	if (user.getCharacter().getPindex() != pindex)
     		return null;
-    	
-    	List<FCharacterFStage> fstages = session.createSelectionQuery(
-    			"from FCharacterFStage s where s.character = :character", FCharacterFStage.class)
-				.setParameter("character", user.getCharacter())
-				.getResultList();
-    	
-    	List<DStage> dstages = new ArrayList<>(fstages.size());
-    	
-    	for (FCharacterFStage fstage : fstages) {
-    		DStage dstage = new DStage();
-    		dstage.setName(fstage.getStage().getName());
-    		
-    		String json_string = fstage.getJsonMessages();
-    		
-    		if (json_string != null) {
-    			dstage.setRowMessages(json_string);
-    			dstages.add(dstage);
-    			continue;
-    		}
-    		
-    		List<FMessage> messages = session.createSelectionQuery("from FMessage m join fetch m.channel where m.stage = :stage", FMessage.class)
-    				.setParameter("stage", fstage.getStage()).getResultList();
-    		
-    		dstage.setMessages(new ArrayList<>(messages.size()));
-    		
-    		for (FMessage fmessage : messages) {
-    			
-    			ReadAcess acess = ReadAcess.NoRead;
-        		long can_read = (fmessage.getXRayReadMask() | fmessage.getReadMask() | fmessage.getAnonymousReadMask()) & (1L << pindex);
-    			
-        		if ((fmessage.getXRayReadMask() & (1L << pindex)) != 0 || (can_read != 0 && fmessage.isXRayMessage())) {
-        			acess = ReadAcess.XRayRead;
-        		} else if ((fmessage.getAnonymousReadMask() & (1L << pindex)) != 0 || (can_read != 0 && fmessage.isAnonymousMessage())) {
-        			acess = ReadAcess.AnonymousRead;
-        		} else if ((fmessage.getReadMask() & (1L << pindex)) != 0) {
-        			acess = ReadAcess.Read;
-        		}
-    			
-        		if (acess != ReadAcess.NoRead) {
-	        		DOutputMessage dmessage = getMessage(fmessage, fmessage.getChannel().getName(), fmessage.getStage().getName(),
-	        				(fmessage.getUser() != null)? fmessage.getUser().getUsername() : null, fmessage.getPindex(), fmessage.getChannel().getColor(), acess);
-	        		
-	        		dstage.getMessages().add(dmessage);
-        		}
-    		}
-    		
-    		dstages.add(dstage);
-    	}
+
+    	String json_messages = "[" + user.getCharacter().getMessages() + "null]";
     	
     	DMessages messages = new DMessages();
     	messages.setPindex(pindex);
-    	messages.setStages(dstages);
+    	messages.setMessages(json_messages);
     	
     	return messages;
     }
-	
-	@Transactional(isolation = Isolation.READ_COMMITTED, propagation = Propagation.MANDATORY)
-	public void handleStageMessages(long room_id) {
-		
-		Session session = sessionFactory.getCurrentSession();
-		FRoom room =  session.get(FRoom.class, room_id);
-		FStage fstage = room.getCurrentStage();
-		
-		List<FMessage> messages = session.createSelectionQuery("from FMessage m join fetch m.channel where m.stage = :stage", FMessage.class)
-				.setParameter("stage", fstage).getResultList();
-		
-    	List<FCharacterFStage> characters = session.createSelectionQuery("from FCharacterFStage cs where cs.stage = :stage", FCharacterFStage.class)
-				.setParameter("stage", fstage).getResultList();
-		
-		for (FCharacterFStage character : characters) {
-			StringBuffer result_string = new StringBuffer("[");
-			short pindex = character.getCharacter().getPindex();
-			
-			for (FMessage fmessage : messages) {
-				
-    			ReadAcess acess = ReadAcess.NoRead;
-        		long can_read = (fmessage.getXRayReadMask() | fmessage.getReadMask() | fmessage.getAnonymousReadMask()) & (1L << pindex);
-    			
-        		if ((fmessage.getXRayReadMask() & (1L << pindex)) != 0 || (can_read != 0 && fmessage.isXRayMessage())) {
-        			acess = ReadAcess.XRayRead;
-        		} else if ((fmessage.getAnonymousReadMask() & (1L << pindex)) != 0 || (can_read != 0 && fmessage.isAnonymousMessage())) {
-        			acess = ReadAcess.AnonymousRead;
-        		} else if ((fmessage.getReadMask() & (1L << pindex)) != 0) {
-        			acess = ReadAcess.Read;
-        		}
-    			
-        		if (acess != ReadAcess.NoRead) {
-	        		DOutputMessage dmessage = getMessage(fmessage, fmessage.getChannel().getName(), fmessage.getStage().getName(),
-	        				(fmessage.getUser() != null)? fmessage.getUser().getUsername() : null, fmessage.getPindex(), fmessage.getChannel().getColor(), acess);
-	    			
-	    			try {
-	    				result_string.append(objectMapper.writeValueAsString(dmessage)).append(',');
-					} catch (JsonProcessingException e) {
-						throw new RuntimeException();
-					}
-        		}
-			}
-			
-			if (result_string.charAt(result_string.length() - 1) == ',') 
-				result_string = result_string.deleteCharAt(result_string.length() - 1);
-			
-			result_string.append(']');
-			
-			character.setJsonMessages(result_string.toString());
-		}
-	}
 
 	@Transactional(isolation = Isolation.READ_COMMITTED, propagation = Propagation.MANDATORY)
 	public List<DOutputMessage> handleSystemMessages(
@@ -322,7 +221,7 @@ public class MessageRepository {
 	}
 	
 	@Transactional(isolation = Isolation.READ_COMMITTED)
-	public List<Map.Entry<String, DOutputMessage> > getPlayersForMessage(long room_id, long message_id) {
+	public List<Map.Entry<UsernamePindex, DOutputMessage> > getPlayersForMessage(long room_id, long message_id) {
 		Session session = sessionFactory.getCurrentSession();
 		
 		FMessage fmessage = session.get(FMessage.class, message_id);
@@ -334,7 +233,7 @@ public class MessageRepository {
 				.setParameter("room_id", room_id).getResultList()
 				.stream().toList();
 
-    	List<Map.Entry<String, DOutputMessage> > messages = new ArrayList<>(players.size());
+    	List<Map.Entry<UsernamePindex, DOutputMessage> > messages = new ArrayList<>(players.size());
     	
     	for (UsernamePindex player : players) {
     		short player_pindex = player.getPindex();
@@ -353,10 +252,22 @@ public class MessageRepository {
     				(fmessage.getUser() != null)? fmessage.getUser().getUsername() : null, fmessage.getPindex(), fmessage.getChannel().getColor(), acess);
 
     		if (acess != ReadAcess.NoRead)
-    			messages.add(Map.entry(player.getUsername(), output_message));
+    			messages.add(Map.entry(player, output_message));
     	}
 		
 		return messages;
+	}
+
+	@Transactional(isolation = Isolation.READ_COMMITTED)
+	public void addJsonMessage(long room_id, short pindex, String text) {
+		Session session = sessionFactory.getCurrentSession();
+		FRoom room = session.getReference(FRoom.class, room_id);
+		
+		session.createMutationQuery("update FCharacter c set c.messages = concat(c.messages, :text) where c.room = :room and c.pindex = :pindex")
+			.setParameter("room", room)
+			.setParameter("pindex", pindex)
+			.setParameter("text", text + ",")
+			.executeUpdate();
 	}
 }
 

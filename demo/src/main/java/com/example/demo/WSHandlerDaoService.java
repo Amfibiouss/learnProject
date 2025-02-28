@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.example.demo.dto.player.DPlayer;
+import com.example.demo.repositories.MessageRepository;
 import com.example.demo.repositories.PlayerRepository;
 import com.example.demo.repositories.RoomRepository;
 
@@ -20,6 +21,9 @@ public class WSHandlerDaoService {
     
     @Autowired
     PlayerRepository playerRepository;
+    
+    @Autowired
+    MessageRepository messageRepository;
 
 
 	public DPlayer switchOnline(String username) {
@@ -38,8 +42,6 @@ public class WSHandlerDaoService {
 	public Short getPindexByPlayer(String username) {
 		return roomRepository.getPindexByPlayer(username);
 	}
-	
-
 }
 
 

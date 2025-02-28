@@ -38,7 +38,6 @@ import com.example.demo.entities.FChannelFStage;
 import com.example.demo.entities.FChannelFStageId;
 import com.example.demo.entities.FChannelId;
 import com.example.demo.entities.FCharacter;
-import com.example.demo.entities.FCharacterFStage;
 import com.example.demo.entities.FParticipationToken;
 import com.example.demo.entities.FPoll;
 import com.example.demo.entities.FPollFCharacterFStage;
@@ -141,6 +140,7 @@ public class RoomRepository {
         	FCharacter character = new FCharacter();
         	character.setPindex(pindex);
         	character.setRoom(room);
+        	character.setMessages("");
         	session.persist(character);
         	
         	FParticipationToken token = new FParticipationToken();
@@ -168,12 +168,6 @@ public class RoomRepository {
         	reader.setTongueControlledBy(pindex);
         	reader.setEarsControlledBy(pindex);
         	session.persist(reader);
-        	
-			FCharacterFStage character_stage = new FCharacterFStage();
-			character_stage.setCharacter(character);
-			character_stage.setStage(fstage);
-			character_stage.setJsonMessages(null);
-			session.persist(character_stage);
     	}
     	
     	return room.getId();
@@ -332,8 +326,6 @@ public class RoomRepository {
 		if (!room.getStatus().equals("processing"))
 			throw new RuntimeException();
 		
-		messageRepository.handleStageMessages(room_id);
-		
 		FStage fstage = new FStage();
 		fstage.setName(state.getStage());
 		fstage.setDate(OffsetDateTime.now());
@@ -430,15 +422,8 @@ public class RoomRepository {
 
     	List <DOutputState> output_states = new ArrayList<>(room.getMax_population());
     	
-    	for (FCharacter character : characters) {
+    	for (FCharacter character : characters) 
     		output_states.add(getCurrentState(session, fchannels, fpolls, room, character.getPindex()));
-    		
-			FCharacterFStage character_stage = new FCharacterFStage();
-			character_stage.setCharacter(character);
-			character_stage.setStage(fstage);
-			character_stage.setJsonMessages(null);
-			session.persist(character_stage);
-    	}
 		
 		List<DOutputMessage> system_messages = messageRepository.handleSystemMessages(state.getMessages(), room_id);
 		
