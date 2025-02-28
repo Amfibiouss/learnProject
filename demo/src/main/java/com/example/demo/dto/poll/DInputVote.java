@@ -2,7 +2,7 @@ package com.example.demo.dto.poll;
 
 import java.util.List;
 
-public class DVote {
+public class DInputVote {
 	private List<Short> selected;
 	
 	private long roomId;

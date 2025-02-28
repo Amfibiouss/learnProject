@@ -16,7 +16,7 @@ import com.example.demo.dto.message.DInputMessage;
 import com.example.demo.dto.message.DOutputMessage;
 import com.example.demo.dto.player.DPlayer;
 import com.example.demo.dto.poll.DCandidateState;
-import com.example.demo.dto.poll.DVote;
+import com.example.demo.dto.poll.DInputVote;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Component

@@ -17,7 +17,7 @@ import com.example.demo.dto.message.DOutputMessage;
 import com.example.demo.dto.player.DPlayer;
 import com.example.demo.dto.poll.DCandidateState;
 import com.example.demo.dto.poll.DPollResult;
-import com.example.demo.dto.poll.DVote;
+import com.example.demo.dto.poll.DInputVote;
 import com.example.demo.dto.state.DInitData;
 import com.example.demo.dto.state.DInputState;
 import com.example.demo.dto.state.DOutputState;
@@ -226,7 +226,7 @@ public class DAOService {
 		}
 	}
 
-	public void sendVote(DVote vote, String username) {
+	public void sendVote(DInputVote vote, String username) {
 		
 		if (!roomRepository.check(vote.getRoomId(), vote.getStage(), vote.getPindex(), username)) 
 			throw new RuntimeException("Ошибка авторизации");

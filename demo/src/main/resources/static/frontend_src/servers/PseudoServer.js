@@ -1,3 +1,5 @@
+import Ajv from "ajv";
+
 class PseudoServer {
 	
 	constructor(onReceiveMessage, 
@@ -16,7 +18,7 @@ class PseudoServer {
 		this.onChangePoll = onChangePoll;
 		this.loadStateAndMessages = loadStateAndMessages;
 		this.room_id = room_id;
-		setTimeout(loadInitialInfo, 100)
+		setTimeout(loadInitialInfo, 100);
 		
 		this.username = document.getElementById("username").value;
 		this.playerCount = Number(document.getElementById("players_limit").value);
@@ -24,7 +26,37 @@ class PseudoServer {
 		this.channels = new Map();
 		this.messages = [];
 		
-		this.init_room_props = JSON.parse(document.getElementById("init_room_props").value);
+		this.init_room_props = JSON.parse(document.getElementById("room_init_props").value);
+		this.message_props = JSON.parse(document.getElementById("message_props").value);
+		this.poll_props = JSON.parse(document.getElementById("poll_props").value);
+		this.room_config_props = JSON.parse(document.getElementById("room_config_props").value)
+		
+		this.json_chemas = {
+			initData: require("../../../json_chemas/DInitData.txt"),
+			inputState: require("../../../json_chemas/DInputState.txt"),
+			inputMessage: require("../../../json_chemas/DInputMessage.txt"),
+			inputVote: require("../../../json_chemas/DInputVote.txt"),
+		};
+		
+		let properties = {
+			room_config_props: this.room_config_props,
+			poll_props: this.poll_props,
+			message_props: this.message_props
+		}	
+		
+		// Шаблонизатор v3000.0
+		let ajv = new Ajv();
+		for (const chema of Object.keys(this.json_chemas)) {
+			let template = this.json_chemas[chema];
+			
+			for (const prop of Object.entries(properties)) {
+				for (const value of Object.entries(prop[1])) {
+					template = template.replaceAll("[(${" + prop[0] + "." + value[0] + "})]", value[1]);
+				}
+			}
+
+			this.json_chemas[chema] = ajv.compile(JSON.parse(template));
+		}
 		
 		this.status = "waiting";
 		this.duration = -1;
@@ -67,10 +99,16 @@ class PseudoServer {
 				}
 			))
 		});
+		
 	}
 	
 	sendVote(data, onSuccess, onError) {
 
+		if (!this.json_chemas.inputVote(data)) {
+			console.log("Переданные данные не корректны");
+			return;
+		}
+		
 		let poll = this.polls.get(data.pollName);
 		let voter = poll.players.find(item => (item.id === data.controlledPindex));
 		
@@ -172,6 +210,11 @@ class PseudoServer {
 	}
 	
 	sendMessage(data, onSuccess, onError) {	
+		
+		if (!this.json_chemas.inputMessage(data)) {
+			console.log("Переданные данные не корректны");
+			return;
+		}
 		
 		let channel = this.channels.get(data.channelName);
 		let channel_player = channel.players[data.controlledPindex];
@@ -316,6 +359,11 @@ class PseudoServer {
 	init(initData, onComplete) {
 		if (this.status !== "waiting")
 			return;
+		
+		if (!this.json_chemas.initData(initData)) {
+			console.log("Переданные данные не корректны");
+			return;
+		}
 
 		for (const channel of initData.channels) {
 			let new_channel = {
@@ -453,6 +501,11 @@ class PseudoServer {
 	update(data) {
 		if (this.status === "finished")
 			return;
+		
+		if (!this.json_chemas.inputState(data)) {
+			console.log("Переданные данные не корректны");
+			return;
+		}
 
 		this.#setState(data);
 		

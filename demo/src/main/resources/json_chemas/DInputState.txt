@@ -8,7 +8,7 @@
 			"maxItems": [(${room_config_props.max_channels})],
 			
 			"items": 
-			[{
+			{
 				"type": "object",
 				"properties": 
 				{
@@ -17,13 +17,11 @@
 					"readers": 
 					{
 						"type": "array",
-						"minItems": [(${playerCount})],
-						"maxItems": [(${playerCount})],
-						"items": [{
+						"items": {
 							"type": "object",
 							"properties": {
-								"tongueControlledBy": {"type": "integer", "minimum": 0, "maximum": [(${playerCount - 1})]},
-								"earsControlledBy": {"type": "integer", "minimum": 0, "maximum": [(${playerCount - 1})]},
+								"tongueControlledBy": {"type": "integer", "minimum": 0},
+								"earsControlledBy": {"type": "integer", "minimum": 0},
 								"canRead": {"type": "boolean"},
 								"canAnonymousRead": {"type": "boolean"},
 								"canXRayRead": {"type": "boolean"},
@@ -31,17 +29,17 @@
 								"canAnonymousWrite": {"type": "boolean"},
 								"canXRayWrite": {"type": "boolean"}
 							}
-						}]
+						}
 					}
 				}
-			}]
+			}
 		},
 		
 		"pollStates": {
 			"type": "array",
 			"maxItems": [(${room_config_props.max_polls})],
 			"items": 
-			[{
+			{
 				"type": "object",
 				"properties": 
 				{
@@ -50,26 +48,24 @@
 					"candidates": 
 					{
 						"type": "array",
-						"minItems": [(${playerCount})],
-						"maxItems": [(${playerCount})],
-						"items": [{
+						"items": {
 							"type": "object",
 							"properties": {
 								"name": {"type": "string", "maxLength": [(${poll_props.max_candidate_name_length})]},
 								"weight": {"type": "integer"},
-								"controlledBy": {"type": "integer", "minimum": 0, "maximum": [(${playerCount - 1})]},
+								"controlledBy": {"type": "integer", "minimum": 0},
 								"canVote": {"type": "boolean"},
 								"candidates": {"type": "integer"}
 							}
-						}]						
+						}					
 					}
 				}
-			}]
+			}
 		},
 		
 		"messages": {
 			"type": "array",
-			"items": [{"type": "string", "maxLength": [(${message_props.max_system_message_length})]}]
+			"items": {"type": "string", "maxLength": [(${message_props.max_system_message_length})]}
 		},
 		
 		"finish": {"type": "boolean"},

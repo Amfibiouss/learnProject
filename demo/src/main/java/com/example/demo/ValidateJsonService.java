@@ -59,7 +59,7 @@ public class ValidateJsonService {
 	}
 	
 	public <T> T validateAndParse(String json, Class<T> className, Map<String, Object> extraProps){
-		String location = path_prefix + className.getSimpleName() + ".json";
+		String location = path_prefix + className.getSimpleName() + ".txt";
 		InputStream stream = ValidateJsonService.class.getClassLoader().getResourceAsStream(location);
 		String template;
 		

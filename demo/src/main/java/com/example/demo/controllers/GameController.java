@@ -18,7 +18,7 @@ import com.example.demo.ValidateJsonService;
 import com.example.demo.dto.message.DInputMessage;
 import com.example.demo.dto.message.DMessages;
 import com.example.demo.dto.poll.DPollResult;
-import com.example.demo.dto.poll.DVote;
+import com.example.demo.dto.poll.DInputVote;
 import com.example.demo.dto.state.DInitData;
 import com.example.demo.dto.state.DInputState;
 import com.example.demo.dto.state.DOutputState;
@@ -72,7 +72,7 @@ public class GameController {
 							HttpServletResponse response,
 							@RequestBody String json) {
 		
-		DVote vote = validateJsonService.validateAndParse(json, DVote.class, null);
+		DInputVote vote = validateJsonService.validateAndParse(json, DInputVote.class, null);
 		
 		try {
 			//throw new RuntimeException("Ошибка авторизации");
@@ -173,15 +173,14 @@ public class GameController {
 	public void setNewState(Principal principal, 
 								HttpServletResponse response,
 								@PathVariable long room_id,
-								@RequestBody String json,
-								@RequestParam short playerCount) {
+								@RequestBody String json) {
 		
 		if (dAOService.getRoomIdByCreator(principal.getName()) != room_id) {
 			response.setStatus(403);
 			return;
 		}
 		
-		DInputState state = validateJsonService.validateAndParse(json, DInputState.class, Map.of("playerCount", playerCount));
+		DInputState state = validateJsonService.validateAndParse(json, DInputState.class, null);
 		
 		dAOService.updateRoom(room_id, state);
 		return;

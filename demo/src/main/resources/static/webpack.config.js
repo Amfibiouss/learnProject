@@ -22,6 +22,11 @@ module.exports = {
 	        	
 	    	},
 			
+			{	
+				test: /\.txt$/, 
+				loader: "text-loader" 
+			},
+			
 			{
 				test: /\.css$/,
 			    use: [

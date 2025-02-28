@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import com.example.demo.DAOService;
+import com.example.demo.configs.MessageProperties;
+import com.example.demo.configs.PollProperties;
 import com.example.demo.configs.RoomConfigProperties;
 import com.example.demo.configs.RoomInfoProperties;
 import com.example.demo.configs.RoomInitProperties;
@@ -33,6 +35,12 @@ public class MainPageController {
 	RoomInfoProperties roomInfoProperties;
 	
 	@Autowired
+	MessageProperties messageProperties;
+	
+	@Autowired
+	PollProperties pollProperties;
+	
+	@Autowired
 	ObjectMapper objectMapper;
 	
 	@GetMapping("/public/game/{room_id}")
@@ -45,7 +53,7 @@ public class MainPageController {
 		model.addAttribute("room_id", room_id);
 		model.addAttribute("players_limit", room.getMax_population());
 		
-		model.addAttribute("config_room_props", roomConfigProperties.toString());
+		model.addAttribute("room_config_props", roomConfigProperties.toString());
 		
 		return "index";
 	}
@@ -63,8 +71,10 @@ public class MainPageController {
 		model.addAttribute("room_id", -1);
 		model.addAttribute("players_limit", limit);
 		
-		model.addAttribute("config_room_props", roomConfigProperties.toString());
-		model.addAttribute("init_room_props", roomInitProperties.toString());
+		model.addAttribute("room_config_props", roomConfigProperties.toString());
+		model.addAttribute("room_init_props", roomInitProperties.toString());
+		model.addAttribute("message_props", messageProperties.toString());
+		model.addAttribute("poll_props", pollProperties.toString());
 		
 		return "index";
 	}
@@ -73,7 +83,7 @@ public class MainPageController {
 	public String getRoomsPage(Model model, Principal principal) {
 		model.addAttribute("username", (principal == null)? "" : principal.getName());
 		
-		model.addAttribute("config_room_props", roomConfigProperties.toString());
+		model.addAttribute("room_config_props", roomConfigProperties.toString());
 		model.addAttribute("room_info_props", roomInfoProperties.toString());
 		
 		return "index";

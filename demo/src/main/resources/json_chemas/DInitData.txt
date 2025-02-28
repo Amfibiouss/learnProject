@@ -7,21 +7,21 @@
 			"type": "array",
 			"maxItems": [(${room_config_props.max_channels})],
 			"items": 
-			[{
+			{
 				"type": "object",
 				"properties": 
 				{
 					"id": {"type": "string", "maxLength": [(${room_config_props.max_channel_name_length})]},
 					"color": {"type": "string", "pattern": "^#([a-z0-9]{6})$"}
 				}
-			}]
+			}
 		},
 		
 		"polls": {
 			"type": "array",
 			"maxItems": [(${room_config_props.max_polls})],
 			"items":
-			[{
+			{
 				"type": "object",
 				"properties": 
 				{
@@ -32,7 +32,7 @@
 					"channel": {"type": "string", "maxLength": [(${room_config_props.max_channel_name_length})]},
 					"showVotes": {"type": "boolean"}
 				}
-			}]
+			}
 		}
 	}
 }

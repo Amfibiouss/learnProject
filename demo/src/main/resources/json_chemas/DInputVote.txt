@@ -4,7 +4,7 @@
 	"properties": {
 		"selected": {
 			"type": "array", 
-			"maxLength": [(${poll_props.max_selection})],
+			"maxItems": [(${poll_props.max_selection})],
 			"items": {"type": "integer"}
 		},
 		"roomId": {"type": "integer"},

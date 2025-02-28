@@ -144,7 +144,7 @@ class RealServer {
 	#sendState(data, operation, onComplete) {
 		
 		let url = "/api/room/" + this.room_id + "/";
-		url += operation + ((operation === "update")? "?" + new URLSearchParams({playerCount: this.playerCount}) : "");
+		url += operation;
 		
 		let csrf_token = document.getElementById("_csrf").value;
 				

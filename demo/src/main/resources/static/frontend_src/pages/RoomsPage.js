@@ -298,7 +298,7 @@ class CreateForm extends React.Component {
 				this.setState({error: "Введенные данные не являются json обьектом."});
 				return;
 			}
-			let config_room_props = JSON.parse(document.getElementById("config_room_props").value);
+			let config_room_props = JSON.parse(document.getElementById("room_config_props").value);
 			let checker = new ConfigChecker(config_room_props);
 			
 			if(!checker.checkConfig(config)) {
